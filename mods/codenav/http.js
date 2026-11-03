@@ -110,7 +110,9 @@ export async function runHttp(path, lines, envs, req, after) {
   const text = [...(req ? [] : lines.slice(0, reqs[0]?.start ?? 0)), ...reqs.flatMap((r, i) => withGlobals(lines.slice(r.start, r.end), saved, names, i === 0))].join("\n") + "\n";
   const tmp = await freshPath(dir, ".http"), report = tmp && await freshPath(dir, "", true);
   if (!tmp || !report) { if (tmp) exec("rm", ["-f", tmp]).catch(() => {}); return; }
-  await writeTextFile(tmp, text, null);
+  // It exists already (empty, private): replace that, then keep it private.
+  try { await writeTextFile(tmp, text, ""); } catch { exec("rm", ["-rf", tmp, report]).catch(() => {}); return; }
+  await exec("chmod", ["600", tmp]).catch(() => {});
   // The copy holds kept values: gone when the run ends, even by Ctrl+C.
   runConfig({ name: "HTTP", command: `(trap ${sq(`rm -f ${sq(tmp)}`)} EXIT INT TERM; ${opts} -r ${sq(report)} ${sq(tmp)})`, folder: dir }, after);
   // The run's report, once written: the globals it ended with.
