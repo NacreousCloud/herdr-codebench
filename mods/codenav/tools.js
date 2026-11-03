@@ -34,6 +34,13 @@ export const SIDES = {
   bottom: { column: "terminal-panel", stack: "bottom-stack", empty: "bottom-empty", bar: "bottom-bar", label: "Bottom" },
 };
 
+// Layout radii don't clip a mod's background. Keep the last 10px of each
+// tool island outside its content stack, including Herdr's shipped Agents view.
+const islandFoot = (side) => ({
+  id: `island-${side}-bottom`, type: "block", size: { px: 10 }, min: 10, max: 10,
+  background: "canvas", content: { mod: "codenav", props: { view: "islandbottom" } },
+});
+
 // Which side a tool window is on now: the stack holding it.
 export function sideOf(name) {
   const l = layout(), child = TOOLS[name]?.child;
@@ -139,7 +146,8 @@ export class Stripe {
   addMissing(cx) {
     const l = layout(), sides = savedSides();
     const missing = Object.keys(TOOLS).filter((n) => !sideOf(n) && find(l, SIDES[sides[n] ?? "bottom"]?.stack));
-    if (!missing.length || this.adding) return;
+    const edges = Object.keys(SIDES).filter((k) => find(l, SIDES[k].column) && !find(l, `island-${k}-bottom`));
+    if ((!missing.length && !edges.length) || this.adding) return;
     this.adding = true;
     cx.timer.after(0, () => {
       this.adding = false;
@@ -148,6 +156,10 @@ export class Stripe {
         const stack = find(tree, SIDES[sides[n] ?? "bottom"].stack);
         if (stack && !stack.children.some((c) => c.id === TOOLS[n].child))
           stack.children = [...stack.children, { id: TOOLS[n].child, type: "block", content: TOOLS[n].content ?? { mod: "codenav", props: { view: n } } }];
+      }
+      for (const k of edges) {
+        const column = find(tree, SIDES[k].column);
+        if (column && !find(tree, `island-${k}-bottom`)) column.children.push(islandFoot(k));
       }
       run("layout.set", { layout: tree });
     });
@@ -161,6 +173,11 @@ export class Stripe {
       .child(div().flex_1())
       .children(bottom.map((n) => this.button(n, t)));
   }
+}
+
+export class IslandBottom {
+  init() {}
+  render() { return div().size_full().bg(theme().surface).rounded_b(10); }
 }
 
 // A stripe button's right-click menu: move to another side, or hide.

@@ -138,6 +138,22 @@
                   "radius": 10
                 }
               ]
+            },
+            {
+              "id": "island-left-bottom",
+              "type": "block",
+              "size": {
+                "px": 10
+              },
+              "min": 10,
+              "max": 10,
+              "background": "canvas",
+              "content": {
+                "mod": "codenav",
+                "props": {
+                  "view": "islandbottom"
+                }
+              }
             }
           ],
           "radius": 10
@@ -299,6 +315,22 @@
                       "radius": 10
                     }
                   ]
+                },
+                {
+                  "id": "island-bottom-bottom",
+                  "type": "block",
+                  "size": {
+                    "px": 10
+                  },
+                  "min": 10,
+                  "max": 10,
+                  "background": "canvas",
+                  "content": {
+                    "mod": "codenav",
+                    "props": {
+                      "view": "islandbottom"
+                    }
+                  }
                 }
               ],
               "min": 60,
@@ -352,6 +384,22 @@
                   "radius": 10
                 }
               ]
+            },
+            {
+              "id": "island-right-bottom",
+              "type": "block",
+              "size": {
+                "px": 10
+              },
+              "min": 10,
+              "max": 10,
+              "background": "canvas",
+              "content": {
+                "mod": "codenav",
+                "props": {
+                  "view": "islandbottom"
+                }
+              }
             }
           ],
           "radius": 10
