@@ -46,7 +46,8 @@
           "content": {
             "mod": "codenav",
             "props": {
-              "view": "stripe"
+              "view": "stripe",
+              "side": "left"
             }
           }
         },
@@ -60,6 +61,20 @@
           "max": 640,
           "background": "chrome",
           "children": [
+            {
+              "id": "left-bar",
+              "type": "block",
+              "size": {
+                "px": 32
+              },
+              "content": {
+                "mod": "codenav",
+                "props": {
+                  "view": "toolheader",
+                  "side": "left"
+                }
+              }
+            },
             {
               "id": "sidebar-views",
               "type": "stack",
@@ -105,165 +120,227 @@
                       "view": "search"
                     }
                   }
+                },
+                {
+                  "id": "left-empty",
+                  "type": "block",
+                  "content": {
+                    "mod": "codenav",
+                    "props": {
+                      "view": "toolempty"
+                    }
+                  }
                 }
               ]
             }
           ]
         },
         {
-          "id": "work",
+          "id": "work-body",
           "type": "column",
+          "divider": {
+            "width": 1,
+            "color": "border"
+          },
           "children": [
             {
-              "id": "work-body",
+              "id": "editor-area",
               "type": "column",
-              "divider": {
+              "children": [
+                {
+                  "id": "editor-tabs",
+                  "type": "block",
+                  "content": {
+                    "mod": "codenav",
+                    "props": {
+                      "view": "tabs"
+                    }
+                  },
+                  "size": {
+                    "px": 32
+                  }
+                },
+                {
+                  "id": "editor-stack",
+                  "type": "stack",
+                  "children": [
+                    {
+                      "id": "editor-code",
+                      "type": "block",
+                      "content": {
+                        "mod": "codenav",
+                        "props": {
+                          "view": "code",
+                          "slot": true
+                        }
+                      }
+                    },
+                    {
+                      "id": "editor-text",
+                      "type": "block",
+                      "content": {
+                        "mod": "activity",
+                        "props": {
+                          "view": "editor",
+                          "slot": true
+                        }
+                      }
+                    },
+                    {
+                      "id": "editor-review",
+                      "type": "block",
+                      "content": {
+                        "mod": "codenav",
+                        "props": {
+                          "view": "review",
+                          "part": "main"
+                        }
+                      }
+                    }
+                  ],
+                  "active": "editor-code"
+                }
+              ],
+              "size": {
+                "weight": 3
+              },
+              "min": 140,
+              "background": "background",
+              "border": {
                 "width": 1,
                 "color": "border"
               },
+              "radius": 10
+            },
+            {
+              "id": "terminal-panel",
+              "type": "column",
+              "size": {
+                "weight": 2
+              },
               "children": [
                 {
-                  "id": "editor-area",
-                  "type": "column",
-                  "children": [
-                    {
-                      "id": "editor-tabs",
-                      "type": "block",
-                      "content": {
-                        "mod": "codenav",
-                        "props": {
-                          "view": "tabs"
-                        }
-                      },
-                      "size": {
-                        "px": 32
-                      }
-                    },
-                    {
-                      "id": "editor-stack",
-                      "type": "stack",
-                      "children": [
-                        {
-                          "id": "editor-code",
-                          "type": "block",
-                          "content": {
-                            "mod": "codenav",
-                            "props": {
-                              "view": "code",
-                              "slot": true
-                            }
-                          }
-                        },
-                        {
-                          "id": "editor-text",
-                          "type": "block",
-                          "content": {
-                            "mod": "activity",
-                            "props": {
-                              "view": "editor",
-                              "slot": true
-                            }
-                          }
-                        },
-                        {
-                          "id": "editor-review",
-                          "type": "block",
-                          "content": {
-                            "mod": "codenav",
-                            "props": {
-                              "view": "review",
-                              "part": "main"
-                            }
-                          }
-                        }
-                      ],
-                      "active": "editor-code"
-                    }
-                  ],
+                  "id": "bottom-bar",
+                  "type": "block",
                   "size": {
-                    "weight": 3
+                    "px": 32
                   },
-                  "min": 140,
-                  "background": "background",
-                  "border": {
-                    "width": 1,
-                    "color": "border"
-                  },
-                  "radius": 10
+                  "content": {
+                    "mod": "codenav",
+                    "props": {
+                      "view": "toolheader",
+                      "side": "bottom"
+                    }
+                  }
                 },
                 {
-                  "id": "terminal-panel",
-                  "type": "column",
-                  "size": {
-                    "weight": 2
-                  },
+                  "id": "bottom-stack",
+                  "type": "stack",
+                  "active": "bottom-terminal",
                   "children": [
                     {
-                      "id": "bottom-bar",
+                      "id": "bottom-terminal",
                       "type": "block",
-                      "size": {
-                        "px": 32
-                      },
                       "content": {
-                        "mod": "codenav",
-                        "props": {
-                          "view": "bottombar"
+                        "tab": "active",
+                        "pane": {
+                          "background": "background",
+                          "border": {
+                            "width": 1,
+                            "color": "border"
+                          },
+                          "focus": {
+                            "width": 1,
+                            "color": "accent"
+                          },
+                          "radius": 6,
+                          "gap": 6
                         }
                       }
                     },
                     {
-                      "id": "bottom-stack",
-                      "type": "stack",
-                      "active": "bottom-terminal",
-                      "children": [
-                        {
-                          "id": "bottom-terminal",
-                          "type": "block",
-                          "content": {
-                            "tab": "active",
-                            "pane": {
-                              "header": {
-                                "content": {
-                                  "mod": "codenav",
-                                  "props": {
-                                    "view": "panehead"
-                                  }
-                                },
-                                "reveal": "hover",
-                                "height": 28,
-                                "position": "top"
-                              },
-                              "background": "background",
-                              "border": {
-                                "width": 1,
-                                "color": "border"
-                              },
-                              "focus": {
-                                "width": 1,
-                                "color": "accent"
-                              },
-                              "radius": 6,
-                              "gap": 6
-                            }
-                          }
-                        },
-                        {
-                          "id": "bottom-problems",
-                          "type": "block",
-                          "content": {
-                            "mod": "codenav",
-                            "props": {
-                              "view": "problems"
-                            }
-                          }
+                      "id": "bottom-problems",
+                      "type": "block",
+                      "content": {
+                        "mod": "codenav",
+                        "props": {
+                          "view": "problems"
                         }
-                      ]
+                      }
+                    },
+                    {
+                      "id": "bottom-empty",
+                      "type": "block",
+                      "content": {
+                        "mod": "codenav",
+                        "props": {
+                          "view": "toolempty"
+                        }
+                      }
                     }
                   ]
                 }
               ]
             }
           ]
+        },
+        {
+          "id": "tool-right",
+          "type": "column",
+          "size": {
+            "px": 300
+          },
+          "min": 160,
+          "max": 640,
+          "hidden": true,
+          "background": "chrome",
+          "children": [
+            {
+              "id": "right-bar",
+              "type": "block",
+              "size": {
+                "px": 32
+              },
+              "content": {
+                "mod": "codenav",
+                "props": {
+                  "view": "toolheader",
+                  "side": "right"
+                }
+              }
+            },
+            {
+              "id": "right-views",
+              "type": "stack",
+              "active": "right-empty",
+              "children": [
+                {
+                  "id": "right-empty",
+                  "type": "block",
+                  "content": {
+                    "mod": "codenav",
+                    "props": {
+                      "view": "toolempty"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "stripe-right",
+          "type": "block",
+          "size": {
+            "px": 40
+          },
+          "content": {
+            "mod": "codenav",
+            "props": {
+              "view": "stripe",
+              "side": "right"
+            }
+          }
         }
       ]
     },
