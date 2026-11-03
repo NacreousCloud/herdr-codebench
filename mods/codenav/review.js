@@ -455,7 +455,8 @@ export default class Review {
           if (r.code !== 0) throw new Error(r.stderr.trim() || "hc send failed");
         } else {
           await copyText(text);
-          if (how === "paste") { run("pane.focus", { pane: to.pane }); run("terminal.paste"); }
+          // Focus lands on the next frame; pasting at once would go to this view.
+          if (how === "paste") { run("pane.focus", { terminal: to.terminal }); await exec("sleep", ["0.15"]); run("terminal.paste"); }
         }
         this.note = null;
         notify({ title: how === "copy" ? T("Review copied") : T(how === "send" ? "Review sent to {name}" : "Review pasted to {name}", { name: to.name }), body: T("{n} comments", { n: comments.length }), level: "success", timeout: 3000 });
