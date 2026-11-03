@@ -12,7 +12,7 @@ import { div } from "gpui-kit";
 import { v_flex, h_flex, InputState, Input } from "gpui-base";
 import { theme, props, closeOverlay, openOverlay, exec, run, commands, keys, shared, settings } from "herdr";
 import { T } from "./i18n.js";
-import { icon, location, openPath, editorSpec, editorKey, basename, tilde } from "./common.js";
+import { icon, location, openPath, editorSpec, editorKey, basename, tilde, uiFontFamily } from "./common.js";
 import { lsp } from "./lsp.js";
 
 const TABS = ["all", "classes", "files", "symbols", "actions", "text"];
@@ -245,7 +245,7 @@ export class Everywhere {
       .text_color(m === this.mode ? t.foreground : t.muted).hover((e) => e.text_color(t.foreground))
       .on_click((_e, cx) => { this.setMode(m, cx); this.input.focus(); }).child(T(LABEL[m]));
     return v_flex().id("cn-everywhere").size_full().bg(t.popover).text_color(t.foreground).text_size(13)
-      .font_family(settings().ui_font ?? "Geist")
+      .font_family(uiFontFamily())
       .on_key_down((e, cx) => {
         if (e.key === "down") this.move(list, 1);
         else if (e.key === "up") this.move(list, -1);

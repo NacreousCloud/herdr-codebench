@@ -20,7 +20,8 @@ import { peek } from "./lsp.js";
 // Keys bound in keys.json's terminal section (programs in Kitty keyboard mode
 // would get them otherwise): what each does in the shown layout.
 const TERM_KEYS = {
-  idea: { "cmd-shift-o": "find-file", "cmd-o": "find-class", "cmd-alt-o": "find-symbol", "cmd-shift-a": "find-action", "cmd-e": "find-recent" },
+  // Cmd+Shift+O in a terminal: the files it names; elsewhere (layout:idea) Go to File.
+  idea: { "cmd-shift-o": "terminal-files", "cmd-o": "find-class", "cmd-alt-o": "find-symbol", "cmd-shift-a": "find-action", "cmd-e": "find-recent" },
   codebench: { "cmd-shift-o": "terminal-files" },
 };
 function termKey(key) {

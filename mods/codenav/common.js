@@ -3,7 +3,7 @@
 import { div, svg } from "gpui-kit";
 import { h_flex } from "gpui-base";
 import { T } from "./i18n.js";
-import { spaces, panes, focused, run, shared, setShared, layout, theme, home, exec, writeTextFile, appHome } from "herdr";
+import { spaces, panes, focused, run, shared, setShared, layout, theme, home, exec, writeTextFile, appHome, settings } from "herdr";
 
 const MOD = "codenav";
 export const icon = (name, size = 16) => svg(`mods/${MOD}/icons/${name}.svg`).size(size).flex_none();
@@ -126,6 +126,14 @@ export function emptyEditor(t) {
 export const tilde = (p) => { const h = home(); return p?.startsWith(h + "/") ? "~" + p.slice(h.length) : p; };
 export const basename = (p) => (p ?? "").split("/").filter(Boolean).pop() ?? "";
 export const ext = (p) => { const b = basename(p); return b.includes(".") ? b.split(".").pop().toLowerCase() : ""; };
+
+// The person's fonts (Settings → Look): code in the code font and its size, rows
+// tall enough for it; panels in the UI font.
+export function codeFont() {
+  const st = settings(), size = Number(st.font_size) || 13;
+  return { family: st.font_family ?? "JetBrains Mono", size, row: Math.round(size * 1.55) };
+}
+export const uiFontFamily = () => settings().ui_font_family ?? "Geist";
 
 // Syntax categories (bridge/lsp_bridge.py `tokens`) to theme colors.
 // The idea layout: IntelliJ's dark editor colors.

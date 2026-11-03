@@ -22,11 +22,9 @@ import { tabBack, tabForward } from "./tabs.js";
 import { openEverywhere } from "./everywhere.js";
 import {
   iconButton, button, editorKey, editorSpec, setEditorSpec, CHILD, STACK, hasArea, measureFont,
-  syntaxColors, expandTabs, displayWidth, offsetAt, wordAt, tilde, sectionHeader, copyText, find, emptyEditor, doubleShift,
+  syntaxColors, expandTabs, displayWidth, offsetAt, wordAt, tilde, sectionHeader, copyText, find, emptyEditor, doubleShift, codeFont,
 } from "./common.js";
 
-const ROW = 20;
-const FONT = 13;
 const PAD = 12;
 const MAX_LINE = 2000;
 export const KIND = { class: "C", struct: "S", interface: "I", enum: "E", function: "ƒ", method: "m", constructor: "c", field: "f", property: "p", variable: "v", constant: "K", module: "M", namespace: "N", package: "P", "type parameter": "T", "enum member": "e" };
@@ -35,7 +33,7 @@ export default class CodeView {
   init(_p, cx) {
     this.lines = []; this.toks = null; this.diags = []; this.symbols = []; this.refs = null;
     // The idea layout has a Structure tool window instead.
-    this.cw = FONT * 0.6; this.outline = !find(layout(), "view-structure");
+    this.cw = codeFont().size * 0.6; this.outline = !find(layout(), "view-structure");
     this.scroll = new Scroller();
     this.focus = cx.focus_handle();
     this.find = InputState.new({ placeholder: T("Find") });
@@ -215,7 +213,8 @@ export default class CodeView {
   items() {
     const comments = this.fileComments();
     const key = JSON.stringify(comments.map((c) => [c.id, c.end, c.body]));
-    if (this.itemsCache?.lines === this.lines && this.itemsCache.key === key) return this.itemsCache.items;
+    const rowH = codeFont().row;
+    if (this.itemsCache?.lines === this.lines && this.itemsCache.key === key && this.itemsCache.rowH === rowH) return this.itemsCache.items;
     const after = new Map();
     for (const c of comments) {
       const at = Math.min(Math.max(c.end - 1, 0), Math.max(this.lines.length - 1, 0));
@@ -228,9 +227,9 @@ export default class CodeView {
       items.push({ line: i });
       for (const c of after.get(i) ?? []) items.push({ c });
     });
-    this.scroll.setHeights(items.map((it) => it.c ? commentHeight(it.c) : ROW));
+    this.scroll.setHeights(items.map((it) => it.c ? commentHeight(it.c) : rowH));
     this.itemIndex = index;
-    this.itemsCache = { lines: this.lines, key, items };
+    this.itemsCache = { lines: this.lines, key, items, rowH };
     return items;
   }
 
@@ -541,7 +540,7 @@ export default class CodeView {
     const worst = diags.length ? Math.min(...diags.map((d) => d.severity ?? 1)) : 0;
     const current = this.sel?.line === i;
     const c = this.comment.draft, picked = c && c.path === this.rel() && i + 1 >= c.start && i + 1 <= c.end;
-    return h_flex().h(ROW).w_full().flex_none().whitespace_nowrap()
+    return h_flex().h(codeFont().row).w_full().flex_none().whitespace_nowrap()
       .when(current, (e) => e.bg(t.hover))
       .when(this.flash === i && !current, (e) => e.bg(t.accent + "22"))
       .when(Boolean(picked), (e) => e.bg(t.accent + "33"))
@@ -625,7 +624,7 @@ export default class CodeView {
           .child(v_virtual_list("cn-refs", items.length, 22, (i) => String(i), (range) => items.slice(range.start, range.end).map((it) =>
             h_flex().h(22).w_full().px(12).gap(10).items_center().text_size(12).whitespace_nowrap()
               .child(div().flex_none().max_w(360).truncate().text_color(t.muted).child(`${where(it.path)}:${it.line + 1}`))
-              .child(div().flex_1().min_w(0).truncate().font_family(settings().font_family ?? "JetBrains Mono").child(it.text ?? ""))))
+              .child(div().flex_1().min_w(0).truncate().font_family(codeFont().family).child(it.text ?? ""))))
             .size_full().on_item_click((k, cx) => { const it = items[+k]; if (it) this.open(it, cx); cx.notify(); }))
           .child(Scrollbar.vertical("cn-refs").absolute().inset_0()));
   }
@@ -677,9 +676,9 @@ export default class CodeView {
   render(cx) {
     this.sync(cx);
     this.publish(cx);
-    const t = theme(), s = this.shown, font = settings().font_family ?? "JetBrains Mono";
+    const t = theme(), s = this.shown, font = codeFont().family;
     const colors = syntaxColors(t);
-    const measure = measureFont(this, font, FONT);
+    const measure = measureFont(this, font, codeFont().size);
     let body;
     if (!s) body = div().id("cn-empty").size_full().on_mouse_down("left", () => this.focus.focus()).child(emptyEditor(t));
     else if (this.error) body = v_flex().p(16).gap(10).text_color(t.dim).child(this.error)
@@ -689,7 +688,7 @@ export default class CodeView {
     this.commented = new Set(this.fileComments().flatMap((c) => Array.from({ length: c.end - c.start + 1 }, (_, k) => c.start + k)));
     if (s && !this.error && !(this.loading && !this.lines.length)) body = h_flex().flex_1().min_h(0)
       .child(v_flex().flex_1().min_w(0).h_full()
-        .child(div().flex_1().min_h(0).flex().font_family(font).text_size(FONT).bg(t.background)
+        .child(div().flex_1().min_h(0).flex().font_family(font).text_size(codeFont().size).bg(t.background)
           .child(this.scroll.view("cn-view", t, this.gutter() + PAD + this.width * this.cw + 40, (k) => this.item(items[k], t, colors),
             () => { this.dragging = null; this.gutterDrag = null; })))
         .child(this.comment.panel(t, this.rkey(), (cx) => cx.notify(), T("Comments go to the Review list, sent to the agent together")) ?? this.refsPanel(t) ?? this.infoBar(t) ?? div()))

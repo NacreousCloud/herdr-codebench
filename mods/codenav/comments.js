@@ -5,7 +5,7 @@ import { div } from "gpui-kit";
 import { v_flex, h_flex, TextareaState, Textarea } from "gpui-base";
 import { shared, setShared, settings } from "herdr";
 import { T } from "./i18n.js";
-import { icon, button } from "./common.js";
+import { icon, button, uiFontFamily } from "./common.js";
 
 const KEY = "codenav.reviews";
 export const repoKey = (on, root) => `${on ?? ""}:${root}`;
@@ -24,7 +24,7 @@ const linesLabel = (c) => c.end !== c.start ? T("lines {start}-{end} · click to
 export function commentCard(t, c, { prefix = "", warn = false, pl = 16 } = {}) {
   return v_flex().w_full().pl(pl).pr(16).py(5).flex_none()
     .child(v_flex().max_w(760).px(10).py(6).gap(2).rounded(6).border_1().border_color(t.accent + "66").bg(t.accent + "12")
-      .font_family(settings().ui_font ?? "Geist").text_size(12.5)
+      .font_family(uiFontFamily()).text_size(12.5)
       .child(div().text_size(11).text_color(warn ? t.ansi3 : t.muted).child(`${prefix}${c.side === "old" ? T("removed ") : ""}${linesLabel(c)}`))
       .child(div().whitespace_normal().child(c.body)));
 }

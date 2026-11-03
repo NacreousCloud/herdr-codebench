@@ -13,7 +13,7 @@ import { CommentBox, commentCard, commentHeight, commentsOf, repoKey, repoStore,
 import { exec, hc, readTextFile, theme, settings, shared, setShared, run, notify, watchFolder, spaces } from "herdr";
 import {
   icon, iconButton, button, sectionHeader, location, targets, setEditorSpec, editorKey, showEditor, showReview,
-  expandTabs, basename, ext, colorize, syntaxColors, offsetAt, wordAt, openPath, measureFont, copyText, emptyEditor, doubleShift
+  expandTabs, basename, ext, colorize, syntaxColors, offsetAt, wordAt, openPath, measureFont, copyText, emptyEditor, doubleShift, codeFont
  } from "./common.js";
 
 const SEP = "\n@@CODENAV@@\n";
@@ -24,7 +24,6 @@ const MAX_ROWS = 20000;
 const GUTTER = 111;
 // Where a row's code starts (after both numbers and the +/- sign).
 const TEXT_X = 135;
-const FONT = 12.5;
 
 // Repository, branch, branches and the remote's default branch, in one round trip.
 const REPO = `cd "$1" 2>/dev/null || { echo "No such folder: $1" >&2; exit 2; }
@@ -207,7 +206,7 @@ export default class Review {
   pickWord(item, x, mods, cx) {
     const r = item.r;
     if (!this.lspOk || r.b === undefined || x < TEXT_X) { this.lspSel = null; return; }
-    const col = offsetAt(r.text, Math.max(0, Math.floor((x - TEXT_X) / (this.cw ?? FONT * 0.6))));
+    const col = offsetAt(r.text, Math.max(0, Math.floor((x - TEXT_X) / (this.cw ?? codeFont().size * 0.6))));
     const w = wordAt(r.text, col);
     if (!w) { this.lspSel = null; return; }
     this.lspSel = { i: item.i, line: r.b - 1, col: w.start, word: w.word, hover: null, refs: null };
@@ -269,7 +268,7 @@ export default class Review {
           h_flex().id(`rv-l-r-${k}`).h(22).gap(10).items_center().text_size(12).cursor_pointer().hover((s) => s.bg(t.hover))
             .on_click(() => openPath(`${it.path}:${it.line + 1}:${it.col + 1}`))
             .child(div().flex_none().max_w(360).truncate().text_color(t.muted).child(`${where(it.path)}:${it.line + 1}`))
-            .child(div().flex_1().min_w(0).truncate().font_family(settings().font_family ?? "JetBrains Mono").child(it.text ?? "")))))
+            .child(div().flex_1().min_w(0).truncate().font_family(codeFont().family).child(it.text ?? "")))))
         .when(!sel.refs?.length && Boolean(md), (e) => e.child(TextView.markdown("rv-l-hover", md).selectable().text_size(12.5)))
         .when(!sel.refs?.length && Boolean(sel.hover?.error), (e) => e.child(div().text_size(12).text_color(t.dim).child(sel.hover.error))));
   }
@@ -592,9 +591,10 @@ export default class Review {
   }
 
   diff(t) {
-    const font = settings().font_family ?? "JetBrains Mono";
+    const font = codeFont().family;
     const items = this.view();
-    const sizes = items.map((it) => it.type === "comment" ? commentHeight(it.c) : it.r.kind === "@" ? 26 : 20);
+    const rowH = codeFont().row;
+    const sizes = items.map((it) => it.type === "comment" ? commentHeight(it.c) : it.r.kind === "@" ? rowH + 6 : rowH);
     const c = this.comment.draft;
     const inRange = (it) => {
       const r = it.r;
@@ -613,14 +613,14 @@ export default class Review {
         button("rv-comment", T("Comment"), (_e, cx) => this.selectRows(this.cur, this.cur, cx), { tip: T("Comment on the selected line (or drag over line numbers)") })))
       .child(iconButton("rv-full", "eye", this.full ? T("Show changes only") : T("Show the whole file"), (_e, cx) => { this.full = !this.full; cx.spawn(async (cx) => { await this.loadDiff(cx); cx.notify(); }); }, { color: this.full ? t.accent : undefined }))
       .when(Boolean(file) && file.status !== "D", (e) => e.child(iconButton("rv-open", "external", T("Open the file"), () => this.openFile(this.selected, c?.start ?? lineOf(this.rows.find((r) => r.kind === "+") ?? {}) ?? 1))));
-    const measure = measureFont(this, font, FONT);
+    const measure = measureFont(this, font, codeFont().size);
     let body;
     if (this.error) body = div().p(16).text_color(t.dim).child(this.error);
     else if (!this.selected) body = div().p(16).text_color(t.dim).child(this.loading ? T("Loading…") : T("No changes against {base}.", { base: this.base ?? "" }));
     else if (this.binary) body = div().p(16).text_color(t.dim).child(T("No text diff (binary, empty, or only a mode change)."));
     else {
       this.scroll.setHeights(sizes);
-      body = div().flex_1().min_h(0).flex().font_family(font).text_size(FONT)
+      body = div().flex_1().min_h(0).flex().font_family(font).text_size(codeFont().size)
         .child(this.scroll.view("rv-diff", t, this.width ?? 400, (k) => {
           const it = items[k];
           return this.item(it, t, inRange).id(it.type === "comment" ? `rv-c-${it.c.id}` : `rv-r-${it.i}`)
@@ -646,7 +646,7 @@ export default class Review {
     const num = (n) => div().w(44).flex_none().text_right().text_color(t.dim).cursor_pointer().child(n === undefined ? "" : String(n));
     const colors = syntaxColors(t);
     const picked = inRange(it);
-    return h_flex().w_full().h(20).flex_none().gap(8).whitespace_nowrap()
+    return h_flex().w_full().h(codeFont().row).flex_none().gap(8).whitespace_nowrap()
       .when(r.kind === "+", (e) => e.bg(t.ansi2 + "1f")).when(r.kind === "-", (e) => e.bg(t.ansi1 + "1f"))
       .when(it.i === this.cur && !picked, (e) => e.bg(t.hover))
       .when(picked, (e) => e.bg(t.accent + "33"))
