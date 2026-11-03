@@ -10,8 +10,8 @@ import { find, AREA, iconButton, icon, location, basename, editorSpec, showView 
 // The editor area and the terminal panel share "work-body": a column stacks
 // them, a row puts them side by side (layouts that have one).
 const BODY = "work-body";
-const toggles = (side) => [
-  { id: "sidebar", icon: "layout-sidebar", tip: "Toggle Primary Side Bar (Ctrl+Shift+B)" },
+const toggles = (side, tools) => [
+  tools ? { id: "tools", icon: "layout-sidebar", tip: "Toggle Primary Side Bar" } : { id: "sidebar", icon: "layout-sidebar", tip: "Toggle Primary Side Bar (Ctrl+Shift+B)" },
   { id: AREA, icon: side ? "layout-editor-left" : "layout-editor", tip: "Toggle Editor Area" },
   { id: "terminal-panel", icon: side ? "layout-panel-right" : "layout-panel", tip: "Toggle Terminal Panel (Ctrl+`)" },
 ];
@@ -46,7 +46,7 @@ export default class Titlebar {
         .bg(on ? t.accent : "#00000000").text_color(on ? t.solid_foreground ?? t.background : t.dim)
         .hover((s) => s.opacity(0.85)).tooltip(on ? `SSH: ${on} (open Remote Explorer)` : "Open a folder on a remote machine")
         .on_mouse_down("left", (_e, cx) => cx.stop_propagation())
-        .on_click(() => find(layout(), "view-herdr") ? showView("view-herdr") : run("layout.show", { id: "spaces-col" }))
+        .on_click(() => find(layout(), "view-herdr") ? showView("view-herdr") : run("layout.show", { id: "sidebar" }))
         .child(icon("remote", 13))
         .when(Boolean(on), (el) => el.child(div().child(`SSH: ${on}`))))
       .child(div().flex_1())
@@ -58,7 +58,7 @@ export default class Titlebar {
         .child(icon("search", 13))
         .child(div().min_w(0).truncate().child(center.join(" — ") || "Herdr")))
       .child(div().flex_1())
-      .children(toggles(side).map(toggle))
+      .children(toggles(side, Boolean(find(root, "tools"))).map(toggle))
       .when(Boolean(body), (el) => el
         .child(div().w(1).h(16).mx(4).flex_none().bg(t.border))
         .child(iconButton("tb-split", side ? "split-rows" : "split-columns", side ? "Editor above the terminal" : "Editor beside the terminal",

@@ -3,12 +3,12 @@
   "type": "row",
   "children": [
     {
-      "id": "spaces-col",
+      "id": "sidebar",
       "type": "column",
       "size": {
         "px": 220
       },
-      "min": 44,
+      "min": 76,
       "max": 420,
       "background": "chrome",
       "resizable": true,
@@ -38,9 +38,9 @@
           "id": "sidebar-footer",
           "type": "block",
           "content": {
-            "mod": "workspace-chrome",
+            "mod": "activity",
             "props": {
-              "footer": true
+              "view": "footer"
             }
           },
           "size": {
@@ -50,7 +50,7 @@
       ]
     },
     {
-      "id": "sidebar",
+      "id": "tools",
       "type": "column",
       "children": [
         {

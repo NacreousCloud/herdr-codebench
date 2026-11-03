@@ -88,7 +88,7 @@ herdr-app do layout.switch --name codebench     # 또는 Cmd+Shift+L
 
 | 키 | 동작 |
 | --- | --- |
-| Ctrl+Alt+1 | 스페이스 목록 열기/닫기 |
+| Ctrl+Alt+1 | 스페이스 목록 열기/닫기 (Herdr 줄의 사이드바 버튼은 좁은 목록으로 접기/펼치기) |
 | Ctrl+Alt+2…4 | 탐색기 / 검색 / 리뷰 |
 | Ctrl+Alt+R | 리뷰 열기 |
 | Cmd+Shift+O | 포커스된 터미널에 나온 파일 목록 |

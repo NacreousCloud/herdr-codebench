@@ -33,16 +33,18 @@ export const VIEWS = [
 export const shownViews = () => VIEWS.filter((v) => find(layout(), v.id));
 
 export const activeView = () => find(layout(), STACK)?.active ?? VIEWS[0].id;
-export const sidebarWidth = () => find(layout(), "sidebar")?.size?.px ?? Infinity;
+// The column the views are in: "tools" beside the spaces column where a layout has one.
+const TOOLS = () => find(layout(), "tools") ? "tools" : "sidebar";
+export const sidebarWidth = () => find(layout(), TOOLS())?.size?.px ?? Infinity;
 export const narrow = () => sidebarWidth() < 160;
 
-export function showView(id) {
-  run("layout.select", { stack: STACK, child: id });
-  const sidebar = find(layout(), "sidebar");
-  if (sidebar?.hidden) run("layout.show", { id: "sidebar" });
+export function showView(view) {
+  run("layout.select", { stack: STACK, child: view });
+  const id = TOOLS(), column = find(layout(), id);
+  if (column?.hidden) run("layout.show", { id });
   if (narrow()) {
     setShared("sidebar.collapsed", false);
-    run("layout.resize", { id: "sidebar", px: shared("sidebar.width") ?? 268 });
+    run("layout.resize", { id, px: id === "tools" ? 300 : shared("sidebar.width") ?? 268 });
   }
 }
 

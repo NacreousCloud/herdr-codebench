@@ -11,7 +11,7 @@
     "ctrl-shift--": "codenav.tab-forward"
   },
   "layout:codebench": {
-    "ctrl-alt-1": "layout.toggle:spaces-col",
+    "ctrl-alt-1": "layout.toggle:sidebar",
     "ctrl-alt-3": "activity.view-search",
     "ctrl-alt-4": "activity.view-review",
     "ctrl-`": "layout.toggle:terminal-panel",

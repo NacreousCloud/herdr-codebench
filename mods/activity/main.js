@@ -8,6 +8,7 @@
 //   agents — running agents with title / model / status, and resumable session history
 //   editor — the editor area (or a pane): text, diffs, images, PDFs, media
 //   titlebar / panelbar — the workbench's title bar and terminal panel header
+//   footer — Settings and Add machine under the spaces
 //   menu / fileprompt — the Explorer's right-click popup and its dialogs
 import { View, div } from "gpui-kit";
 import { props as herdrProps } from "herdr";
@@ -20,9 +21,10 @@ import Titlebar from "./titlebar.js";
 import PanelBar from "./panelbar.js";
 import Spaces from "./spaces.js";
 import Agents from "./agents.js";
+import Footer from "./footer.js";
 import { FileMenu, FilePrompt } from "./fileops.js";
 
-const VIEWS = { bar: Bar, files: Files, search: Search, git: Git, editor: EditorPane, titlebar: Titlebar, panelbar: PanelBar, spaces: Spaces, agents: Agents, remote: Spaces, menu: FileMenu, fileprompt: FilePrompt };
+const VIEWS = { bar: Bar, files: Files, search: Search, git: Git, editor: EditorPane, titlebar: Titlebar, panelbar: PanelBar, spaces: Spaces, agents: Agents, remote: Spaces, menu: FileMenu, fileprompt: FilePrompt, footer: Footer };
 
 export default class Activity extends View {
   init(initProps, cx) {

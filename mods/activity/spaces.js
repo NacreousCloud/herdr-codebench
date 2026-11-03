@@ -9,8 +9,8 @@
 import { div } from "gpui-kit";
 import { T } from "./i18n.js";
 import { v_flex, h_flex, InputState, Input } from "gpui-base";
-import { hc, run, theme, spaces, panes, shared, setShared, openOverlay } from "herdr";
-import { iconButton, viewHeader, icon, basename, statusMark, programIcon } from "./common.js";
+import { hc, run, theme, spaces, panes, shared, setShared, openOverlay, layout } from "herdr";
+import { iconButton, viewHeader, icon, basename, statusMark, programIcon, find } from "./common.js";
 import { sh } from "./io.js";
 
 const RECENT = "activity.remote.recent";
@@ -120,9 +120,10 @@ export default class Spaces {
         .on_click((_e, cx) => { cx.stop_propagation(); open ? this.tabsOpen.delete(s.id) : this.tabsOpen.add(s.id); cx.notify(); })
         .child(icon(`chevron-${open ? "down" : "right"}`, 11).text_color(t.dim)))
       .child(icon(s.active ? "folder-open" : "folder", 13).text_color(s.active ? t.foreground : t.muted))
-      .child(div().flex_none().max_w(140).truncate().when(s.active, (el) => el.font_medium()).child(s.name))
-      .child(h_flex().flex_1().min_w(0).gap(4).items_center().text_size(11).text_color(t.dim)
-        .when(Boolean(s.branch), (el) => el.child(icon("git-branch", 11)).child(div().flex_none().max_w(90).truncate().child(s.branch)))
+      // Name and branch give way in a narrow column; the status keeps its place.
+      .child(div().flex_shrink_1().min_w(40).max_w(140).truncate().when(s.active, (el) => el.font_medium()).child(s.name))
+      .child(h_flex().flex_1().min_w(0).overflow_hidden().gap(4).items_center().text_size(11).text_color(t.dim)
+        .when(Boolean(s.branch), (el) => el.child(icon("git-branch", 11).flex_none()).child(div().min_w(0).truncate().child(s.branch)))
         .child(div().flex_1().min_w(0).truncate().child(s.branch ? "" : s.folder ? (where ?? s.folder) : "")))
       .child(statusMark(s.status, t))
       .tooltip(`${s.machine ? `${s.machine}:` : ""}${s.folder || "~"} · ${s.tabs.length} tab${s.tabs.length === 1 ? "" : "s"} · right-click for more`);
@@ -188,8 +189,35 @@ export default class Spaces {
           .child(T("Open"))));
   }
 
+  // The spaces column folded narrow (the brand's sidebar button): one square
+  // per space, its first letter and status; click to switch, hover for its name.
+  rail(t, all) {
+    return v_flex().id("activity-spaces").size_full().min_h(0).bg(t.chrome).text_color(t.foreground)
+      .child(v_flex().id("spaces-rail").flex_1().min_h(0).overflow_y_scrollbar().py(6).gap(4).items_center()
+        // On macOS the brand row's own button gives way to the window buttons, so the rail unfolds itself.
+        .child(iconButton("sr-unfold", "layout-sidebar", T("Show spaces"), () => {
+          setShared("sidebar.collapsed", false);
+          run("layout.resize", { id: "sidebar", px: shared("sidebar.width") ?? 220 });
+        }, { size: 26 }))
+        .children(all.map((s) => div().id(`sr-${s.id}`).relative().size(34).flex_none().flex().items_center().justify_center().rounded(7).cursor_pointer()
+          .bg(s.active ? t.selected : t.surface).border_1().border_color(s.active ? t.accent : t.border)
+          .hover((st) => st.bg(t.hover)).tooltip(`${s.machine ? `${s.machine}:` : ""}${s.name}`)
+          .on_click(() => run("space.select", { id: s.id }))
+          .on_mouse_down("right", (_e, cx) => {
+            cx.stop_propagation();
+            openOverlay({ mod: "menu", kind: "popup", width: 200, height: 260, props: { tab: "space", target: { id: s.id } } });
+          })
+          .child(div().text_size(14).font_semibold().text_color(s.active ? t.foreground : t.muted).child((s.name.replace(/^[~./]+/, "") || "~").slice(0, 1).toUpperCase()))
+          // The status on a solid disc, so the square's edge doesn't show through it.
+          .when(["working", "blocked", "done", "idle"].includes(s.status), (el) => el.child(div().absolute().top(-6).right(-6).size(18).rounded_full()
+            .bg(t.chrome).border_1().border_color(t.border).flex().items_center().justify_center().child(statusMark(s.status, t))))))
+        .child(iconButton("sr-new", "plus", T("New Space"), () => this.newTerminal(null), { size: 30 })));
+  }
+
   render(cx) {
     const t = theme(), all = spaces(), recent = shared(RECENT) ?? {};
+    // The spaces column folded narrow (layouts where this view has a column of its own).
+    if (find(layout(), "tools") && (find(layout(), "sidebar")?.size?.px ?? Infinity) < 160) return this.rail(t, all);
     // Machines with spaces but missing from the list (still loading) get a group too.
     const machines = [...this.list];
     for (const s of all) if (s.machine && !machines.some((m) => m.name === s.machine)) machines.push({ name: s.machine, host: "", state: "unknown" });
