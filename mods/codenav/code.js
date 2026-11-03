@@ -24,7 +24,7 @@ import { toolImage } from "./ideaicons.js";
 import { isHttp, httpRequests, httpEnvs, runHttp, httpBar } from "./http.js";
 import {
   iconButton, button, editorKey, editorSpec, setEditorSpec, CHILD, STACK, hasArea, measureFont,
-  syntaxColors, expandTabs, displayWidth, offsetAt, wordAt, tilde, sectionHeader, copyText, find, emptyEditor, doubleShift, codeFont,
+  syntaxColors, expandTabs, displayWidth, offsetAt, wordAt, tilde, sectionHeader, copyText, find, emptyEditor, doubleShift, codeFont, islandBottom,
 } from "./common.js";
 
 const PAD = 12;
@@ -728,7 +728,7 @@ export default class CodeView {
             () => { this.dragging = null; this.gutterDrag = null; }))))
         .child(this.comment.panel(t, this.rkey(), (cx) => cx.notify(), T("Comments go to the Review list, sent to the agent together")) ?? this.refsPanel(t) ?? this.infoBar(t) ?? div()))
       .child(this.outlinePanel(t) ?? div());
-    return v_flex().id("codenav-code").size_full().min_h(0).relative().bg(t.background).text_color(t.foreground).text_size(13)
+    return islandBottom(v_flex().id("codenav-code").size_full().min_h(0).relative().bg(t.background)).text_color(t.foreground).text_size(13)
       .track_focus(this.focus).on_key_down((e, cx) => this.keyDown(e, cx)).on_modifiers_changed((e) => this.modifiers(e))
       .child(measure)
       .child(this.header(t))

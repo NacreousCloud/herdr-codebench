@@ -219,7 +219,7 @@ export class ToolEmpty {
       this.folding = true;
       cx.timer.after(0, () => { this.folding = false; run("layout.hide", { id: this.side.column }); });
     }
-    return div().size_full().bg(theme().chrome);
+    return div().size_full().bg(theme().chrome).rounded_b(10);
   }
 }
 
@@ -299,7 +299,8 @@ export class ToolHeader {
     const t = theme(), side = SIDES[this.side];
     const active = toolsOn(this.side).find((n) => find(layout(), side.stack)?.active === TOOLS[n].child);
     const tabs = spaces().find((s) => s.active)?.tabs ?? [];
-    return h_flex().size_full().min_w(0).pl(12).pr(6).gap(6).items_center().bg(t.chrome)
+    // The island's top: its own rounded corners (the block's radius doesn't clip it).
+    return h_flex().size_full().min_w(0).pl(12).pr(6).gap(6).items_center().bg(t.chrome).rounded_t(10)
       .when(Boolean(active), (e) => e.child(stopPress(div().id(`th-title-${this.side}`).flex_none().text_size(12.5).font_semibold().text_color(t.foreground)
         .on_mouse_down("right", (_e, cx) => { cx.stop_propagation(); openOverlay({ mod: "codenav", props: { view: "toolmenu", name: active }, kind: "popup", width: 220, height: 214 }); })
         .child(T(TOOLS[active].label)))))
@@ -322,7 +323,7 @@ export class Structure {
     const t = theme(), syms = forShown("codenav.symbols"), caret = forShown("codenav.caret");
     const items = (syms?.items ?? []).filter((s) => s.kind !== "variable" || s.depth === 0);
     const current = caret ? [...items].reverse().find((s) => s.start <= caret.line && caret.line <= s.end && s.kind !== "variable") : null;
-    return v_flex().size_full().bg(t.chrome).text_color(t.foreground)
+    return v_flex().size_full().bg(t.chrome).rounded_b(10).text_color(t.foreground)
       .child(!syms || !items.length ? div().px(12).text_size(12).text_color(t.dim)
         .child(!editorSpec() ? T("Open a file to see its structure.") : !syms ? T("Waiting for the language server…") : T("No structure for this file."))
         : div().id("tw-structure").flex_1().min_h(0).overflow_y_scrollbar().pb(8)
@@ -339,7 +340,7 @@ export class Problems {
   init() {}
   render() {
     const t = theme(), p = forShown("codenav.problems"), items = p?.items ?? [];
-    return v_flex().size_full().pt(4).bg(t.background).text_color(t.foreground)
+    return v_flex().size_full().pt(4).bg(t.background).rounded_b(10).text_color(t.foreground)
       .child(!items.length ? div().px(12).text_size(12).text_color(t.dim).child(p ? T("No problems in this file.") : T("Open a file to see its problems."))
         : div().id("tw-problems").flex_1().min_h(0).overflow_y_scrollbar().pb(8)
           .children(items.map((d, i) => h_flex().id(`tw-p-${i}`).min_h(24).px(12).gap(8).items_center().text_size(12.5).cursor_pointer()
@@ -357,7 +358,7 @@ export class Notifications {
   init() {}
   render() {
     const t = theme(), list = shared("codenav.notifications") ?? [];
-    return v_flex().size_full().pt(4).bg(t.background).text_color(t.foreground)
+    return v_flex().size_full().pt(4).bg(t.background).rounded_b(10).text_color(t.foreground)
       .child(!list.length ? div().px(12).text_size(12).text_color(t.dim).child(T("No notifications yet. Agents that finish or wait for you show here."))
         : div().id("tw-notifications").flex_1().min_h(0).overflow_y_scrollbar().pb(8)
           .children(list.map((n, i) => h_flex().id(`nt-${i}`).px(12).py(6).gap(10).items_start().cursor_pointer().hover((e) => e.bg(t.hover))

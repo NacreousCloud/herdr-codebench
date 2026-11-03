@@ -13,7 +13,7 @@ import { CommentBox, commentCard, commentHeight, commentsOf, repoKey, repoStore,
 import { exec, hc, readTextFile, theme, settings, shared, setShared, run, notify, watchFolder, spaces } from "herdr";
 import {
   icon, iconButton, button, sectionHeader, location, targets, setEditorSpec, editorKey, showEditor, showReview,
-  expandTabs, basename, ext, colorize, syntaxColors, offsetAt, wordAt, openPath, measureFont, copyText, emptyEditor, doubleShift, codeFont
+  expandTabs, basename, ext, colorize, syntaxColors, offsetAt, wordAt, openPath, measureFont, copyText, emptyEditor, doubleShift, codeFont, islandBottom
  } from "./common.js";
 
 const SEP = "\n@@CODENAV@@\n";
@@ -676,7 +676,7 @@ export default class Review {
         .on_modifiers_changed((this.shiftTaps ??= doubleShift(this, () => openEverywhere("all"))))
         .child(emptyEditor(t));
     }
-    return h_flex().id("codenav-review").size_full().min_h(0).bg(t.background).text_color(t.foreground).text_size(13)
+    return islandBottom(h_flex().id("codenav-review").size_full().min_h(0).bg(t.background)).text_color(t.foreground).text_size(13)
       .on_key_down((e, cx) => {
         if (this.comment.key(e, this.rkey())) this.anchor = null;
         else if (e.keystroke === "escape" && this.lspSel) this.lspSel = null;

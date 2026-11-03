@@ -72,7 +72,8 @@
                   "view": "toolheader",
                   "side": "left"
                 }
-              }
+              },
+              "radius": 10
             },
             {
               "id": "sidebar-views",
@@ -87,7 +88,8 @@
                     "props": {
                       "view": "files"
                     }
-                  }
+                  },
+                  "radius": 10
                 },
                 {
                   "id": "view-review",
@@ -98,7 +100,8 @@
                       "view": "review",
                       "part": "side"
                     }
-                  }
+                  },
+                  "radius": 10
                 },
                 {
                   "id": "view-structure",
@@ -108,7 +111,8 @@
                     "props": {
                       "view": "structure"
                     }
-                  }
+                  },
+                  "radius": 10
                 },
                 {
                   "id": "view-search",
@@ -118,7 +122,8 @@
                     "props": {
                       "view": "search"
                     }
-                  }
+                  },
+                  "radius": 10
                 },
                 {
                   "id": "left-empty",
@@ -129,7 +134,8 @@
                       "view": "toolempty",
                       "side": "left"
                     }
-                  }
+                  },
+                  "radius": 10
                 }
               ]
             }
@@ -155,7 +161,8 @@
                   },
                   "size": {
                     "px": 38
-                  }
+                  },
+                  "radius": 10
                 },
                 {
                   "id": "editor-stack",
@@ -170,7 +177,8 @@
                           "view": "code",
                           "slot": true
                         }
-                      }
+                      },
+                      "radius": 10
                     },
                     {
                       "id": "editor-text",
@@ -181,7 +189,8 @@
                           "view": "editor",
                           "slot": true
                         }
-                      }
+                      },
+                      "radius": 10
                     },
                     {
                       "id": "editor-review",
@@ -192,7 +201,8 @@
                           "view": "review",
                           "part": "main"
                         }
-                      }
+                      },
+                      "radius": 10
                     }
                   ],
                   "active": "editor-code"
@@ -228,7 +238,8 @@
                       "view": "toolheader",
                       "side": "bottom"
                     }
-                  }
+                  },
+                  "radius": 10
                 },
                 {
                   "id": "bottom-stack",
@@ -241,19 +252,20 @@
                       "content": {
                         "tab": "active",
                         "pane": {
-                          "background": "background",
+                          "background": "surface",
                           "border": {
-                            "width": 1,
-                            "color": "border"
+                            "width": 0,
+                            "color": "surface"
                           },
                           "focus": {
-                            "width": 1,
-                            "color": "accent"
+                            "width": 0,
+                            "color": "surface"
                           },
-                          "radius": 6,
+                          "radius": 10,
                           "gap": 6
                         }
-                      }
+                      },
+                      "radius": 10
                     },
                     {
                       "id": "bottom-problems",
@@ -263,14 +275,16 @@
                         "props": {
                           "view": "problems"
                         }
-                      }
+                      },
+                      "radius": 10
                     },
                     {
                       "id": "bottom-agents",
                       "type": "block",
                       "content": {
                         "mod": "agents"
-                      }
+                      },
+                      "radius": 10
                     },
                     {
                       "id": "bottom-empty",
@@ -281,7 +295,8 @@
                           "view": "toolempty",
                           "side": "bottom"
                         }
-                      }
+                      },
+                      "radius": 10
                     }
                   ]
                 }
@@ -316,7 +331,8 @@
                   "view": "toolheader",
                   "side": "right"
                 }
-              }
+              },
+              "radius": 10
             },
             {
               "id": "right-views",
@@ -332,7 +348,8 @@
                       "view": "toolempty",
                       "side": "right"
                     }
-                  }
+                  },
+                  "radius": 10
                 }
               ]
             }
@@ -401,5 +418,6 @@
       ]
     }
   ],
-  "ui_font": ".AppleSystemUIFont"
+  "ui_font": ".AppleSystemUIFont",
+  "gap": 6
 }

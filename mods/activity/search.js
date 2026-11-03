@@ -100,7 +100,7 @@ export default class Search {
           .child(div().flex_1().min_w(0).truncate().text_size(12).text_color(t.muted).child(h.text)));
       }
     }
-    return v_flex().id("activity-search").size_full().min_h(0).bg(t.chrome).text_color(t.foreground).text_size(13)
+    return v_flex().id("activity-search").size_full().min_h(0).bg(t.chrome).when(shared("layout") === "idea", (e) => e.rounded_b(10)).text_color(t.foreground).text_size(13)
       .child(viewHeader("Search", [
         iconButton("search-clear", "x", T("Clear results"), (_e, cx) => { this.input.set_value(""); this.results = []; this.summary = null; cx.notify(); }),
       ]))

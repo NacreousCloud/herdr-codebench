@@ -112,6 +112,10 @@ export function doubleShift(state, open) {
   };
 }
 
+// The idea layout's islands: a view at an island's bottom (or top) rounds its own corners.
+export const islandBottom = (el) => shared("layout") === "idea" ? el.rounded_b(10) : el;
+export const islandTop = (el) => shared("layout") === "idea" ? el.rounded_t(10) : el;
+
 // What an editor area with nothing open says: IntelliJ's hints in the idea layout.
 export function emptyEditor(t) {
   if (shared("layout") !== "idea") return div().p(16).text_color(t.dim).child(T("Open a file from the Explorer or Search view."));

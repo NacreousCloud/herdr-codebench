@@ -176,7 +176,7 @@ export default class Tabs {
     };
     const list = tabsNow().filter(here);
     const ideaLook = shared("layout") === "idea";
-    return h_flex().id("codenav-tabs").size_full().pr(6).items_center().bg(t.chrome).when(!ideaLook, (e) => e.border_b(1).border_color(t.border)).when(ideaLook, (e) => e.pl(4))
+    return h_flex().id("codenav-tabs").size_full().pr(6).items_center().bg(t.chrome).when(!ideaLook, (e) => e.border_b(1).border_color(t.border)).when(ideaLook, (e) => e.pl(4).rounded_t(10))
       .child(h_flex().flex_none().h_full().px(4).gap(2).items_center().border_r(1).border_color(t.border)
         .child(iconButton("cn-tabs-back", "chevron-left", T("Previous tab (Ctrl+-)"), () => tabBack(), { color: canStep(-1) ? t.muted : t.dim }))
         .child(iconButton("cn-tabs-fwd", "chevron-right", T("Next tab (Ctrl+Shift+-)"), () => tabForward(), { color: canStep(1) ? t.muted : t.dim })))
