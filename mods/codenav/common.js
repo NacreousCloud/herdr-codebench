@@ -23,6 +23,18 @@ export function find(node, id) {
 }
 export const hasArea = () => Boolean(find(layout(), STACK));
 
+// The editor area and the terminal panel sit in "work-body": a column puts
+// them one above the other, a row side by side.
+export const BODY = "work-body";
+export const splitDir = () => find(layout(), BODY)?.type === "row" ? "row" : "column";
+export function setSplit(dir) {
+  const tree = JSON.parse(JSON.stringify(layout()));
+  const body = find(tree, BODY);
+  if (!body || body.type === dir) return;
+  body.type = dir;
+  run("layout.set", { layout: tree });
+}
+
 // Where the sidebar views look: the focused terminal's folder and its machine.
 const last = {};
 export function location() {

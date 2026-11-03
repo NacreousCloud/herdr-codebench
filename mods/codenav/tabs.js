@@ -8,7 +8,7 @@ import { div } from "gpui-kit";
 import { T } from "./i18n.js";
 import { h_flex, v_flex } from "gpui-base";
 import { theme, shared, setShared, layout, run, nextCommand, spaces, openOverlay, closeOverlay, props } from "herdr";
-import { icon, iconButton, find, STACK, AREA, editorSpec, editorKey, setEditorSpec, wantedChild, showReview, basename } from "./common.js";
+import { icon, iconButton, find, STACK, AREA, editorSpec, editorKey, setEditorSpec, wantedChild, showReview, basename, splitDir, setSplit } from "./common.js";
 
 const KEY = "codenav.tabs";
 const MAX = 20;
@@ -134,6 +134,9 @@ export default class Tabs {
         const { edit, ...rest } = spec;
         setEditorSpec(editorKey(), rest);
       })))
+      .child(splitDir() === "row"
+        ? iconButton("cn-split", "rows-2", T("Editor above the terminal"), () => setSplit("column"))
+        : iconButton("cn-split", "columns-2", T("Editor beside the terminal"), () => setSplit("row")))
       .child(iconButton("cn-area-x", "x", T("Hide the editor area (Ctrl+Alt+E)"), () => run("layout.hide", { id: AREA })));
   }
 }

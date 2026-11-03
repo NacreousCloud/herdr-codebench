@@ -46,6 +46,8 @@ const KO = {
   "Close": "닫기",
   "Close (Cmd+W)": "닫기 (Cmd+W)",
   "Close Others": "다른 탭 모두 닫기",
+  "Editor beside the terminal": "편집기와 터미널을 좌우로",
+  "Editor above the terminal": "편집기와 터미널을 위아래로",
   "Open selected path in code view": "선택한 경로를 코드 뷰에서 열기",
   "Files in this terminal…": "이 터미널의 파일…",
   "Files in this terminal": "이 터미널의 파일",

@@ -1,9 +1,10 @@
 // Per-space layout: Herdr keeps one layout state for every space, so this
 // remembers how each space left the window (editor area open or not, review
-// or editor, sidebar view, terminal panel, sizes) and puts it back when the
-// space shows again. Kept in shared "codenav.spaces".
+// or editor, sidebar view, terminal panel, sizes, editor above or beside the
+// terminal) and puts it back when the space shows again. Kept in shared
+// "codenav.spaces".
 import { spaces, layout, shared, setShared, run } from "herdr";
-import { find, AREA, STACK, CHILD, editorSpec, wantedChild } from "./common.js";
+import { find, AREA, STACK, CHILD, editorSpec, wantedChild, splitDir, setSplit } from "./common.js";
 
 const KEY = "codenav.spaces";
 const SIDEBAR = "sidebar-views";
@@ -19,6 +20,7 @@ function snapshot() {
     review: shared("codenav.area") === "review",
     areaWeight: node(AREA)?.size?.weight ?? null,
     panelWeight: node(PANEL)?.size?.weight ?? null,
+    split: splitDir(),
   };
 }
 
@@ -36,6 +38,8 @@ function apply(s) {
   if (s.panelWeight && node(PANEL)?.size?.weight !== s.panelWeight) run("layout.resize", { id: PANEL, weight: s.panelWeight });
   const want = s.review ? CHILD.review : wantedChild();
   if (node(STACK) && node(STACK).active !== want) run("layout.select", { stack: STACK, child: want });
+  // Last: it replaces the tree, so it takes everything above with it.
+  if (s.split && s.split !== splitDir()) setSplit(s.split);
 }
 
 // Called on every render of an always-shown copy: notices the space switch,
