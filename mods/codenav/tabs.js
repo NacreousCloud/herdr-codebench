@@ -4,7 +4,7 @@
 // the activity editor for pictures, PDFs and edits, or the review.
 // Right-click a tab for Close / Close Others / Close All; Cmd+W in the code
 // view closes the shown tab (the status item takes the command).
-// Back / forward (Cmd+[ / Cmd+]) walk the tabs shown before, per space: the
+// Back / forward (Cmd+- / Cmd+Shift+-) walk the tabs shown before, per space: the
 // last 10, closed ones reopening.
 import { div } from "gpui-kit";
 import { T } from "./i18n.js";

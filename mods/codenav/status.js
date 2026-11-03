@@ -1,7 +1,7 @@
 // A status-bar item: language servers the bridge is running, and the language.
 // Always on screen, so it also takes the mod's commands: `review`, `lang[:ko|en]`,
 // `terminal-files` (the focused terminal's paths), `close-tab` (Cmd+W),
-// `tab-back` / `tab-forward` (Cmd+[ / Cmd+]) and
+// `tab-back` / `tab-forward` (Cmd+- / Cmd+Shift+-) and
 // `open:<absolute path>[:line]` (herdr-app do codenav.open:/repo/src/a.go:42).
 import { div } from "gpui-kit";
 import { T, lang, setLang } from "./i18n.js";

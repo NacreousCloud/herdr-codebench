@@ -7,8 +7,8 @@
     "ctrl-w": "activity.close",
     "ctrl-shift-v": "activity.preview",
     "cmd-w": "codenav.close-tab",
-    "cmd-[": "codenav.tab-back",
-    "cmd-]": "codenav.tab-forward"
+    "cmd--": "codenav.tab-back",
+    "cmd-shift--": "codenav.tab-forward"
   },
   "layout:codebench": {
     "ctrl-alt-1": "layout.toggle:spaces-col",
@@ -22,7 +22,7 @@
   },
   "mod:codenav": {
     "cmd-w": "codenav.close-tab",
-    "cmd-[": "codenav.tab-back",
-    "cmd-]": "codenav.tab-forward"
+    "cmd--": "codenav.tab-back",
+    "cmd-shift--": "codenav.tab-forward"
   }
 }
