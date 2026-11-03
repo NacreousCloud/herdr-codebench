@@ -1,7 +1,7 @@
 {
   "id": "root",
   "type": "column",
-  "background": "chrome",
+  "background": "canvas",
   "titlebar": "none",
   "traffic_lights": [
     12,
@@ -27,15 +27,12 @@
         "props": {
           "view": "toolbar"
         }
-      }
+      },
+      "background": "canvas"
     },
     {
       "id": "body",
       "type": "row",
-      "divider": {
-        "width": 1,
-        "color": "raised"
-      },
       "children": [
         {
           "id": "stripe",
@@ -51,7 +48,8 @@
             }
           },
           "min": 40,
-          "max": 40
+          "max": 40,
+          "background": "canvas"
         },
         {
           "id": "sidebar",
@@ -60,7 +58,7 @@
             "px": 300
           },
           "min": 120,
-          "background": "chrome",
+          "background": "surface",
           "children": [
             {
               "id": "left-bar",
@@ -135,15 +133,12 @@
                 }
               ]
             }
-          ]
+          ],
+          "radius": 10
         },
         {
           "id": "work-body",
           "type": "column",
-          "divider": {
-            "width": 1,
-            "color": "raised"
-          },
           "children": [
             {
               "id": "editor-area",
@@ -159,7 +154,7 @@
                     }
                   },
                   "size": {
-                    "px": 32
+                    "px": 38
                   }
                 },
                 {
@@ -207,7 +202,7 @@
                 "weight": 3
               },
               "min": 30,
-              "background": "background",
+              "background": "surface",
               "border": {
                 "width": 1,
                 "color": "border"
@@ -291,10 +286,13 @@
                   ]
                 }
               ],
-              "min": 60
+              "min": 60,
+              "background": "surface",
+              "radius": 10
             }
           ],
-          "min": 80
+          "min": 80,
+          "gap": 6
         },
         {
           "id": "tool-right",
@@ -304,7 +302,7 @@
           },
           "min": 120,
           "hidden": true,
-          "background": "chrome",
+          "background": "surface",
           "children": [
             {
               "id": "right-bar",
@@ -338,7 +336,8 @@
                 }
               ]
             }
-          ]
+          ],
+          "radius": 10
         },
         {
           "id": "stripe-right",
@@ -354,8 +353,14 @@
             }
           },
           "min": 40,
-          "max": 40
+          "max": 40,
+          "background": "canvas"
         }
+      ],
+      "gap": 6,
+      "padding": [
+        0,
+        0
       ]
     },
     {
@@ -388,7 +393,13 @@
             }
           }
         }
+      ],
+      "background": "canvas",
+      "padding": [
+        0,
+        0
       ]
     }
-  ]
+  ],
+  "ui_font": ".AppleSystemUIFont"
 }

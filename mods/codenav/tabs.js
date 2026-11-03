@@ -66,6 +66,11 @@ function closeTabs(ids) {
   if (reviewing()) setShared("codenav.area", null);
   run("layout.hide", { id: AREA });
 }
+// Cmd+Shift+] / Cmd+Shift+[ (and Ctrl+→ / Ctrl+←): the editor tab beside the shown one.
+export function stepTab(dir) {
+  const list = tabsNow(), at = list.findIndex((x) => x.id === activeId());
+  if (list.length) openTab(list[(at + dir + list.length) % list.length]);
+}
 export const closeTab = (id) => closeTabs([id ?? activeId()].filter(Boolean));
 const closeOthers = (id) => { const keep = tabsNow().find((x) => x.id === id); closeTabs(tabsNow().filter((x) => x.id !== id).map((x) => x.id)); if (keep) openTab(keep); };
 const closeAll = () => closeTabs(tabsNow().map((x) => x.id));
@@ -144,8 +149,10 @@ export default class Tabs {
       const name = x.type === "file" ? basename(x.spec.rel ?? x.spec.path) : basename(x.path);
       const count = x.type === "review" ? comments.get(`${x.rkey}:${x.path}`) ?? 0 : 0;
       // Opens on press: the close button stops its press, so closing never reopens the tab.
-      return h_flex().id(`cn-tab-${i}`).h_full().flex_none().pl(10).pr(4).gap(6).items_center().text_size(12).cursor_pointer()
-        .border_b(2).border_color(on ? t.accent : "#00000000").when(on, (e) => e.bg(t.background))
+      const idea = shared("layout") === "idea";
+      return h_flex().id(`cn-tab-${i}`).flex_none().pl(10).pr(4).gap(6).items_center().text_size(idea ? 13 : 12).cursor_pointer()
+        .when(idea, (e) => e.h(28).my(5).mx(1).rounded(6).when(on, (x) => x.bg("#233558")).when(!on, (x) => x.hover((h) => h.bg("#FFFFFF17"))))
+        .when(!idea, (e) => e.h_full().border_b(2).border_color(on ? t.accent : "#00000000").when(on, (x) => x.bg(t.background)))
         .text_color(on ? t.foreground : t.muted).hover((e) => e.text_color(t.foreground))
         .tooltip(x.type === "file" ? x.spec.rel ?? x.spec.path : `${T("Review")} · ${x.path}`)
         .on_mouse_down("left", () => openTab(x))
@@ -168,7 +175,8 @@ export default class Tabs {
       return host === (on ?? "") && Boolean(cwd) && (cwd + "/").startsWith(root + "/");
     };
     const list = tabsNow().filter(here);
-    return h_flex().id("codenav-tabs").size_full().pr(6).items_center().bg(t.chrome).border_b(1).border_color(t.border)
+    const ideaLook = shared("layout") === "idea";
+    return h_flex().id("codenav-tabs").size_full().pr(6).items_center().bg(t.chrome).when(!ideaLook, (e) => e.border_b(1).border_color(t.border)).when(ideaLook, (e) => e.pl(4))
       .child(h_flex().flex_none().h_full().px(4).gap(2).items_center().border_r(1).border_color(t.border)
         .child(iconButton("cn-tabs-back", "chevron-left", T("Previous tab (Ctrl+-)"), () => tabBack(), { color: canStep(-1) ? t.muted : t.dim }))
         .child(iconButton("cn-tabs-fwd", "chevron-right", T("Next tab (Ctrl+Shift+-)"), () => tabForward(), { color: canStep(1) ? t.muted : t.dim })))

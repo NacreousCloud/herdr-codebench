@@ -115,8 +115,8 @@ export class Stripe {
   init(p) { this.edge = p?.side === "right" ? "right" : "left"; }
   button(name, t) {
     const tool = TOOLS[name], on = toolOpen(name);
-    return stopPress(div().id(`st-${name}`).size(30).flex_none().flex().items_center().justify_center().rounded(6).cursor_pointer()
-      .bg(on ? t.selected : "#00000000").text_color(on ? t.foreground : t.muted).hover((s) => s.bg(on ? t.selected : t.hover).text_color(t.foreground))
+    return stopPress(div().id(`st-${name}`).size(32).flex_none().flex().items_center().justify_center().rounded(8).cursor_pointer()
+      .bg(on ? t.accent : "#00000000").hover((s) => s.bg(on ? t.accent : "#FFFFFF17"))
       .tooltip(`${T(tool.label)}  ${tool.key}`)
       .on_click(() => toggleTool(name))
       .on_mouse_down("right", (_e, cx) => {
@@ -156,7 +156,7 @@ export class Stripe {
     if (this.edge === "left") { this.syncBars(cx); this.addMissing(cx); }
     const t = theme(), hidden = hiddenTools(), shown = (side) => toolsOn(side).filter((n) => !hidden.has(n));
     const top = shown(this.edge), bottom = this.edge === "left" ? shown("bottom") : [];
-    return v_flex().size_full().py(6).gap(4).items_center().bg(t.chrome).when(this.edge === "left", (e) => e.border_r(1)).when(this.edge === "right", (e) => e.border_l(1)).border_color(t.border)
+    return v_flex().size_full().py(4).gap(4).items_center().bg(t.canvas)
       .children(top.map((n) => this.button(n, t)))
       .child(div().flex_1())
       .children(bottom.map((n) => this.button(n, t)));
@@ -263,7 +263,7 @@ export class Toolbar {
   render() {
     const t = theme(), w = window(), space = spaces().find((s) => s.active);
     const mac = w?.platform === "macos" && !w?.fullscreen;
-    return h_flex().size_full().pl(mac ? 80 : 10).pr(8).gap(4).items_center().bg(t.chrome).border_b(1).border_color(t.border).text_size(13)
+    return h_flex().size_full().pl(mac ? 80 : 10).pr(8).gap(4).items_center().bg(t.canvas).text_size(13)
       .child(widget("tb-project", t, [avatar(space?.name ?? "~"), div().font_semibold().text_color(t.foreground).max_w(220).truncate().child(space?.name ?? "~"),
         icon("chevron-down", 12).text_color(t.muted)],
         () => openOverlay({ mod: "codenav", props: { view: "projects" }, kind: "popup", width: 300, height: Math.min(460, 96 + spaces().length * 34) })))
@@ -299,7 +299,7 @@ export class ToolHeader {
     const t = theme(), side = SIDES[this.side];
     const active = toolsOn(this.side).find((n) => find(layout(), side.stack)?.active === TOOLS[n].child);
     const tabs = spaces().find((s) => s.active)?.tabs ?? [];
-    return h_flex().size_full().min_w(0).pl(10).pr(6).gap(6).items_center().bg(t.chrome).border_b(1).border_color(t.border)
+    return h_flex().size_full().min_w(0).pl(12).pr(6).gap(6).items_center().bg(t.chrome)
       .when(Boolean(active), (e) => e.child(stopPress(div().id(`th-title-${this.side}`).flex_none().text_size(12.5).font_semibold().text_color(t.foreground)
         .on_mouse_down("right", (_e, cx) => { cx.stop_propagation(); openOverlay({ mod: "codenav", props: { view: "toolmenu", name: active }, kind: "popup", width: 220, height: 214 }); })
         .child(T(TOOLS[active].label)))))
@@ -394,7 +394,7 @@ export class Crumbs {
   render() {
     const t = theme(), s = editorSpec(), caret = forShown("codenav.caret");
     const parts = s ? [...(s.rel ?? tilde(s.path)).split("/").filter(Boolean), ...(caret?.scope ?? [])] : [];
-    return h_flex().size_full().min_w(0).px(10).gap(5).items_center().bg(t.chrome).border_t(1).border_color(t.border).text_size(12).text_color(t.muted)
+    return h_flex().size_full().min_w(0).px(10).gap(5).items_center().bg(t.canvas).text_size(12).text_color(t.muted)
       .child(h_flex().flex_1().min_w(0).gap(5).items_center().overflow_hidden()
         .children(parts.flatMap((p, i) => [i ? div().flex_none().text_color(t.dim).child("›") : null, div().flex_none().max_w(220).truncate()
           .when(i === parts.length - 1, (e) => e.text_color(t.foreground)).child(p)]).filter(Boolean)))

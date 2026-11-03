@@ -8,7 +8,10 @@
     "ctrl-shift-v": "activity.preview",
     "cmd-w": "codenav.close-tab",
     "ctrl--": "codenav.tab-back",
-    "ctrl-shift--": "codenav.tab-forward"
+    "ctrl-shift--": "codenav.tab-forward",
+    "ctrl-r": "codenav.run",
+    "ctrl-right": "codenav.tab-next",
+    "ctrl-left": "codenav.tab-prev"
   },
   "layout:codebench": {
     "ctrl-alt-1": "layout.toggle:sidebar",
@@ -26,7 +29,10 @@
     "ctrl-shift--": "codenav.tab-forward",
     "cmd-b": "codenav.definition",
     "f2": "codenav.next-error",
-    "shift-f2": "codenav.prev-error"
+    "shift-f2": "codenav.prev-error",
+    "ctrl-r": "codenav.run",
+    "ctrl-right": "codenav.tab-next",
+    "ctrl-left": "codenav.tab-prev"
   },
   "layout:idea": {
     "cmd-1": "codenav.tool-project",
@@ -35,22 +41,32 @@
     "cmd-shift-f": "codenav.tool-find",
     "alt-f12": "codenav.tool-terminal",
     "cmd-6": "codenav.tool-problems",
-    "cmd-shift-f12": "codenav.hide-tools",
     "cmd-o": "codenav.find-class",
     "cmd-shift-o": "codenav.find-file",
     "cmd-alt-o": "codenav.find-symbol",
-    "cmd-shift-a": "codenav.find-action",
-    "cmd-e": "codenav.find-recent",
     "cmd-[": "codenav.nav-back",
     "cmd-]": "codenav.nav-forward",
-    "ctrl-alt-r": "codenav.review",
-    "shift-escape": "codenav.hide-active"
+    "ctrl-alt-r": "codenav.run-choose",
+    "shift-escape": "codenav.hide-active",
+    "ctrl-e": "codenav.find-recent",
+    "ctrl-shift-e": "codenav.find-recent",
+    "ctrl-shift-a": "codenav.find-action",
+    "ctrl-shift-f12": "codenav.hide-tools",
+    "f12": "codenav.tool-last",
+    "cmd-alt-left": "codenav.nav-back",
+    "cmd-alt-right": "codenav.nav-forward",
+    "cmd-shift-]": "codenav.tab-next",
+    "cmd-shift-[": "codenav.tab-prev",
+    "cmd-r": "codenav.rerun",
+    "ctrl-f2": "codenav.stop"
   },
   "terminal": {
     "cmd-shift-o": "codenav.key:cmd-shift-o",
     "cmd-o": "codenav.key:cmd-o",
     "cmd-alt-o": "codenav.key:cmd-alt-o",
     "cmd-shift-a": "codenav.key:cmd-shift-a",
-    "cmd-e": "codenav.key:cmd-e"
+    "ctrl-e": "terminal",
+    "ctrl-shift-e": "terminal",
+    "ctrl-shift-a": "terminal"
   }
 }

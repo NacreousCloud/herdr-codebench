@@ -467,7 +467,10 @@ export default class CodeView {
     const idea = Boolean(find(layout(), "view-structure"));
     if (k === "f12" || k === "cmd-b") this.definition(cx);
     else if (k === "shift-f12" || k === "alt-shift-f12" || k === "alt-f7") this.references(cx);
-    else if (k === "cmd-alt-b") this.definition(cx, "implementation");
+    else if (k === "cmd-alt-b" || k === "ctrl-alt-b") this.definition(cx, "implementation");
+    else if (k === "ctrl-alt-f7") this.references(cx);
+    else if ((k === "f1" || k === "ctrl-j") && idea) this.hoverAt(cx);
+    else if (k === "ctrl-f12" && idea) openEverywhere("structure");
     else if (k === "cmd-shift-b") this.definition(cx, "typeDefinition");
     else if (k === "cmd-f12") idea ? openEverywhere("structure") : this.definition(cx, "implementation");
     else if (k === "cmd-l") openEverywhere("line");

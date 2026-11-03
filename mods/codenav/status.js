@@ -8,12 +8,12 @@
 import { div } from "gpui-kit";
 import { T, lang, setLang } from "./i18n.js";
 import { h_flex } from "gpui-base";
-import { theme, nextCommand, focused, run, shared, setShared, agents } from "herdr";
+import { theme, nextCommand, focused, run, shared, setShared, agents, openOverlay } from "herdr";
 import { showTerminalFiles } from "./termfiles.js";
-import { closeTab, tabBack, tabForward } from "./tabs.js";
+import { closeTab, tabBack, tabForward, stepTab } from "./tabs.js";
 import { toggleTool, toggleAllTools, hideActiveTool, moveTool, arrange, savedSides, openToolSettings, TOOLS } from "./tools.js";
 import { openEverywhere } from "./everywhere.js";
-import { restartPending, openRunConfigs } from "./run.js";
+import { restartPending, openRunConfigs, runStore, runConfig, stopConfig } from "./run.js";
 import { showReview, openPath } from "./common.js";
 import { followSpace } from "./memory.js";
 import { peek } from "./lsp.js";
@@ -22,7 +22,7 @@ import { peek } from "./lsp.js";
 // would get them otherwise): what each does in the shown layout.
 const TERM_KEYS = {
   // Cmd+Shift+O in a terminal: the files it names; elsewhere (layout:idea) Go to File.
-  idea: { "cmd-shift-o": "terminal-files", "cmd-o": "find-class", "cmd-alt-o": "find-symbol", "cmd-shift-a": "find-action", "cmd-e": "find-recent" },
+  idea: { "cmd-shift-o": "terminal-files", "cmd-o": "find-class", "cmd-alt-o": "find-symbol", "cmd-shift-a": "find-action" },
   codebench: { "cmd-shift-o": "terminal-files" },
 };
 function termKey(key) {
@@ -67,6 +67,11 @@ export default class Status {
         else if (c.startsWith("tool-") && TOOLS[c.slice(5)]) toggleTool(c.slice(5));
         else if (c === "hide-tools") toggleAllTools();
         else if (c === "hide-active") hideActiveTool();
+        else if (c === "tool-last") { const last = shared("codenav.lastTool"); if (last) toggleTool(last, true); }
+        else if (c === "tab-next" || c === "tab-prev") focused()?.terminal ? run(c === "tab-next" ? "tab.next" : "tab.prev") : stepTab(c === "tab-next" ? 1 : -1);
+        else if (c === "run" || c === "rerun") { const st = runStore(); runConfig(st.configs[st.selected] ?? st.configs[0], () => toggleTool("terminal", true)); }
+        else if (c === "stop") { const st = runStore(); stopConfig(st.configs[st.selected] ?? st.configs[0]); }
+        else if (c === "run-choose") openOverlay({ mod: "codenav", props: { view: "runmenu" }, kind: "popup", width: 320, height: 240 });
         else if (c === "run-configs") openRunConfigs();
         else if (c === "show-terminal") toggleTool("terminal", true);
         else if (c === "run-restart") restartPending(() => toggleTool("terminal", true));

@@ -115,7 +115,7 @@ export function doubleShift(state, open) {
 // What an editor area with nothing open says: IntelliJ's hints in the idea layout.
 export function emptyEditor(t) {
   if (shared("layout") !== "idea") return div().p(16).text_color(t.dim).child(T("Open a file from the Explorer or Search view."));
-  const rows = [["Search Everywhere", "Double ⇧"], ["Go to File", "⇧⌘O"], ["Recent Files", "⌘E"], ["Project", "⌘1"], ["Terminal", "⌥F12"]];
+  const rows = [["Search Everywhere", "Double ⇧"], ["Go to File", "⇧⌘O"], ["Recent Files", "⌃E"], ["Project", "⌘1"], ["Terminal", "⌥F12"]];
   return div().size_full().flex().items_center().justify_center().bg(t.background)
     .child(div().flex().flex_col().gap(10).text_size(13)
       .children(rows.map(([label, key]) => h_flex().gap(12).items_center()
