@@ -230,12 +230,6 @@ export default class EditorPane {
     if (me) run("pane.close", { pane: me.pane });
   }
 
-  openInVscode() {
-    const s = this.shown;
-    if (!s || s.on) return run("mod.open", { name: "open-vscode" });
-    exec("code", ["-g", `${s.path}${s.line ? `:${s.line}` : ""}`]).catch(() => {});
-  }
-
   diffRow(r, t) {
     if (r.kind === "@") return div().w_full().h(20).px(12).flex_none().truncate().bg(t.raised).text_color(t.dim).child(r.text);
     const num = (n) => div().w(36).flex_none().text_right().text_color(t.dim).child(n === undefined ? "" : String(n));
@@ -267,7 +261,6 @@ export default class EditorPane {
       .when(this.viewer?.kind === "binary" && !this.error, (el) => el.child(iconButton("ed-astext", "file-text", T("Open as text anyway"), () => {
         setEditorSpec(this.slotKey(), { ...s, asText: true });
       })))
-      .child(iconButton("ed-vscode", "vscode", T("Open in VS Code"), () => this.openInVscode()))
       .child(iconButton("ed-close", "x", T("Close editor"), () => this.close()));
     let body;
     if (!s) body = div().p(16).text_color(t.dim).child(T("Open a file from the Explorer, Search or Source Control view."));

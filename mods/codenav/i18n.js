@@ -37,7 +37,6 @@ const KO = {
   "Find (Cmd+F)": "찾기 (Cmd+F)",
   "Outline (Cmd+Shift+O)": "아웃라인 (Cmd+Shift+O)",
   "Edit this file": "이 파일 편집",
-  "Open in VS Code": "VS Code에서 열기",
   "Close": "닫기",
   "Close (Cmd+W)": "닫기 (Cmd+W)",
   "Close Others": "다른 탭 모두 닫기",

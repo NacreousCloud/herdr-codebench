@@ -386,12 +386,6 @@ export default class CodeView {
     if (hasArea()) run("layout.select", { stack: STACK, child: CHILD.text });
   }
 
-  openInVscode() {
-    const s = this.shown;
-    if (!s || s.on) return run("mod.open", { name: "open-vscode" });
-    exec("code", ["-g", `${s.path}:${(this.sel?.line ?? 0) + 1}:${(this.sel?.col ?? 0) + 1}`]).catch(() => {});
-  }
-
   keyDown(e, cx) {
     const k = e.keystroke;
     if (this.comment.typing || this.finding && k !== "escape") {
@@ -533,8 +527,7 @@ export default class CodeView {
       .when(Boolean(lspChip), (e) => e.child(lspChip))
       .child(iconButton("cn-find", "search", T("Find (Cmd+F)"), (_e, cx) => { this.finding = !this.finding; if (this.finding) this.find.focus(); else this.focus.focus(); cx.notify(); }, { color: this.finding ? t.accent : undefined }))
       .child(iconButton("cn-outline", "layers", T("Outline (Cmd+Shift+O)"), (_e, cx) => { this.outline = !this.outline; cx.notify(); }, { color: this.outline ? t.accent : undefined }))
-      .child(iconButton("cn-edit", "pencil", T("Edit this file"), () => this.edit()))
-      .child(iconButton("cn-vscode", "vscode", T("Open in VS Code"), () => this.openInVscode()));
+      .child(iconButton("cn-edit", "pencil", T("Edit this file"), () => this.edit()));
   }
 
   // What the selected name is, problems on its line, and what can be done with it.
