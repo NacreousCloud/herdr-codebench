@@ -1,8 +1,8 @@
 // The idea layout's IntelliJ-style frame: tool windows on stripes (Project,
 // Commit, Structure, Find, Terminal, Problems) that open and fold like
-// IntelliJ's and move between the left, right and bottom sides, the main toolbar (project and branch widgets, Search
+// IntelliJ's and move between the left, right and bottom sides, the main toolbar (project widget, current branch, Search
 // Everywhere), the bottom tool window's header, Structure and Problems, the
-// status bar's path, and the project and branch popups.
+// status bar's path, and the project popup.
 // The code view publishes what these show: shared "codenav.caret",
 // "codenav.symbols" and "codenav.problems".
 import { div, svg, image } from "gpui-kit";
@@ -265,9 +265,9 @@ export class Toolbar {
       .child(widget("tb-project", t, [avatar(space?.name ?? "~"), div().font_semibold().text_color(t.foreground).max_w(220).truncate().child(space?.name ?? "~"),
         icon("chevron-down", 12).text_color(t.muted)],
         () => openOverlay({ mod: "codenav", props: { view: "projects" }, kind: "popup", width: 300, height: Math.min(460, 96 + spaces().length * 34) })))
-      .when(Boolean(space?.branch), (el) => el.child(widget("tb-branch", t, [icon("git-branch", 14).text_color(t.muted),
-        div().text_color(t.foreground).max_w(220).truncate().child(space.branch), icon("chevron-down", 12).text_color(t.muted)],
-        () => openOverlay({ mod: "codenav", props: { view: "branches" }, kind: "popup", width: 320, height: 420 }))))
+      // The current branch, shown only (switching branches stays with the agent and git).
+      .when(Boolean(space?.branch), (el) => el.child(h_flex().h(28).px(8).gap(6).flex_none().items_center()
+        .child(icon("git-branch", 14).text_color(t.muted)).child(div().text_color(t.foreground).max_w(220).truncate().child(space.branch))))
       .child(div().flex_1())
       .child(runWidget(t))
       .child(div().w(8))
@@ -422,43 +422,5 @@ export class Projects {
         done();
         pickFolder({ prompt: T("Open Folder…") }).then((folder) => { if (folder) run("space.new", { folder }); }).catch(() => {});
       }));
-  }
-}
-
-export class Branches {
-  init(_p, cx) {
-    this.local = []; this.remote = []; this.current = null;
-    const { cwd, on } = location();
-    this.where = { cwd, on };
-    cx.spawn(async (cx) => {
-      const r = await exec("git", ["for-each-ref", "--format=%(HEAD)%(refname)", "refs/heads", "refs/remotes"], { cwd, on }).catch(() => null);
-      for (const line of (r?.code === 0 ? r.stdout : "").split("\n").filter(Boolean)) {
-        const head = line[0] === "*", ref = line.slice(1);
-        if (ref.startsWith("refs/heads/")) { const b = ref.slice(11); this.local.push(b); if (head) this.current = b; }
-        else if (!ref.endsWith("/HEAD")) this.remote.push(ref.slice(13));
-      }
-      cx.notify();
-    });
-  }
-  checkout(args, label) {
-    const { cwd, on } = this.where;
-    exec("git", ["checkout", ...args], { cwd, on }).then((r) => {
-      if (r.code !== 0) notify({ title: T("Checkout failed"), body: (r.stderr || r.stdout).trim().slice(0, 300), level: "error", timeout: 6000 });
-      else notify({ title: T("Checked out {b}", { b: label }), level: "success", timeout: 2500 });
-    }).catch(() => {});
-  }
-  render() {
-    const t = theme(), { overlay } = props() ?? {};
-    const pick = (fn) => () => { closeOverlay(overlay); fn(); };
-    const head = (s) => div().px(10).pt(6).pb(2).text_size(11).font_semibold().text_color(t.muted).child(s);
-    return v_flex().size_full().p(6).bg(t.popover).text_color(t.foreground)
-      .child(div().id("br-list").max_h(400).overflow_y_scrollbar()
-        .child(head(T("Local")))
-        .children(this.local.map((b) => popupRow(`br-l-${b}`, t, [icon("git-branch", 13).text_color(b === this.current ? t.accent : t.muted),
-          div().flex_1().min_w(0).truncate().when(b === this.current, (e) => e.font_semibold()).child(b)],
-          b === this.current ? () => {} : pick(() => this.checkout([b], b)))))
-        .when(this.remote.length > 0, (e) => e.child(head(T("Remote"))))
-        .children(this.remote.map((b) => popupRow(`br-r-${b}`, t, [icon("git-branch", 13).text_color(t.dim), div().flex_1().min_w(0).truncate().child(b)],
-          pick(() => this.local.includes(b.replace(/^[^/]+\//, "")) ? this.checkout([b.replace(/^[^/]+\//, "")], b) : this.checkout(["--track", b], b))))));
   }
 }

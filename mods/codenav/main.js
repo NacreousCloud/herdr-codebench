@@ -10,7 +10,7 @@
 //               opened by Herdr with props { tab: "pane", target }
 //   panehead  — a terminal pane's header: split / zoom / close
 //   the idea layout (tools.js, everywhere.js): stripe, toolmenu, toolsettings, toolempty, toolheader, toolbar,
-//   structure, problems, crumbs, projects, branches, everywhere
+//   structure, problems, crumbs, projects, everywhere
 import { View, div } from "gpui-kit";
 import { props as herdrProps } from "herdr";
 import CodeView from "./code.js";
@@ -19,13 +19,13 @@ import Tabs, { TabMenu } from "./tabs.js";
 import Status from "./status.js";
 import { TermMenu, TermFiles } from "./termfiles.js";
 import PaneHead from "./panehead.js";
-import { Stripe, ToolMenu, ToolSettings, ToolEmpty, ToolHeader, Notifications, Toolbar, Structure, Problems, Crumbs, Projects, Branches } from "./tools.js";
+import { Stripe, ToolMenu, ToolSettings, ToolEmpty, ToolHeader, Notifications, Toolbar, Structure, Problems, Crumbs, Projects } from "./tools.js";
 import { Everywhere } from "./everywhere.js";
 import { RunMenu, RunConfigs } from "./run.js";
 
 const VIEWS = { code: CodeView, review: Review, tabs: Tabs, status: Status, tabmenu: TabMenu, termfiles: TermFiles, termmenu: TermMenu, panehead: PaneHead,
   stripe: Stripe, notifications: Notifications, toolmenu: ToolMenu, toolsettings: ToolSettings, toolempty: ToolEmpty, toolheader: ToolHeader, toolbar: Toolbar, structure: Structure, problems: Problems, crumbs: Crumbs,
-  projects: Projects, branches: Branches, everywhere: Everywhere, runmenu: RunMenu, runconfigs: RunConfigs };
+  projects: Projects, everywhere: Everywhere, runmenu: RunMenu, runconfigs: RunConfigs };
 
 export default class CodeNav extends View {
   init(initProps, cx) {

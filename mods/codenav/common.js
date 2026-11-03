@@ -67,7 +67,7 @@ export function setEditorSpec(key, spec) {
 }
 
 // Files the activity editor shows better: pictures, PDFs, media, archives.
-const VIEWER = /\.(png|jpe?g|gif|webp|bmp|svg|tiff?|avif|ico|pdf|mp3|mp4|m4a|wav|flac|ogg|mov|mkv|webm|avi|zip|gz|tgz|bz2|xz|7z|rar|tar|jar|war|class|so|dylib|dll|exe|bin|o|a|woff2?|ttf|otf|eot|sqlite|db|md|markdown|mdx)$/i;
+const VIEWER = /\.(png|jpe?g|gif|webp|bmp|svg|tiff?|avif|ico|pdf|mp3|mp4|m4a|wav|flac|ogg|mov|mkv|webm|avi|zip|gz|tgz|bz2|xz|7z|rar|tar|jar|war|class|so|dylib|dll|exe|bin|o|a|woff2?|ttf|otf|eot|sqlite|db)$/i;
 const isCode = (spec) => spec?.kind === "file" && !spec.edit && !VIEWER.test(spec.path ?? "");
 
 // Which child of the editor stack should show now.
