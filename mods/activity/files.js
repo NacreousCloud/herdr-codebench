@@ -79,10 +79,18 @@ export default class Files {
     });
   }
 
+  // A folder whose only entry is a folder opens that one too, down the chain
+  // (src/main → …/clientauth in one click).
   async loadFolder(path, context) {
-    const entries = await directory(path ? `${context.root}/${path}` : context.root, context.on);
-    if (!this.current(context) || (path && !this.folders.has(path))) return;
-    this.setEntries(path, entries);
+    for (;;) {
+      const entries = await directory(path ? `${context.root}/${path}` : context.root, context.on);
+      if (!this.current(context) || (path && !this.folders.has(path))) return;
+      this.setEntries(path, entries);
+      if (!path || entries.length !== 1 || !entries[0].dir) return;
+      path = `${path}/${entries[0].name}`;
+      if (this.folders.has(path)) return;
+      this.folders.add(path);
+    }
   }
 
   setEntries(path, entries) {
