@@ -84,7 +84,7 @@ Herdr는 터미널 링크의 Cmd+클릭을 macOS 기본 앱으로 넘기고 이�
 herdr-app do layout.switch --name codebench     # 또는 Cmd+Shift+L
 ```
 
-`keys.json`은 `~/.config/herdr-app/keys.json`에 한 번 합쳐 넣습니다.
+Herdr를 한 번 실행한 뒤 설치하세요. `install.sh`는 `keys.json`의 빠진 단축키도 자동으로 합칩니다. 기존 사용자 지정 단축키와 충돌하면 기존 값을 유지하고 해당 키를 출력합니다. 변경 전 파일은 `keys.json.backup-*`로 보관합니다.
 
 | 키 | 동작 |
 | --- | --- |
@@ -111,6 +111,14 @@ herdr-app do layout.switch --name codebench     # 또는 Cmd+Shift+L
 ## IntelliJ IDEA 모드와 공통 UI
 
 `idea`는 실제 IntelliJ Islands Dark의 compact 화면·설치 자원·사용자 키맵을 기준으로 구성합니다. 툴바/stripe/섬/탭/목록/입력/메뉴/설정은 공통 토큰과 컴포넌트를 사용합니다. 기존 패널 배치를 유지하며 설치합니다.
+
+```sh
+git switch idea-ux           # IDEA 모드 변경은 이 브랜치에 있습니다
+./install.sh
+herdr-app do layout.switch --name idea
+```
+
+Shift를 눌렀다 놓는 동작을 두 번 하면 **어디서나 검색**이 열립니다. Herdr 0.1.12의 기본 `shift shift` 키 시퀀스를 사용하므로 터미널·파일 탐색기·에디터·리뷰 등 포커스 위치와 관계없이 IDEA 레이아웃에서 동작합니다. 설정 → 키맵 → 탐색에서도 `어디서나 검색` / `⇧ ⇧`를 볼 수 있습니다. 다른 컴퓨터에서도 `idea-ux` 브랜치에서 설치하세요.
 
 - 기준과 분석: [선정 계획](design/idea/PARITY_PLAN.md), [세부 비교](design/idea/DETAIL_AUDIT.md)
 - 새 화면 개발: [컴포넌트 계약과 예제](design/idea/COMPONENTS.md), [개발 규칙](AGENTS.md)

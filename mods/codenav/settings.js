@@ -23,7 +23,7 @@ const PAGES = [
 ];
 const ACTION_NAMES = {
   "tool-project": "Project", "tool-commit": "Commit", "tool-structure": "Structure", "tool-find": "Find", "tool-terminal": "Terminal", "tool-problems": "Problems",
-  "find-class": "Go to Class", "find-file": "Go to File", "find-symbol": "Go to Symbol", "find-action": "Find Action", "find-recent": "Recent Files", "find-locations": "Recent Locations",
+  "find-all": "Search Everywhere", "find-class": "Go to Class", "find-file": "Go to File", "find-symbol": "Go to Symbol", "find-action": "Find Action", "find-recent": "Recent Files", "find-locations": "Recent Locations",
   "nav-back": "Back", "nav-forward": "Forward", "hide-active": "Hide Active Tool Window", "hide-tools": "Hide All Tool Windows", "tool-last": "Jump to Last Tool Window", "tool-reset": "Restore Tool Window Layout",
   "run": "Run", "rerun": "Rerun", "run-choose": "Run Configurations", "stop": "Stop", "settings": "Settings", "close-tab": "Close", "tab-next": "Next Tab", "tab-prev": "Previous Tab", "tab-back": "Back", "tab-forward": "Forward", "definition": "Go to Declaration", "next-error": "Next Problem", "prev-error": "Previous Problem",
 };

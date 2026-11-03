@@ -104,20 +104,6 @@ export function openPath(arg, on = null) {
   if (find(layout(), AREA)?.hidden) run("layout.show", { id: AREA });
 }
 
-// Double Shift (IntelliJ's Search Everywhere): a handler for on_modifiers_changed
-// that calls open() on the second Shift tap within 400 ms; `state` keeps the taps.
-export function doubleShift(state, open) {
-  return (e) => {
-    const m = e.modifiers ?? e;
-    const shiftOnly = m.shift && !m.control && !m.alt && !m.platform && !m.function;
-    if (shiftOnly && !state.shiftDown) {
-      const now = Date.now();
-      if (state.lastShift && now - state.lastShift < 400) { state.lastShift = 0; open(); } else state.lastShift = now;
-    }
-    state.shiftDown = Boolean(m.shift);
-  };
-}
-
 // The idea layout's islands: a view at an island's bottom (or top) rounds its own corners.
 export const islandBottom = (el) => isIdea() ? ideaUI(el).overflow_hidden() : el;
 export const islandTop = (el) => isIdea() ? ideaUI(el).rounded_t(IDEA.islandRadius) : el;

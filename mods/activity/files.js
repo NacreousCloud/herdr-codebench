@@ -212,16 +212,6 @@ export default class Files {
     });
   }
 
-  // Double Shift: codenav's Search Everywhere, as in IntelliJ.
-  shiftTap(e) {
-    const m = e.modifiers ?? e;
-    if (m.shift && !m.control && !m.alt && !m.platform && !this.shiftDown) {
-      const now = Date.now();
-      if (this.lastShift && now - this.lastShift < 400) { this.lastShift = 0; run("codenav.find-all"); } else this.lastShift = now;
-    }
-    this.shiftDown = Boolean(m.shift);
-  }
-
   toggle(path, cx) {
     if (this.folders.has(path)) {
       for (const folder of [...this.folders]) if (folder === path || folder.startsWith(path + "/")) {
@@ -487,8 +477,7 @@ export default class Files {
         .child(div().flex_1().min_w(0).truncate().text_size(idea ? uiSize() : 11).font_semibold().text_color(t.foreground)
           .child((this.context?.on ? `${this.context.on}: ` : "") + (idea ? basename(root) || T("No folder") : (basename(root) || "No folder").toUpperCase()))))
       .child(v_flex().id("files-tree").flex_1().min_h(0).overflow_y_scrollbar().pb(8)
-        .track_focus(this.focus).on_key_down((e, cx) => { this.lastShift = 0; this.key(e, cx); })
-        .on_modifiers_changed((e) => this.shiftTap(e))
+        .track_focus(this.focus).on_key_down((e, cx) => this.key(e, cx))
         .on_mouse_down("left", () => this.focus.focus())
         .on_mouse_down("right", (_e, cx) => this.openMenu(null, cx))
         .on_drop((e, cx) => this.drop(e.paths, "", cx))

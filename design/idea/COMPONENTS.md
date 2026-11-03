@@ -103,6 +103,14 @@ openOverlay({ mod: "codenav", props: { view: "designpreview" },
 
 `Open 100-row menu…`는 같은 view의 `variant:"menu"`를 논리 320×360 팝업으로 연다. 메뉴는 공통 컨트롤러의 긴 목록·비활성 건너뛰기·숫자 shortcut·선택 스크롤을 검증하는 예제다. 활성화하면 로컬 상태 문구만 바꾸고 유지되며 Escape로 닫는다. 갤러리는 settings/shared를 쓰거나 외부 명령·파일·네트워크 작업을 실행하지 않는다. 각 instance의 release에서 메뉴 handle을 해제한다.
 
+## 레이아웃 공통 키맵
+
+Shift 두 번은 Herdr/GPUI의 modifier-release 시퀀스 `shift shift`를 `keys.json`의 `layout:idea`에 등록한다. `terminal` override는 `codenav.key:shift shift`로 전달하고 Status가 IDEA에서만 전체 검색을 연다. 다른 레이아웃에서는 modifier 시퀀스를 터미널에 재전송하지 않는다. 개별 뷰의 `on_modifiers_changed`로 중복 감지하지 않는다. 설정 키맵은 실제 `keys()` 바인딩의 `Search Everywhere`를 `⇧ ⇧`로 표시한다.
+
+설치 시 빠진 바인딩만 병합하며 기존 키 충돌은 보존·출력하고 변경 전 파일을 백업한다. Herdr 최초 실행 전에는 기본 키맵을 대신 생성하지 않고 최초 실행을 안내한다.
+
+회귀 검사: `node design/idea/check_shortcuts.mjs`, `node --experimental-vm-modules design/idea/check_settings.mjs`.
+
 ## 툴 윈도우 설정
 
 툴 윈도우의 기본 위치·줄 표시·레이아웃 복원은 IdeaSettings의 `windows` 페이지에 통합한다. `openToolSettings()`와 기존 `codenav.tool-settings`는 `openIdeaSettings("windows")`로 연결한다. 별도 ToolSettings dialog는 만들지 않는다.

@@ -25,7 +25,7 @@ import { toolImage } from "./ideaicons.js";
 import { isHttp, httpRequests, httpEnvs, runHttp, httpBar } from "./http.js";
 import {
   iconButton, button, editorKey, editorSpec, setEditorSpec, CHILD, STACK, hasArea, measureFont, openPath,
-  syntaxColors, expandTabs, displayWidth, offsetAt, wordAt, tilde, sectionHeader, copyText, find, emptyEditor, doubleShift, codeFont, islandBottom,
+  syntaxColors, expandTabs, displayWidth, offsetAt, wordAt, tilde, sectionHeader, copyText, find, emptyEditor, codeFont, islandBottom,
 } from "./common.js";
 
 const PAD = 12;
@@ -423,9 +423,6 @@ export default class CodeView {
     this.reveal(d.line + 1, d.col);
   }
 
-  // Double Shift: Search Everywhere, as in IntelliJ.
-  modifiers(e) { (this.shiftTaps ??= doubleShift(this, () => openEverywhere("all")))(e); }
-
   // What the idea layout's Structure, Problems and status bar show, for the shown file.
   publish(cx) {
     const s = this.shown;
@@ -481,7 +478,6 @@ export default class CodeView {
       if (!this.comment.draft) this.focus.focus();
       cx.stop_propagation(); cx.notify(); return;
     }
-    this.lastShift = 0;
     const idea = isIdea();
     if ((k === "f12" && !isIdea()) || k === "cmd-b") this.definition(cx);
     else if ((k === "shift-f12" && !isIdea()) || k === "alt-shift-f12" || k === "alt-f7") this.references(cx);
@@ -758,7 +754,7 @@ export default class CodeView {
       .child(this.outlinePanel(t) ?? div());
     return ideaUI(islandBottom(v_flex().id("codenav-code").size_full().min_h(0).relative().bg(t.background)))
       .when(isIdea() && !s, el => el.rounded_t(IDEA.islandRadius)).text_color(t.foreground).text_size(uiSize(13))
-      .track_focus(this.focus).on_key_down((e, cx) => this.keyDown(e, cx)).on_modifiers_changed((e) => this.modifiers(e))
+      .track_focus(this.focus).on_key_down((e, cx) => this.keyDown(e, cx))
       .child(measure)
       .child(this.header(t) ?? div())
       .child((this.http && httpBar(t, this, cx)) ?? div())

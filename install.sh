@@ -5,6 +5,7 @@ set -eu
 HOME_DIR="${HERDR_APP_HOME:-$HOME/.config/herdr-app}"
 REPO="$(cd "$(dirname "$0")" && pwd)"
 python3 "$REPO/design/idea/sync_ui.py" --check
+mkdir -p "$HOME_DIR/layouts"
 for d in "$REPO"/mods/*/; do
   name=$(basename "$d"); dest="$HOME_DIR/mods/$name"
   [ -L "$dest" ] && rm "$dest"
@@ -23,5 +24,7 @@ for f in "$REPO"/layouts/*; do
 done
 mkdir -p "$HOME_DIR/themes"
 for f in "$REPO"/themes/*; do cp "$f" "$HOME_DIR/themes/$(basename "$f")"; done
-echo "Installed. Merge keys.json into $HOME_DIR/keys.json once (see README), then:"
+python3 "$REPO/design/idea/install_keys.py" "$REPO/keys.json" "$HOME_DIR/keys.json"
+echo "Installed. Choose a layout:"
+echo "  herdr-app do layout.switch --name idea"
 echo "  herdr-app do layout.switch --name codebench"

@@ -24,16 +24,17 @@ import { recordLocation } from "./locations.js";
 // Keys bound in keys.json's terminal section (programs in Kitty keyboard mode
 // would get them otherwise): what each does in the shown layout.
 const TERM_KEYS = {
-  idea: { "cmd-shift-o": "find-file", "cmd-o": "find-class", "cmd-alt-o": "find-symbol", "cmd-shift-a": "find-action", "cmd-e": "find-recent", "cmd-shift-e": "find-locations", "cmd-,": "settings" },
+  idea: { "shift shift": "find-all", "cmd-shift-o": "find-file", "cmd-o": "find-class", "cmd-alt-o": "find-symbol", "cmd-shift-a": "find-action", "cmd-e": "find-recent", "cmd-shift-e": "find-locations", "cmd-,": "settings" },
   codebench: { "cmd-shift-o": "terminal-files" },
 };
 async function termKey(key) {
   const c = TERM_KEYS[shared("layout")]?.[key];
   if (c === "terminal-files") showTerminalFiles(focused()?.terminal);
   else if (c === "settings") openIdeaSettings();
-  else if (c?.startsWith("find-")) openEverywhere({ "find-file": "files", "find-class": "classes", "find-symbol": "symbols", "find-action": "actions", "find-recent": "recent", "find-locations": "locations" }[c]);
+  else if (c?.startsWith("find-")) openEverywhere({ "find-all": "all", "find-file": "files", "find-class": "classes", "find-symbol": "symbols", "find-action": "actions", "find-recent": "recent", "find-locations": "locations" }[c]);
   // Forward keys that only idea claims, preserving terminal input in the other
   // layouts. hc encodes named keys for the program's negotiated keyboard mode.
+  else if (key === "shift shift") return; // Modifier taps have no terminal text to replay in other layouts.
   else if (key === "cmd-,") run("app.settings");
   else if (focused()?.terminal) {
     try {

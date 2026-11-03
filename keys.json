@@ -35,6 +35,7 @@
     "ctrl-left": "codenav.tab-prev"
   },
   "layout:idea": {
+    "shift shift": "codenav.find-all",
     "cmd-1": "codenav.tool-project",
     "cmd-0": "codenav.tool-commit",
     "cmd-7": "codenav.tool-structure",
@@ -65,6 +66,7 @@
     "shift-f12": "codenav.tool-reset"
   },
   "terminal": {
+    "shift shift": "codenav.key:shift shift",
     "cmd-shift-o": "codenav.key:cmd-shift-o",
     "cmd-o": "codenav.key:cmd-o",
     "cmd-alt-o": "codenav.key:cmd-alt-o",

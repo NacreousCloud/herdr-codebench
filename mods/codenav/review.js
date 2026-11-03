@@ -14,7 +14,7 @@ import { CommentBox, commentCard, commentHeight, commentsOf, repoKey, repoStore,
 import { exec, hc, readTextFile, theme, settings, shared, setShared, run, notify, watchFolder, spaces } from "herdr";
 import {
   icon, iconButton, button, sectionHeader, location, targets, setEditorSpec, editorKey, showEditor, showReview,
-  expandTabs, basename, ext, colorize, syntaxColors, offsetAt, wordAt, openPath, measureFont, copyText, emptyEditor, doubleShift, codeFont, islandBottom
+  expandTabs, basename, ext, colorize, syntaxColors, offsetAt, wordAt, openPath, measureFont, copyText, emptyEditor, codeFont, islandBottom
  } from "./common.js";
 
 const SEP = "\n@@CODENAV@@\n";
@@ -688,7 +688,6 @@ export default class Review {
     if (this.part === "main" && this.notRepo) {
       return ideaUI(islandBottom(div().id("codenav-review").size_full().bg(t.background))).text_color(t.foreground)
         .track_focus(this.focus).on_mouse_down("left", () => this.focus.focus())
-        .on_modifiers_changed((this.shiftTaps ??= doubleShift(this, () => openEverywhere("all"))))
         .child(emptyEditor(t));
     }
     return ideaUI(islandBottom(h_flex().id("codenav-review").size_full().min_h(0).bg(t.background))).text_color(t.foreground).text_size(uiSize(13))
