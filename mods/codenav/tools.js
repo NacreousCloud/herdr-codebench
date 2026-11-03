@@ -24,9 +24,9 @@ export const TOOLS = {
 // The three places a tool window can be. Each stack keeps an empty child, so a
 // side whose tools all moved away still has one.
 export const SIDES = {
-  left: { column: "sidebar", stack: "sidebar-views", empty: "left-empty", label: "Left" },
-  right: { column: "tool-right", stack: "right-views", empty: "right-empty", label: "Right" },
-  bottom: { column: "terminal-panel", stack: "bottom-stack", empty: "bottom-empty", label: "Bottom" },
+  left: { column: "sidebar", stack: "sidebar-views", empty: "left-empty", bar: "left-bar", label: "Left" },
+  right: { column: "tool-right", stack: "right-views", empty: "right-empty", bar: "right-bar", label: "Right" },
+  bottom: { column: "terminal-panel", stack: "bottom-stack", empty: "bottom-empty", bar: "bottom-bar", label: "Bottom" },
 };
 
 // Which side a tool window is on now: the stack holding it.
@@ -120,7 +120,21 @@ export class Stripe {
       }))
       .child(icon(tool.icon, 17));
   }
-  render() {
+  // The terminal's tab strip goes with it: a left or right side shows its header
+  // only while the terminal shows there (the bottom one always shows).
+  syncBars(cx) {
+    const l = layout();
+    for (const k of ["left", "right"]) {
+      const bar = find(l, SIDES[k].bar);
+      if (!bar) continue;
+      const want = find(l, SIDES[k].stack)?.active === TOOLS.terminal.child;
+      if (Boolean(bar.hidden) === !want || this.syncing?.[k] === want) continue;
+      this.syncing = { ...this.syncing, [k]: want };
+      cx.timer.after(0, () => { this.syncing = { ...this.syncing, [k]: undefined }; run(want ? "layout.show" : "layout.hide", { id: SIDES[k].bar }); });
+    }
+  }
+  render(cx) {
+    if (this.edge === "left") this.syncBars(cx);
     const t = theme(), hidden = hiddenTools(), shown = (side) => toolsOn(side).filter((n) => !hidden.has(n));
     const top = shown(this.edge), bottom = this.edge === "left" ? shown("bottom") : [];
     return v_flex().size_full().py(6).gap(4).items_center().bg(t.chrome).when(this.edge === "left", (e) => e.border_r(1)).when(this.edge === "right", (e) => e.border_l(1)).border_color(t.border)
@@ -224,7 +238,7 @@ export class Toolbar {
   }
 }
 
-// -- the bottom side's header: the terminal's tabs when it shows, then hide.
+// -- a side's header: the terminal's tabs when it shows, then hide (left and right show it only for the terminal).
 export class ToolHeader {
   init(p) { this.side = SIDES[p?.side] ? p.side : "bottom"; }
   tab(c, t) {

@@ -63,6 +63,21 @@
           "background": "chrome",
           "children": [
             {
+              "id": "left-bar",
+              "type": "block",
+              "size": {
+                "px": 32
+              },
+              "hidden": true,
+              "content": {
+                "mod": "codenav",
+                "props": {
+                  "view": "toolheader",
+                  "side": "left"
+                }
+              }
+            },
+            {
               "id": "sidebar-views",
               "type": "stack",
               "active": "view-files",
@@ -285,6 +300,21 @@
           "hidden": true,
           "background": "chrome",
           "children": [
+            {
+              "id": "right-bar",
+              "type": "block",
+              "size": {
+                "px": 32
+              },
+              "hidden": true,
+              "content": {
+                "mod": "codenav",
+                "props": {
+                  "view": "toolheader",
+                  "side": "right"
+                }
+              }
+            },
             {
               "id": "right-views",
               "type": "stack",
