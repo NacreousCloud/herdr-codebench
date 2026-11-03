@@ -7,7 +7,7 @@
 // repository; the chosen one is kept per folder in shared "codenav.httpEnv".
 import { div } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
-import { theme, shared, setShared, props, closeOverlay, openOverlay, readTextFile, writeTextFile } from "herdr";
+import { theme, shared, setShared, props, closeOverlay, openOverlay, readTextFile, writeTextFile, exec } from "herdr";
 import { T } from "./i18n.js";
 import { basename } from "./common.js";
 import { toolImage } from "./ideaicons.js";
@@ -46,22 +46,28 @@ export async function httpEnvs(path, root) {
   }
   const names = new Set();
   for (const f of [files.pub, files.priv]) {
-    try { for (const k of Object.keys(JSON.parse(f?.text ?? "{}"))) if (k !== "$shared") names.add(k); } catch {}
+    // Names go into a command typed into the terminal: none with control characters.
+    try { for (const k of Object.keys(JSON.parse(f?.text ?? "{}"))) if (k !== "$shared" && !CONTROL.test(k)) names.add(k); } catch {}
   }
   return { pub: files.pub?.path ?? null, priv: files.priv?.path ?? null, names: [...names] };
 }
 
 const store = () => shared("codenav.httpEnv") ?? {};
 export const chosenEnv = (path, envs) => { const e = store()[dirOf(path)]; return envs.names.includes(e) ? e : envs.names[0] ?? null; };
+const CONTROL = /[\u0000-\u001f\u007f]/;
 const sq = (x) => `'${String(x).replace(/'/g, `'\\''`)}'`;
 
 // Runs one request (req) or the whole file.
 export async function runHttp(path, lines, envs, req, after) {
   const dir = dirOf(path), env = chosenEnv(path, envs);
+  if ([path, envs.pub, envs.priv, env].some((x) => x && CONTROL.test(x))) return;
   const opts = ["ijhttp", "-L", "VERBOSE", "--no-progress", ...(env ? ["-e", sq(env)] : []), ...(envs.pub ? ["-v", sq(envs.pub)] : []), ...(envs.priv ? ["-p", sq(envs.priv)] : [])].join(" ");
   let command = `${opts} ${sq(path)}`;
   if (req) {
-    const tmp = `${dir}/.codenav-${basename(path).replace(/\.[^.]*$/, "")}-${req.line + 1}.http`;
+    // A name nobody can guess, and nothing (not even a link) there already.
+    const tmp = `${dir}/.codenav-${Math.random().toString(36).slice(2)}${Date.now().toString(36)}.http`;
+    const taken = await exec("sh", ["-c", '[ -e "$1" ] || [ -L "$1" ]', "sh", tmp]).catch(() => null);
+    if (!taken || taken.code === 0) return;
     await writeTextFile(tmp, lines.slice(req.start, req.end).join("\n") + "\n", null);
     command = `${opts} ${sq(tmp)}; rm -f ${sq(tmp)}`;
   }
