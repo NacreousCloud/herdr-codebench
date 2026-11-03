@@ -423,14 +423,16 @@ export default class CodeView {
     this.reveal(d.line + 1, d.col);
   }
 
-  // What the idea layout's Structure, Problems and status bar show, for the shown file.
+  // The caret, for Recent Locations in every layout; and what the idea layout's
+  // Structure, Problems and status bar show, for the shown file.
   publish(cx) {
     const s = this.shown;
-    if (!s || !find(layout(), "view-structure")) return;
+    if (!s) return;
     const scope = this.sel ? this.scope(this.sel.line).map((x) => x.name) : [];
     const caret = this.sel ? { path: s.path, on: s.on ?? null, line: this.sel.line, col: this.sel.col, scope } : null;
-    const want = [["codenav.caret", caret, JSON.stringify(caret)], ["codenav.symbols", { path: s.path, items: this.symbols.slice(0, 1500) }, this.symbols],
-      ["codenav.problems", { path: s.path, items: this.diags }, this.diags]];
+    const want = [["codenav.caret", caret, JSON.stringify(caret)]];
+    if (find(layout(), "view-structure")) want.push(["codenav.symbols", { path: s.path, items: this.symbols.slice(0, 1500) }, this.symbols],
+      ["codenav.problems", { path: s.path, items: this.diags }, this.diags]);
     this.published ??= {};
     for (const [key, value, mark] of want) {
       const sig = [s.path, mark];

@@ -26,7 +26,8 @@
     "cmd-o": "codenav.find-class",
     "cmd-alt-o": "codenav.find-symbol",
     "cmd-shift-a": "codenav.find-action",
-    "cmd-e": "codenav.find-recent"
+    "cmd-e": "codenav.find-recent",
+    "cmd-shift-e": "codenav.find-locations"
   },
   "mod:codenav": {
     "cmd-w": "codenav.close-tab",

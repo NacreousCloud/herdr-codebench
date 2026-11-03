@@ -25,7 +25,7 @@ import { recordLocation } from "./locations.js";
 // would get them otherwise): what each does in the shown layout.
 const TERM_KEYS = {
   idea: { "shift shift": "find-all", "cmd-shift-o": "find-file", "cmd-o": "find-class", "cmd-alt-o": "find-symbol", "cmd-shift-a": "find-action", "cmd-e": "find-recent", "cmd-shift-e": "find-locations", "cmd-,": "settings" },
-  codebench: { "shift shift": "find-all", "cmd-shift-o": "terminal-files", "cmd-o": "find-class", "cmd-alt-o": "find-symbol", "cmd-shift-a": "find-action", "cmd-e": "find-recent" },
+  codebench: { "shift shift": "find-all", "cmd-shift-o": "terminal-files", "cmd-o": "find-class", "cmd-alt-o": "find-symbol", "cmd-shift-a": "find-action", "cmd-e": "find-recent", "cmd-shift-e": "find-locations" },
 };
 async function termKey(key) {
   const c = TERM_KEYS[shared("layout")]?.[key];
@@ -122,7 +122,7 @@ export default class Status {
     recordAgents(this, cx);
     followSpace(this, cx);
     routeEditor(this, cx);
-    if (isIdea()) recordLocation(this, cx);
+    if (isIdea() || shared("layout") === "codebench") recordLocation(this, cx);
     const t = theme();
     const servers = this.servers ?? [];
     const busy = servers.some((s) => s.busy?.length || s.state === "starting");
