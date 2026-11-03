@@ -12,8 +12,8 @@ import { CommentBox, commentCard, commentHeight, commentsOf, repoKey, repoStore,
 import { exec, hc, readTextFile, theme, settings, shared, setShared, run, notify, watchFolder, spaces } from "herdr";
 import {
   icon, iconButton, button, sectionHeader, location, targets, setEditorSpec, editorKey, showEditor, showReview,
-  expandTabs, basename, ext, colorize, syntaxColors, offsetAt, wordAt, openPath, measureFont, copyText,
-} from "./common.js";
+  expandTabs, basename, ext, colorize, syntaxColors, offsetAt, wordAt, openPath, measureFont, copyText, emptyEditor
+ } from "./common.js";
 
 const SEP = "\n@@CODENAV@@\n";
 const READ = ["--no-optional-locks", "-c", "core.fsmonitor=false", "-c", "diff.autoRefreshIndex=false", "-c", "core.quotePath=false"];
@@ -110,6 +110,7 @@ export default class Review {
       try {
         const r = await this.sh(REPO, [cwd]);
         // Not a repository: nothing of the last one may show here.
+        this.notRepo = r.code === 3;
         if (r.code !== 0) { clear(); this.error = r.code === 3 ? T("Not a git repository") : r.stderr.trim() || T("Cannot read this folder"); return; }
         const [top, branch, refs, originHead] = r.stdout.split(SEP);
         const repoKey = `${on ?? ""}:${top.trim()}`;
@@ -666,6 +667,8 @@ export default class Review {
       this.publishing = now.path;
       cx.timer.after(0, () => { this.publishing = null; setShared("codenav.review.current", now); });
     }
+    // Outside a repository the diff half has nothing to review: the editor's empty state.
+    if (this.part === "main" && this.notRepo) return div().id("codenav-review").size_full().bg(t.background).text_color(t.foreground).child(emptyEditor(t));
     return h_flex().id("codenav-review").size_full().min_h(0).bg(t.background).text_color(t.foreground).text_size(13)
       .on_key_down((e, cx) => {
         if (this.comment.key(e, this.rkey())) this.anchor = null;

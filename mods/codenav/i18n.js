@@ -150,6 +150,8 @@ const KO = {
   "Comments need a file inside a git repository": "코멘트는 git 저장소 안의 파일에만 남길 수 있습니다",
   "File comment · ": "파일 코멘트 · ",
   // the idea layout
+  "Search Everywhere": "어디서나 검색",
+  "Go to File": "파일로 이동",
   "Remove from Stripe": "줄에서 숨기기",
   "Hidden": "숨김",
   "Hide (Shift+Esc)": "숨기기 (Shift+Esc)",

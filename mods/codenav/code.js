@@ -22,7 +22,7 @@ import { tabBack, tabForward } from "./tabs.js";
 import { openEverywhere } from "./everywhere.js";
 import {
   iconButton, button, editorKey, editorSpec, setEditorSpec, CHILD, STACK, hasArea, measureFont,
-  syntaxColors, expandTabs, displayWidth, offsetAt, wordAt, tilde, sectionHeader, copyText, find,
+  syntaxColors, expandTabs, displayWidth, offsetAt, wordAt, tilde, sectionHeader, copyText, find, emptyEditor,
 } from "./common.js";
 
 const ROW = 20;
@@ -690,7 +690,7 @@ export default class CodeView {
     const colors = syntaxColors(t);
     const measure = measureFont(this, font, FONT);
     let body;
-    if (!s) body = div().p(16).text_color(t.dim).child(T("Open a file from the Explorer or Search view."));
+    if (!s) body = emptyEditor(t);
     else if (this.error) body = v_flex().p(16).gap(10).text_color(t.dim).child(this.error)
       .child(h_flex().child(button("cn-astext", T("Open in the editor"), () => this.edit(), { tip: T("The activity editor and viewers") })));
     else if (this.loading && !this.lines.length) body = div().p(16).text_color(t.dim).child(T("Loading…"));

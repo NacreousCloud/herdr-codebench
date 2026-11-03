@@ -12,9 +12,12 @@ for d in "$REPO"/mods/*/; do
   rsync -a --exclude gpui-kit.d.ts --exclude jsconfig.json --exclude hosts.json --exclude .cache --exclude __pycache__ "$d" "$dest/"
   herdr-app check "$dest"
 done
+# A layout already there keeps how it was arranged (moved tool windows, sizes);
+# HERDR_LAYOUT_RESET=1 copies this repo's over it.
 for f in "$REPO"/layouts/*; do
   dest="$HOME_DIR/layouts/$(basename "$f")"
   [ -L "$dest" ] && rm "$dest"
+  if [ -e "$dest" ] && [ "${HERDR_LAYOUT_RESET:-}" != 1 ] && [ "${f##*.}" = json ]; then continue; fi
   cp "$f" "$dest"
 done
 mkdir -p "$HOME_DIR/themes"
