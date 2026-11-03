@@ -12,14 +12,13 @@
   },
   "layout:codebench": {
     "ctrl-alt-1": "layout.toggle:spaces-col",
-    "ctrl-alt-2": "activity.view-agents",
-    "ctrl-alt-3": "activity.view-files",
-    "ctrl-alt-4": "activity.view-search",
+    "ctrl-alt-3": "activity.view-search",
+    "ctrl-alt-4": "activity.view-review",
     "ctrl-`": "layout.toggle:terminal-panel",
     "ctrl-alt-e": "layout.toggle:editor-area",
     "ctrl-alt-r": "codenav.review",
     "cmd-shift-o": "codenav.terminal-files",
-    "ctrl-alt-5": "activity.view-review"
+    "ctrl-alt-2": "activity.view-files"
   },
   "mod:codenav": {
     "cmd-w": "codenav.close-tab",

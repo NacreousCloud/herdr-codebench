@@ -71,16 +71,6 @@
           "type": "stack",
           "children": [
             {
-              "id": "view-agents",
-              "type": "block",
-              "content": {
-                "mod": "activity",
-                "props": {
-                  "view": "agents"
-                }
-              }
-            },
-            {
               "id": "view-files",
               "type": "block",
               "content": {

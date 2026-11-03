@@ -6,7 +6,7 @@
 
 | 폴더 | 내용 |
 | --- | --- |
-| `layouts/codebench.json` | 레이아웃: 맨 왼쪽 스페이스 목록, 그 옆 사이드바(에이전트·탐색기·검색·리뷰, 스페이스를 옮겨도 그대로), 편집기 영역(탭 줄 + 코드 뷰 / 편집기 / 리뷰 diff), 터미널 패널, 상태 표시줄 |
+| `layouts/codebench.json` | 레이아웃: 맨 왼쪽 스페이스 목록, 그 옆 사이드바(탐색기·검색·리뷰, 스페이스를 옮겨도 그대로), 편집기 영역(탭 줄 + 코드 뷰 / 편집기 / 리뷰 diff), 터미널 패널, 상태 표시줄 |
 | `mods/codenav/` | 이 레포의 mod: 코드 뷰, 브랜치 리뷰, LSP bridge, 스페이스별 배치 기억, 한국어 |
 | `mods/activity/` | yama-lei의 activity mod 수정본 (아래 "원본 대비 변경") |
 | `mods/open-vscode/` | [CacaoRick/herdr-open-vscode](https://github.com/CacaoRick/herdr-open-vscode), 그대로 |
@@ -88,7 +88,7 @@ herdr-app do layout.switch --name codebench     # 또는 Cmd+Shift+L
 | 키 | 동작 |
 | --- | --- |
 | Ctrl+Alt+1 | 스페이스 목록 열기/닫기 |
-| Ctrl+Alt+2…5 | 에이전트 / 탐색기 / 검색 / 리뷰 |
+| Ctrl+Alt+2…4 | 탐색기 / 검색 / 리뷰 |
 | Ctrl+Alt+R | 리뷰 열기 |
 | Cmd+Shift+O | 포커스된 터미널에 나온 파일 목록 |
 | Cmd+W | 코드 뷰에서 현재 탭 닫기 |
