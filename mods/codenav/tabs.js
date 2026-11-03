@@ -5,7 +5,7 @@
 // Right-click a tab for Close / Close Others / Close All; Cmd+W in the code
 // view closes the shown tab (the status item takes the command).
 // Back / forward (Ctrl+- / Ctrl+Shift+-) walk the tabs shown before, per space: the
-// last 10, closed ones reopening.
+// last 10, closed ones reopening; the arrows at the strip's start do the same.
 import { div } from "gpui-kit";
 import { T } from "./i18n.js";
 import { h_flex, v_flex } from "gpui-base";
@@ -161,6 +161,9 @@ export default class Tabs {
     };
     const list = tabsNow().filter(here);
     return h_flex().id("codenav-tabs").size_full().pr(6).items_center().bg(t.chrome).border_b(1).border_color(t.border)
+      .child(h_flex().flex_none().h_full().px(4).gap(2).items_center().border_r(1).border_color(t.border)
+        .child(iconButton("cn-tabs-back", "chevron-left", T("Previous tab (Ctrl+-)"), () => tabBack(), { color: canStep(-1) ? t.muted : t.dim }))
+        .child(iconButton("cn-tabs-fwd", "chevron-right", T("Next tab (Ctrl+Shift+-)"), () => tabForward(), { color: canStep(1) ? t.muted : t.dim })))
       .child(h_flex().id("cn-tabs-scroll").flex_1().min_w(0).h_full().overflow_x_scrollbar()
         .children(list.length ? list.map(tab) : [div().px(12).text_size(12).text_color(t.dim).child(T("Editor"))]))
       .when(Boolean(spec?.edit) && !reviewing(), (e) => e.child(iconButton("cn-tab-codeview", "eye", T("Back to the code view (language server help)"), () => {
