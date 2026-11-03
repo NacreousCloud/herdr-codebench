@@ -226,7 +226,10 @@
                     "pane": {
                       "header": {
                         "content": {
-                          "mod": "pane"
+                          "mod": "codenav",
+                          "props": {
+                            "view": "panehead"
+                          }
                         },
                         "reveal": "hover",
                         "height": 28,

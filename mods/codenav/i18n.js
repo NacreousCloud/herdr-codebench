@@ -53,7 +53,7 @@ const KO = {
   "Files in this terminal": "이 터미널의 파일",
   "Split right": "오른쪽으로 분할", "Split down": "아래로 분할", "Zoom": "확대",
   "Use Herdr right-click menu": "Herdr 우클릭 메뉴 사용", "Send right-clicks to pane": "우클릭을 프로그램에 전달",
-  "Send back to": "되돌려 보내기:", "Close pane": "패널 닫기",
+  "Send back to": "되돌려 보내기:", "Close pane": "패널 닫기", "Needs you": "확인 필요",
   "Select a file path first": "먼저 파일 경로를 선택하세요",
   "Nothing new was selected in the terminal": "터미널에서 새로 선택한 내용이 없습니다",
   "Filter files": "파일 검색",

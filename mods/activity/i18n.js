@@ -19,6 +19,10 @@ const KO = {
   "Showing the first 1,000 changes": "처음 1,000개 변경만 표시합니다", "TERMINAL": "터미널",
   "Command Palette": "명령 팔레트", "Open folder in VS Code (Ctrl+Shift+G)": "VS Code에서 폴더 열기 (Ctrl+Shift+G)",
   "Unsaved changes": "저장하지 않은 변경", "Not a git repository": "git 저장소가 아닙니다",
+  "Toggle Primary Side Bar (Ctrl+Shift+B)": "사이드바 토글 (Ctrl+Shift+B)", "Toggle Editor Area": "편집기 영역 토글",
+  "Toggle Terminal Panel (Ctrl+`)": "터미널 패널 토글 (Ctrl+`)",
+  "Editor beside the terminal": "편집기와 터미널을 좌우로", "Editor above the terminal": "편집기와 터미널을 위아래로",
+  "Restore Editor Area": "편집기 영역 복원", "Maximize Panel": "패널 최대화", "Close tab": "탭 닫기",
 };
 
 export const T = (text) => shared("codenav.lang") === "ko" ? KO[text] ?? text : text;

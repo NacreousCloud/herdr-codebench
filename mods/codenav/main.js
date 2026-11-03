@@ -8,6 +8,7 @@
 //   termfiles — the paths named in a terminal, to open in the code view
 //   termmenu  — the terminal right-click menu (the layout's "terminal_menu"),
 //               opened by Herdr with props { tab: "pane", target }
+//   panehead  — a terminal pane's header: split / zoom / close
 import { View, div } from "gpui-kit";
 import { props as herdrProps } from "herdr";
 import CodeView from "./code.js";
@@ -15,8 +16,9 @@ import Review from "./review.js";
 import Tabs, { TabMenu } from "./tabs.js";
 import Status from "./status.js";
 import { TermMenu, TermFiles } from "./termfiles.js";
+import PaneHead from "./panehead.js";
 
-const VIEWS = { code: CodeView, review: Review, tabs: Tabs, status: Status, tabmenu: TabMenu, termfiles: TermFiles, termmenu: TermMenu };
+const VIEWS = { code: CodeView, review: Review, tabs: Tabs, status: Status, tabmenu: TabMenu, termfiles: TermFiles, termmenu: TermMenu, panehead: PaneHead };
 
 export default class CodeNav extends View {
   init(initProps, cx) {

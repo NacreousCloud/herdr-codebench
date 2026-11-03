@@ -7,17 +7,29 @@ import { h_flex } from "gpui-base";
 import { run, theme, layout, window, spaces } from "herdr";
 import { find, AREA, iconButton, icon, location, basename, editorSpec, showView } from "./common.js";
 
-const toggles = [
+// The editor area and the terminal panel share "work-body": a column stacks
+// them, a row puts them side by side (layouts that have one).
+const BODY = "work-body";
+const toggles = (side) => [
   { id: "sidebar", icon: "layout-sidebar", tip: "Toggle Primary Side Bar (Ctrl+Shift+B)" },
-  { id: AREA, icon: "layout-editor", tip: "Toggle Editor Area" },
-  { id: "terminal-panel", icon: "layout-panel", tip: "Toggle Terminal Panel (Ctrl+`)" },
+  { id: AREA, icon: side ? "layout-editor-left" : "layout-editor", tip: "Toggle Editor Area" },
+  { id: "terminal-panel", icon: side ? "layout-panel-right" : "layout-panel", tip: "Toggle Terminal Panel (Ctrl+`)" },
 ];
+
+function setSplit(dir) {
+  const tree = JSON.parse(JSON.stringify(layout()));
+  const body = find(tree, BODY);
+  if (!body || body.type === dir) return;
+  body.type = dir;
+  run("layout.set", { layout: tree });
+}
 
 export default class Titlebar {
   init() {}
 
   render() {
     const t = theme(), root = layout(), w = window();
+    const body = find(root, BODY), side = body?.type === "row";
     const space = spaces().find((s) => s.active);
     const spec = editorSpec(), folder = basename(location().cwd);
     const center = [spec?.rel ?? (spec ? basename(spec.path) : null), folder, space?.name].filter(Boolean);
@@ -46,7 +58,11 @@ export default class Titlebar {
         .child(icon("search", 13))
         .child(div().min_w(0).truncate().child(center.join(" — ") || "Herdr")))
       .child(div().flex_1())
-      .children(toggles.map(toggle))
+      .children(toggles(side).map(toggle))
+      .when(Boolean(body), (el) => el
+        .child(div().w(1).h(16).mx(4).flex_none().bg(t.border))
+        .child(iconButton("tb-split", side ? "split-rows" : "split-columns", side ? "Editor above the terminal" : "Editor beside the terminal",
+          () => setSplit(side ? "column" : "row"), { size: 26, icon: 15, color: t.foreground })))
       .when(Boolean(w?.buttons), (el) => el.child(div().w(8))
         .child(winButton("min", "minus", () => run("window.minimize")))
         .child(winButton("max", "square", () => run("window.maximize")))

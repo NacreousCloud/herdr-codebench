@@ -499,7 +499,8 @@ export default class Review {
           .when(!comments.length, (e) => e.child(div().px(12).pb(8).text_size(11.5).text_color(t.dim).child(T("Click a line number in the diff to comment; Shift+click another for a range."))))
           .children([...comments].sort((a, b) => a.path.localeCompare(b.path) || a.start - b.start).map((c, i) =>
             h_flex().id(`rv-c-${i}`).px(12).py(4).gap(6).items_start().text_size(12).cursor_pointer().hover((e) => e.bg(t.hover))
-              .on_click((_e, cx) => { this.select(c.path, cx); if (this.part === "side") this.save({ editing: c.id }); else this.editComment(c, cx); })
+              // On press: the delete button stops its press, so deleting doesn't open the comment.
+              .on_mouse_down("left", (_e, cx) => { this.select(c.path, cx); if (this.part === "side") this.save({ editing: c.id }); else this.editComment(c, cx); })
               .child(v_flex().flex_1().min_w(0)
                 .child(div().truncate().text_size(11).text_color(t.muted).child(`${basename(c.path)}:${c.start}${c.end !== c.start ? `-${c.end}` : ""}`))
                 .child(div().truncate().child(c.body.split("\n")[0])))
