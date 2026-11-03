@@ -21,6 +21,7 @@ export const TOOLS = {
   find: { child: "view-search", icon: "search", idea: "find", label: "Find", key: "⌘⇧F" },
   terminal: { child: "bottom-terminal", icon: "terminal", idea: "terminal", label: "Terminal", key: "⌥F12" },
   problems: { child: "bottom-problems", icon: "alert", idea: "problems", label: "Problems", key: "⌘6" },
+  notifications: { child: "bottom-notifications", icon: "message", idea: "notifications", label: "Notifications", key: "" },
 };
 // The three places a tool window can be. Each stack keeps an empty child, so a
 // side whose tools all moved away still has one.
@@ -92,7 +93,7 @@ export function arrange(want, show = false) {
 export const moveTool = (name, to) => arrange({ [name]: to }, true);
 
 // The default sides (Settings → tool windows), kept in shared "codenav.toolSides".
-export const DEFAULT_SIDES = { project: "left", commit: "left", structure: "left", find: "left", terminal: "bottom", problems: "bottom" };
+export const DEFAULT_SIDES = { project: "left", commit: "left", structure: "left", find: "left", terminal: "bottom", problems: "bottom", notifications: "bottom" };
 export const savedSides = () => ({ ...DEFAULT_SIDES, ...(shared("codenav.toolSides") ?? {}) });
 export const openToolSettings = () => openOverlay({ mod: "codenav", props: { view: "toolsettings" }, kind: "dialog", width: 520, height: 360 });
 
@@ -134,8 +135,25 @@ export class Stripe {
       cx.timer.after(0, () => { this.syncing = { ...this.syncing, [k]: undefined }; run(want ? "layout.show" : "layout.hide", { id: SIDES[k].bar }); });
     }
   }
+  // Tool windows added after the layout was arranged join their default side once.
+  addMissing(cx) {
+    const l = layout(), sides = savedSides();
+    const missing = Object.keys(TOOLS).filter((n) => !sideOf(n) && find(l, SIDES[sides[n] ?? "bottom"]?.stack));
+    if (!missing.length || this.adding) return;
+    this.adding = true;
+    cx.timer.after(0, () => {
+      this.adding = false;
+      const tree = JSON.parse(JSON.stringify(layout()));
+      for (const n of missing) {
+        const stack = find(tree, SIDES[sides[n] ?? "bottom"].stack);
+        if (stack && !stack.children.some((c) => c.id === TOOLS[n].child))
+          stack.children = [...stack.children, { id: TOOLS[n].child, type: "block", content: { mod: "codenav", props: { view: n } } }];
+      }
+      run("layout.set", { layout: tree });
+    });
+  }
   render(cx) {
-    if (this.edge === "left") this.syncBars(cx);
+    if (this.edge === "left") { this.syncBars(cx); this.addMissing(cx); }
     const t = theme(), hidden = hiddenTools(), shown = (side) => toolsOn(side).filter((n) => !hidden.has(n));
     const top = shown(this.edge), bottom = this.edge === "left" ? shown("bottom") : [];
     return v_flex().size_full().py(6).gap(4).items_center().bg(t.chrome).when(this.edge === "left", (e) => e.border_r(1)).when(this.edge === "right", (e) => e.border_l(1)).border_color(t.border)
@@ -316,6 +334,29 @@ export class Problems {
   }
 }
 
+// -- Notifications: what Herdr tells you about agents (finished, waiting for you), kept in shared
+// "codenav.notifications" by the status item (status.js), newest first; click to go there.
+const ago = (at) => { const s = Math.max(0, Math.round((Date.now() - at) / 1000)); return s < 60 ? T("just now") : s < 3600 ? T("{n} min ago", { n: Math.floor(s / 60) }) : s < 86400 ? T("{n} h ago", { n: Math.floor(s / 3600) }) : new Date(at).toLocaleDateString(); };
+export class Notifications {
+  init() {}
+  render() {
+    const t = theme(), list = shared("codenav.notifications") ?? [];
+    return v_flex().size_full().bg(t.background).text_color(t.foreground)
+      .child(h_flex().h(28).flex_none().px(12).gap(8).items_center().text_size(12).text_color(t.muted)
+        .child(div().flex_1().child(T("{n} notifications", { n: list.length })))
+        .when(list.length > 0, (e) => e.child(div().id("nt-clear").px(6).py(2).rounded(4).cursor_pointer().hover((s) => s.bg(t.hover)).text_color(t.accent)
+          .on_click(() => setShared("codenav.notifications", [])).child(T("Clear all")))))
+      .child(!list.length ? div().px(12).text_size(12).text_color(t.dim).child(T("No notifications yet. Agents that finish or wait for you show here."))
+        : div().id("tw-notifications").flex_1().min_h(0).overflow_y_scrollbar().pb(8)
+          .children(list.map((n, i) => h_flex().id(`nt-${i}`).px(12).py(6).gap(10).items_start().cursor_pointer().hover((e) => e.bg(t.hover))
+            .on_click(() => { if (n.space) run("space.select", { id: n.space }); if (n.terminal) run("agent.focus", { terminal: n.terminal }); })
+            .child(div().mt(4).size(8).flex_none().rounded_full().bg(n.level === "blocked" ? t.blocked : t.done ?? t.ansi2))
+            .child(v_flex().flex_1().min_w(0).gap(2)
+              .child(div().truncate().text_size(13).child(n.title))
+              .child(div().truncate().text_size(11.5).text_color(t.dim).child(`${n.where} · ${ago(n.at)}`))))));
+  }
+}
+
 // -- the status bar's path: folders › file › symbols, then Ln:Col ----------------------------
 export class Crumbs {
   init() {}
@@ -326,7 +367,7 @@ export class Crumbs {
       .child(h_flex().flex_1().min_w(0).gap(5).items_center().overflow_hidden()
         .children(parts.flatMap((p, i) => [i ? div().flex_none().text_color(t.dim).child("›") : null, div().flex_none().max_w(220).truncate()
           .when(i === parts.length - 1, (e) => e.text_color(t.foreground)).child(p)]).filter(Boolean)))
-      .when(Boolean(caret), (e) => e.child(div().flex_none().child(`${caret.line + 1}:${caret.col + 1}`)).child(div().flex_none().child("UTF-8")));
+      .when(Boolean(caret), (e) => e.child(div().flex_none().child(`${caret.line + 1}:${caret.col + 1}`)).child(div().flex_none().child("LF")).child(div().flex_none().child("UTF-8")));
   }
 }
 

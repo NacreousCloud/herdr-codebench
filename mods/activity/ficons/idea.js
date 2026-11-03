@@ -37,9 +37,17 @@ export function ideaIcon(path, dir = false) {
     if (/(^|\/)src\/[^/]+\/(java|kotlin|groovy|scala)\/./.test(path)) return `${DIR}/package.svg`;
     return `${DIR}/folder.svg`;
   }
+  // A Kotlin or Java file named like a class shows as that class, as IntelliJ's Project view does.
+  const base = path.split("/").pop();
+  if (/^[A-Z][A-Za-z0-9_]*\.kt$/.test(base) && !/Application\.kt$/.test(base)) return `${DIR}/classKotlin.svg`;
+  if (/^[A-Z][A-Za-z0-9_]*\.java$/.test(base)) return `${DIR}/class.svg`;
   const id = NAME[name] ?? EXT[name.includes(".") ? name.split(".").pop() : ""] ?? "anyType";
   return `${DIR}/${id}.svg`;
 }
+/** The name IntelliJ's Project view shows: a class-like Kotlin or Java file without its extension. */
+export const ideaName = (name) => /^[A-Z][A-Za-z0-9_]*\.(kt|java)$/.test(name) && !/Application\.kt$/.test(name) ? name.replace(/\.(kt|java)$/, "") : name;
+// IntelliJ's New UI dark file status colors (expUI_darkScheme.xml FILESTATUS_*), by git mark.
+export const IDEA_STATUS = { M: "#70AEFF", A: "#73BD79", U: "#E88F89", I: "#D69A6B", "!": "#DE6A66", D: "#6F737A" };
 export const ideaImage = (path, dir = false, size = 16) => image(ideaIcon(path, dir)).size(size).flex_none();
 
 // Symbols, by the language server's kind; Kotlin files get Kotlin's own.

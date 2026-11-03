@@ -19,11 +19,11 @@ import Tabs, { TabMenu } from "./tabs.js";
 import Status from "./status.js";
 import { TermMenu, TermFiles } from "./termfiles.js";
 import PaneHead from "./panehead.js";
-import { Stripe, ToolMenu, ToolSettings, ToolEmpty, ToolHeader, Toolbar, Structure, Problems, Crumbs, Projects, Branches } from "./tools.js";
+import { Stripe, ToolMenu, ToolSettings, ToolEmpty, ToolHeader, Notifications, Toolbar, Structure, Problems, Crumbs, Projects, Branches } from "./tools.js";
 import { Everywhere } from "./everywhere.js";
 
 const VIEWS = { code: CodeView, review: Review, tabs: Tabs, status: Status, tabmenu: TabMenu, termfiles: TermFiles, termmenu: TermMenu, panehead: PaneHead,
-  stripe: Stripe, toolmenu: ToolMenu, toolsettings: ToolSettings, toolempty: ToolEmpty, toolheader: ToolHeader, toolbar: Toolbar, structure: Structure, problems: Problems, crumbs: Crumbs,
+  stripe: Stripe, notifications: Notifications, toolmenu: ToolMenu, toolsettings: ToolSettings, toolempty: ToolEmpty, toolheader: ToolHeader, toolbar: Toolbar, structure: Structure, problems: Problems, crumbs: Crumbs,
   projects: Projects, branches: Branches, everywhere: Everywhere };
 
 export default class CodeNav extends View {

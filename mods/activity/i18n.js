@@ -4,7 +4,7 @@ import { shared } from "herdr";
 
 const KO = {
   "Spaces": "스페이스", "Agents": "에이전트", "Explorer": "탐색기", "Search": "검색", "Source Control": "소스 제어", "Review": "리뷰",
-  "Add Machine…": "머신 추가…", "Add machine": "머신 추가", "Settings": "설정", "Cancel": "취소", "Clear results": "결과 지우기", "Close editor": "편집기 닫기",
+  "Add Machine…": "머신 추가…", "Project": "프로젝트", "Add machine": "머신 추가", "Settings": "설정", "Cancel": "취소", "Clear results": "결과 지우기", "Close editor": "편집기 닫기",
   "Collapse folders": "폴더 모두 접기", "Dismiss": "닫기", "Hide Panel (Ctrl+`)": "패널 숨기기 (Ctrl+`)",
   "New File…": "새 파일…", "New Folder…": "새 폴더…", "New Space": "새 스페이스", "Show spaces": "스페이스 펼치기", "New Terminal or Agent": "새 터미널 또는 에이전트",
   "Open as text anyway": "텍스트로 열기", "Open file": "파일 열기",

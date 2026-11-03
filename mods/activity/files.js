@@ -14,9 +14,10 @@ import { OP, CLIP, request, openDialog, menuHeight } from "./fileops.js";
 import { transfer, pasteImage, remove, rename, create, copyFilesToSystem, readSystemClipboard, sameMachine, sh, SEP } from "./io.js";
 import { openExternally } from "./viewer.js";
 import { fileImage } from "./ficons/index.js";
+import { ideaName, IDEA_STATUS } from "./ficons/idea.js";
 
 const PER_FOLDER = 500, TOTAL = 5000;
-const STATUS = ["--no-optional-locks", "-c", "core.fsmonitor=false", "status", "--porcelain=v1", "-z", "--no-renames", "--untracked-files=normal"];
+const STATUS = ["--no-optional-locks", "-c", "core.fsmonitor=false", "status", "--porcelain=v1", "-z", "--no-renames", "--untracked-files=normal", "--ignored=matching"];
 // Lists a folder as kind\0name\0 pairs (d: folder, f: anything else), at most 501.
 const LIST = 'list() { n=0; for p in "$1"/* "$1"/.[!.]* "$1"/..?*; do [ -e "$p" ] || [ -L "$p" ] || continue; name=${p##*/}; [ "$name" = .git ] && continue; if [ -d "$p" ] && [ ! -L "$p" ]; then kind=d; else kind=f; fi; printf "%s\\0%s\\0" "$kind" "$name"; n=$((n+1)); [ "$n" -gt 500 ] && break; done; test -d "$1"; }';
 // The whole Explorer in one go: repo top, then each open folder, then git status, split by SEP.
@@ -142,6 +143,7 @@ export default class Files {
         const marks = {}, dirty = new Set();
         for (const entry of status.split("\0").filter(Boolean).slice(0, TOTAL)) {
           const xy = entry.slice(0, 2), rel = entry.slice(3).replace(/\/$/, "");
+          if (xy === "!!") { marks[rel] = "I"; continue; }
           marks[rel] = xy === "??" ? "U" : xy.includes("A") ? "A" : xy.includes("U") ? "!" : xy.includes("D") ? "D" : "M";
           const parts = rel.split("/");
           for (let i = 1; i < parts.length; i++) dirty.add(parts.slice(0, i).join("/"));
@@ -365,11 +367,15 @@ export default class Files {
 
   rows(prefix, depth, out, t, openPath) {
     if (out.length >= TOTAL || depth > 40) return out;
+    const idea = shared("layout") === "idea";
     for (const entry of this.entries.get(prefix) ?? []) {
       if (out.length >= TOTAL) break;
       const path = prefix ? `${prefix}/${entry.name}` : entry.name, open = this.folders.has(path);
-      const mark = this.marks[path] ?? (entry.dir && this.marks[path] === undefined && this.dirty.has(path) ? "•" : null);
-      const color = mark === "•" ? t.blocked : mark === "U" ? t.ansi2 : mark ? statusColor(mark === "!" ? "U" : mark, t) : null;
+      // The idea layout colors names as IntelliJ does (ignored ones too) and shows no letters.
+      const raw = this.marks[path] ?? (entry.dir && this.marks[path] === undefined && this.dirty.has(path) ? "•" : null);
+      const mark = idea ? null : raw === "I" ? null : raw;
+      const color = idea ? (raw && raw !== "•" ? IDEA_STATUS[raw] : null)
+        : mark === "•" ? t.blocked : mark === "U" ? t.ansi2 : mark ? statusColor(mark === "!" ? "U" : mark, t) : null;
       const abs = `${this.context.root}/${path}`, chosen = this.sel.has(path), current = openPath === abs;
       const cut = this.cut.has(abs);
       this.flat.push({ path, dir: entry.dir });
@@ -381,7 +387,7 @@ export default class Files {
         .on_drop((e, cx) => { cx.stop_propagation(); this.drop(e.paths, path, cx); })
         .child(entry.dir ? icon(`chevron-${open ? "down" : "right"}`, 12).text_color(t.dim) : div().w(12).flex_none())
         .child(fileImage(path, entry.dir, open))
-        .child(div().flex_1().min_w(0).truncate().when(Boolean(color), (el) => el.text_color(color)).child(entry.name))
+        .child(div().flex_1().min_w(0).truncate().when(Boolean(color), (el) => el.text_color(color)).child(idea && !entry.dir ? ideaName(entry.name) : entry.name))
         .when(Boolean(mark), (el) => el.child(div().text_size(10).text_color(color).child(mark))));
       if (entry.dir && open) this.rows(path, depth + 1, out, t, openPath);
     }
@@ -398,7 +404,7 @@ export default class Files {
     const openPath = editorSpec()?.path;
     const root = this.context?.root ?? this.context?.cwd;
     return v_flex().id("activity-files").size_full().min_h(0).bg(t.chrome).text_color(t.foreground).text_size(13)
-      .child(viewHeader("Explorer", [
+      .child(viewHeader(shared("layout") === "idea" ? "Project" : "Explorer", [
         iconButton("files-new", "file-plus", T("New File…"), () => { const t = this.target(); if (t) openDialog("new-file", t); }),
         iconButton("files-newdir", "folder-plus", T("New Folder…"), () => { const t = this.target(); if (t) openDialog("new-folder", t); }),
         iconButton("files-refresh", "refresh", T("Refresh"), (_e, cx) => this.refresh(cx)),

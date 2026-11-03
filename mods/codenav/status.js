@@ -8,7 +8,7 @@
 import { div } from "gpui-kit";
 import { T, lang, setLang } from "./i18n.js";
 import { h_flex } from "gpui-base";
-import { theme, nextCommand, focused, run, shared } from "herdr";
+import { theme, nextCommand, focused, run, shared, setShared, agents } from "herdr";
 import { showTerminalFiles } from "./termfiles.js";
 import { closeTab, tabBack, tabForward } from "./tabs.js";
 import { toggleTool, toggleAllTools, hideActiveTool, moveTool, arrange, savedSides, openToolSettings, TOOLS } from "./tools.js";
@@ -28,6 +28,24 @@ function termKey(key) {
   const c = TERM_KEYS[shared("layout")]?.[key];
   if (c === "terminal-files") showTerminalFiles(focused()?.terminal);
   else if (c?.startsWith("find-")) openEverywhere({ "find-file": "files", "find-class": "classes", "find-symbol": "symbols", "find-action": "actions", "find-recent": "recent" }[c]);
+}
+
+// Herdr's agent notifications, kept for the Notifications tool window: an agent
+// that finished while you weren't looking ("done") or waits for you ("blocked").
+function recordAgents(self, cx) {
+  const now = {};
+  const add = [];
+  for (const a of agents()) {
+    now[a.address] = a.status;
+    const was = self.agentStatus?.[a.address];
+    if (self.agentStatus && was !== a.status && (a.status === "done" || a.status === "blocked")) {
+      const name = a.program?.name ?? a.app ?? a.title;
+      add.push({ at: Date.now(), level: a.status, terminal: a.address, space: a.space,
+        title: a.status === "blocked" ? T("{name} needs you", { name }) : T("{name} finished", { name }), where: `${a.space_name} / ${a.tab_name}` });
+    }
+  }
+  self.agentStatus = now;
+  if (add.length) cx.timer.after(0, () => setShared("codenav.notifications", [...add, ...(shared("codenav.notifications") ?? [])].slice(0, 100)));
 }
 
 export default class Status {
@@ -71,6 +89,7 @@ export default class Status {
   }
 
   render(cx) {
+    recordAgents(this, cx);
     followSpace(this, cx);
     const t = theme();
     const servers = this.servers ?? [];
