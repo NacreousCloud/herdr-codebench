@@ -1,0 +1,24 @@
+// The interface language, shared with the codenav mod: shared "codenav.lang",
+// "en" (default) or "ko". T(text) gives the Korean text when it's chosen.
+import { shared } from "herdr";
+
+const KO = {
+  "Spaces": "스페이스", "Agents": "에이전트", "Explorer": "탐색기", "Search": "검색", "Source Control": "소스 제어", "Review": "리뷰",
+  "Add Machine…": "머신 추가…", "Cancel": "취소", "Clear results": "결과 지우기", "Close editor": "편집기 닫기",
+  "Collapse folders": "폴더 모두 접기", "Dismiss": "닫기", "Hide Panel (Ctrl+`)": "패널 숨기기 (Ctrl+`)",
+  "New File…": "새 파일…", "New Folder…": "새 폴더…", "New Space": "새 스페이스", "New Terminal or Agent": "새 터미널 또는 에이전트",
+  "Open as text anyway": "텍스트로 열기", "Open file": "파일 열기", "Open in VS Code": "VS Code에서 열기",
+  "Open with the system's app": "기본 앱으로 열기", "Refresh": "새로고침", "Reload sessions": "세션 다시 불러오기",
+  "Save (Ctrl+S)": "저장 (Ctrl+S)", "Split Terminal": "터미널 분할", "Stage all": "모두 스테이징", "Unstage all": "모두 스테이징 취소",
+  "Zoom in": "확대", "Zoom out": "축소", "Discard?": "변경을 버릴까요?", "Discard": "버리기", "Open": "열기", "Save": "저장",
+  "Limited to 500 entries per folder, 5,000 total": "폴더당 500개, 전체 5,000개까지만 표시합니다",
+  "Loading…": "불러오는 중…", "No folders inside": "하위 폴더가 없습니다",
+  "No spaces yet: Open Folder… starts one": "스페이스가 없습니다: 폴더 열기…로 시작하세요",
+  "Open a file from the Explorer, Search or Source Control view.": "탐색기, 검색, 소스 제어에서 파일을 여세요.",
+  "Open it with the system's app to play it (it's downloaded first).": "재생하려면 기본 앱으로 여세요 (먼저 내려받습니다).",
+  "Showing the first 1,000 changes": "처음 1,000개 변경만 표시합니다", "TERMINAL": "터미널",
+  "Command Palette": "명령 팔레트", "Open folder in VS Code (Ctrl+Shift+G)": "VS Code에서 폴더 열기 (Ctrl+Shift+G)",
+  "Unsaved changes": "저장하지 않은 변경", "Not a git repository": "git 저장소가 아닙니다",
+};
+
+export const T = (text) => shared("codenav.lang") === "ko" ? KO[text] ?? text : text;

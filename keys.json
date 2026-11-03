@@ -1,0 +1,20 @@
+{
+  "global": {
+    "ctrl-shift-g": "mod.open:open-vscode"
+  },
+  "mod:activity": {
+    "ctrl-s": "activity.save",
+    "ctrl-w": "activity.close",
+    "ctrl-shift-v": "activity.preview"
+  },
+  "layout:codebench": {
+    "ctrl-alt-1": "activity.view-herdr",
+    "ctrl-alt-2": "activity.view-agents",
+    "ctrl-alt-3": "activity.view-files",
+    "ctrl-alt-4": "activity.view-search",
+    "ctrl-`": "layout.toggle:terminal-panel",
+    "ctrl-alt-e": "layout.toggle:editor-area",
+    "ctrl-alt-r": "codenav.review",
+    "ctrl-alt-5": "activity.view-review"
+  }
+}

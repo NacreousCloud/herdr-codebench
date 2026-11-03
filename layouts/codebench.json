@@ -1,0 +1,317 @@
+{
+  "id": "root",
+  "type": "row",
+  "titlebar": "none",
+  "traffic_lights": [
+    12,
+    16
+  ],
+  "background": "canvas",
+  "terminal_padding": [
+    14,
+    12
+  ],
+  "divider": {
+    "width": 1,
+    "color": "border"
+  },
+  "children": [
+    {
+      "id": "sidebar",
+      "type": "column",
+      "size": {
+        "px": 300
+      },
+      "min": 44,
+      "max": 480,
+      "background": "chrome",
+      "resizable": false,
+      "children": [
+        {
+          "id": "brand",
+          "type": "block",
+          "size": {
+            "px": 46
+          },
+          "window_drag": true,
+          "content": {
+            "mod": "workspace-chrome"
+          }
+        },
+        {
+          "id": "activity-bar",
+          "type": "block",
+          "size": {
+            "px": 40
+          },
+          "content": {
+            "mod": "activity",
+            "props": {
+              "view": "bar"
+            }
+          }
+        },
+        {
+          "id": "sidebar-views",
+          "type": "stack",
+          "active": "view-herdr",
+          "children": [
+            {
+              "id": "view-herdr",
+              "type": "block",
+              "content": {
+                "mod": "activity",
+                "props": {
+                  "view": "spaces"
+                }
+              }
+            },
+            {
+              "id": "view-agents",
+              "type": "block",
+              "content": {
+                "mod": "activity",
+                "props": {
+                  "view": "agents"
+                }
+              }
+            },
+            {
+              "id": "view-files",
+              "type": "block",
+              "content": {
+                "mod": "activity",
+                "props": {
+                  "view": "files"
+                }
+              }
+            },
+            {
+              "id": "view-search",
+              "type": "block",
+              "content": {
+                "mod": "activity",
+                "props": {
+                  "view": "search"
+                }
+              }
+            },
+            {
+              "id": "view-review",
+              "type": "block",
+              "content": {
+                "mod": "codenav",
+                "props": {
+                  "view": "review",
+                  "part": "side"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": "sidebar-footer",
+          "type": "block",
+          "size": {
+            "px": 69
+          },
+          "content": {
+            "mod": "workspace-chrome",
+            "props": {
+              "footer": true
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "work",
+      "type": "column",
+      "resizable": false,
+      "children": [
+        {
+          "id": "titlebar",
+          "type": "block",
+          "size": {
+            "px": 40
+          },
+          "window_drag": true,
+          "content": {
+            "mod": "activity",
+            "props": {
+              "view": "titlebar"
+            }
+          }
+        },
+        {
+          "id": "work-body",
+          "type": "column",
+          "padding": 8,
+          "gap": 8,
+          "children": [
+            {
+              "id": "editor-area",
+              "hidden": true,
+              "size": {
+                "weight": 3
+              },
+              "min": 140,
+              "radius": 10,
+              "border": {
+                "width": 1,
+                "color": "border"
+              },
+              "background": "background",
+              "type": "column",
+              "children": [
+                {
+                  "id": "editor-tabs",
+                  "type": "block",
+                  "size": {
+                    "px": 32
+                  },
+                  "content": {
+                    "mod": "codenav",
+                    "props": {
+                      "view": "tabs"
+                    }
+                  }
+                },
+                {
+                  "id": "editor-stack",
+                  "type": "stack",
+                  "active": "editor-code",
+                  "children": [
+                    {
+                      "id": "editor-code",
+                      "type": "block",
+                      "content": {
+                        "mod": "codenav",
+                        "props": {
+                          "view": "code",
+                          "slot": true
+                        }
+                      }
+                    },
+                    {
+                      "id": "editor-text",
+                      "type": "block",
+                      "content": {
+                        "mod": "activity",
+                        "props": {
+                          "view": "editor",
+                          "slot": true
+                        }
+                      }
+                    },
+                    {
+                      "id": "editor-review",
+                      "type": "block",
+                      "content": {
+                        "mod": "codenav",
+                        "props": {
+                          "view": "review",
+                          "part": "main"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "terminal-panel",
+              "type": "column",
+              "size": {
+                "weight": 2
+              },
+              "min": 120,
+              "radius": 10,
+              "border": {
+                "width": 1,
+                "color": "border"
+              },
+              "background": "background",
+              "children": [
+                {
+                  "id": "panel-bar",
+                  "type": "block",
+                  "size": {
+                    "px": 34
+                  },
+                  "content": {
+                    "mod": "activity",
+                    "props": {
+                      "view": "panelbar"
+                    }
+                  }
+                },
+                {
+                  "id": "main",
+                  "type": "block",
+                  "padding": 4,
+                  "content": {
+                    "tab": "active",
+                    "pane": {
+                      "gap": 6,
+                      "radius": 6,
+                      "background": "background",
+                      "lone": false,
+                      "border": {
+                        "width": 1,
+                        "color": "border"
+                      },
+                      "focus": {
+                        "width": 1,
+                        "color": "accent"
+                      },
+                      "header": {
+                        "content": {
+                          "mod": "pane"
+                        },
+                        "height": 28,
+                        "position": "top",
+                        "reveal": "hover"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "status-row",
+          "type": "row",
+          "size": {
+            "px": 28
+          },
+          "resizable": false,
+          "children": [
+            {
+              "id": "status",
+              "type": "block",
+              "content": {
+                "mod": "workspace-status"
+              }
+            },
+            {
+              "id": "codenav-status",
+              "type": "block",
+              "size": {
+                "px": 260
+              },
+              "content": {
+                "mod": "codenav",
+                "props": {
+                  "view": "status"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "preview": "layouts/codebench.svg"
+}

@@ -1,0 +1,164 @@
+{
+  "go": {
+    "extensions": [
+      "go"
+    ],
+    "markers": [
+      "go.work",
+      "go.mod"
+    ],
+    "root": "nearest",
+    "commands": [
+      [
+        "gopls"
+      ]
+    ]
+  },
+  "rust": {
+    "extensions": [
+      "rs"
+    ],
+    "markers": [
+      "Cargo.toml"
+    ],
+    "root": "topmost",
+    "commands": [
+      [
+        "rust-analyzer"
+      ]
+    ]
+  },
+  "swift": {
+    "extensions": [
+      "swift"
+    ],
+    "markers": [
+      "Package.swift",
+      "*.xcodeproj",
+      "*.xcworkspace"
+    ],
+    "root": "nearest",
+    "commands": [
+      [
+        "sourcekit-lsp"
+      ],
+      [
+        "xcrun",
+        "sourcekit-lsp"
+      ]
+    ]
+  },
+  "typescript": {
+    "extensions": [
+      "ts",
+      "tsx",
+      "mts",
+      "cts",
+      "js",
+      "jsx",
+      "mjs",
+      "cjs"
+    ],
+    "markers": [
+      "tsconfig.json",
+      "jsconfig.json",
+      "package.json"
+    ],
+    "root": "nearest",
+    "commands": [
+      [
+        "tsc",
+        "--lsp",
+        "--stdio"
+      ],
+      [
+        "typescript-language-server",
+        "--stdio"
+      ],
+      [
+        "vtsls",
+        "--stdio"
+      ]
+    ],
+    "init": {
+      "tsserver": {
+        "fallbackPath": "{npm_root}/typescript/lib"
+      }
+    }
+  },
+  "python": {
+    "extensions": [
+      "py",
+      "pyi"
+    ],
+    "markers": [
+      "pyproject.toml",
+      "pyrightconfig.json",
+      "setup.py",
+      "setup.cfg",
+      "requirements.txt"
+    ],
+    "root": "nearest",
+    "commands": [
+      [
+        "basedpyright-langserver",
+        "--stdio"
+      ],
+      [
+        "pyright-langserver",
+        "--stdio"
+      ],
+      [
+        "pylsp"
+      ]
+    ]
+  },
+  "java": {
+    "extensions": [
+      "java"
+    ],
+    "markers": [
+      "settings.gradle",
+      "settings.gradle.kts",
+      "pom.xml",
+      "build.gradle",
+      "build.gradle.kts"
+    ],
+    "root": "topmost",
+    "commands": [
+      [
+        "jdtls",
+        "-data",
+        "{cache}/jdtls/{root_hash}"
+      ]
+    ],
+    "init": {
+      "extendedClientCapabilities": {
+        "classFileContentsSupport": true
+      }
+    }
+  },
+  "kotlin": {
+    "extensions": [
+      "kt",
+      "kts"
+    ],
+    "markers": [
+      "settings.gradle",
+      "settings.gradle.kts",
+      "pom.xml",
+      "build.gradle",
+      "build.gradle.kts"
+    ],
+    "root": "topmost",
+    "commands": [
+      [
+        "kotlin-lsp",
+        "--stdio"
+      ],
+      [
+        "kotlin-language-server"
+      ]
+    ]
+  }
+}
