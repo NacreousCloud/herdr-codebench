@@ -139,7 +139,7 @@ const KO = {
   "Comment": "코멘트",
   "Copy": "복사",
   "Copied {what}": "{what} 복사했습니다",
-  "{n} lines": "{n}줄",
+  "the selection": "선택한 내용",
   "the line": "현재 줄",
   "Comment on this line (or click its line number)": "이 줄에 코멘트 (줄 번호를 클릭해도 됩니다)",
   "  ·  Shift+click a line number for a range": "  ·  Shift+줄 번호 클릭으로 범위 선택",

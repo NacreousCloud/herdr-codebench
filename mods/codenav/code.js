@@ -5,11 +5,13 @@
 // and forward. "Edit" hands the file to the activity editor. Clicking a line
 // number starts a comment (Shift+click for a range); comments join the
 // repository's review comments (comments.js) and show inline. The gutter marks
-// lines added, changed and removed since HEAD. Cmd+C copies the selected name,
-// the lines picked with Shift+click, or the current line.
+// lines added, changed and removed since HEAD. Drag (or Shift+click) selects
+// text; Cmd+C copies it, else the selected name, else the current line.
+// The view scrolls itself and draws only the rows on screen: rows that are
+// plain elements can take presses and drags, which a virtual list's can't.
 import { div } from "gpui-kit";
 import { T } from "./i18n.js";
-import { v_flex, h_flex, v_virtual_list, VirtualListScrollHandle, Scrollbar, TextView, InputState, Input } from "gpui-base";
+import { v_flex, h_flex, v_virtual_list, Scrollbar, TextView, InputState, Input } from "gpui-base";
 import { readTextFile, watchFolder, theme, settings, run, exec, nextCommand, notify } from "herdr";
 import { lsp } from "./lsp.js";
 import { CommentBox, commentCard, commentHeight, commentsOf, repoKey } from "./comments.js";
@@ -28,7 +30,7 @@ export default class CodeView {
   init(_p, cx) {
     this.lines = []; this.toks = null; this.diags = []; this.symbols = []; this.refs = null;
     this.cw = FONT * 0.6; this.outline = true;
-    this.scroll = VirtualListScrollHandle.new();
+    this.top = 0; this.viewH = 0;
     this.focus = cx.focus_handle();
     this.find = InputState.new({ placeholder: T("Find") });
     this.find.on("change", (_e, cx) => { this.findQuery = this.find.value(); this.findAt = -1; cx.notify(); });
@@ -210,16 +212,46 @@ export default class CodeView {
       if (!after.has(at)) after.set(at, []);
       after.get(at).push(c);
     }
-    const items = [], index = [];
+    const items = [], index = [], tops = [0];
     this.lines.forEach((_, i) => {
       index[i] = items.length;
       items.push({ line: i });
       for (const c of after.get(i) ?? []) items.push({ c });
     });
-    this.itemIndex = index;
+    for (const it of items) tops.push(tops[tops.length - 1] + (it.c ? commentHeight(it.c) : ROW));
+    this.itemIndex = index; this.tops = tops;
     return items;
   }
-  scrollTo(line, how) { this.scroll.scroll_to_item(this.itemIndex?.[line] ?? line, how); }
+
+  // -- scrolling: px from the top of the first row --------------------------------------
+  maxTop() { return Math.max(0, (this.tops?.at(-1) ?? 0) - this.viewH); }
+  setTop(px) { this.top = Math.min(Math.max(px, 0), this.maxTop()); }
+  // "center" puts the line in the middle; otherwise it is only brought on screen.
+  scrollTo(line, how) {
+    const y = this.tops?.[this.itemIndex?.[line] ?? line] ?? line * ROW;
+    if (how === "center") this.setTop(y - this.viewH / 2 + ROW / 2);
+    else if (y < this.top) this.setTop(y);
+    else if (y + ROW > this.top + this.viewH) this.setTop(y + ROW - this.viewH);
+  }
+
+  scrollbar(t) {
+    const total = this.tops?.at(-1) ?? 0, h = this.viewH;
+    if (!h || total <= h) return div();
+    const thumb = Math.max(24, (h * h) / total), y = (this.top / this.maxTop()) * (h - thumb);
+    this.thumb = { y, size: thumb };
+    return div().id("cn-sb").absolute().top(0).right(0).w(10).h_full()
+      .on_mouse_down("left", (e, cx) => {
+        cx.stop_propagation();
+        const ly = e.local_position?.y ?? 0;
+        this.thumbGrab = ly >= y && ly <= y + thumb ? ly - y : thumb / 2;
+        this.dragThumb(ly); cx.notify();
+      })
+      .child(div().absolute().top(y).right(2).w(6).h(thumb).rounded(3).bg(t.dim + "88"));
+  }
+  dragThumb(ly) {
+    const room = this.viewH - this.thumb.size;
+    if (room > 0) this.setTop(((ly - this.thumbGrab) / room) * this.maxTop());
+  }
 
   // Lines from..to (0-based) get a comment box.
   commentLines(from, to, cx) {
@@ -229,34 +261,68 @@ export default class CodeView {
     cx.notify();
   }
 
-  click(line, cx) {
-    const press = this.press ?? { x: 0, mods: {} };
+  // -- pointer on the code ----------------------------------------------------------------
+  pointAt(line, x) {
+    const text = this.lines[line] ?? "";
+    return { line, col: offsetAt(text, Math.max(0, Math.floor((x - this.gutter() - PAD) / this.cw))) };
+  }
+  // The selection from its earlier end to its later one, or null when empty.
+  span() {
+    const r = this.selection;
+    if (!r) return null;
+    const [a, b] = r.a.line < r.b.line || (r.a.line === r.b.line && r.a.col <= r.b.col) ? [r.a, r.b] : [r.b, r.a];
+    return a.line === b.line && a.col === b.col ? null : [a, b];
+  }
+
+  press(line, e, cx) {
+    const x = e.local_position?.x ?? 0, mods = e.modifiers ?? {};
     this.focus.focus();
     // The line numbers start a comment; Shift extends it from the last one.
-    if (press.x < this.gutter()) {
-      if (press.mods.shift && this.commentAnchor !== undefined) this.commentLines(this.commentAnchor, line, cx);
+    if (x < this.gutter()) {
+      if (mods.shift && this.commentAnchor !== undefined) this.commentLines(this.commentAnchor, line, cx);
       else { this.commentAnchor = line; this.commentLines(line, line, cx); }
       return;
     }
-    if (press.mods.shift && this.sel) {
-      this.range = { from: this.range?.from ?? this.sel.line, to: line };
+    const p = this.pointAt(line, x);
+    if (mods.shift && (this.selection || this.sel)) {
+      this.selection = { a: this.selection?.a ?? { line: this.sel.line, col: this.sel.col }, b: p };
       cx.notify();
       return;
     }
-    this.range = null;
-    this.pick(line, press.x, cx);
-    if (press.mods.platform || press.mods.control) this.definition(cx);
+    this.dragging = { a: p, x, mods, moved: false };
+  }
+
+  dragTo(line, e, cx) {
+    const d = this.dragging;
+    if (!d) return;
+    const p = this.pointAt(line, e.local_position?.x ?? 0), b = this.selection?.b;
+    if (!d.moved && p.line === d.a.line && p.col === d.a.col) return;
+    if (d.moved && b && b.line === p.line && b.col === p.col) return;
+    d.moved = true;
+    this.selection = { a: d.a, b: p };
+    cx.notify();
+  }
+
+  // Without a drag the press was a click: the name under it, its definition with Cmd.
+  release(line, cx) {
+    const d = this.dragging;
+    this.dragging = null;
+    if (!d || d.moved) return;
+    this.selection = null;
+    this.pick(line, d.x, cx);
+    if (d.mods.platform || d.mods.control) this.definition(cx);
     else this.hoverAt(cx);
     cx.notify();
   }
 
-  // What Cmd+C takes: the picked lines, else the selected name, else the current line.
+  // What Cmd+C takes: the selected text, else the selected name, else the current line.
   copy() {
-    const r = this.range, sel = this.sel;
+    const r = this.span(), sel = this.sel;
     if (!r && !sel) return;
-    const text = r ? this.lines.slice(Math.min(r.from, r.to), Math.max(r.from, r.to) + 1).join("\n")
+    const text = r ? this.lines.slice(r[0].line, r[1].line + 1).map((l, k, all) =>
+      l.slice(k === 0 ? r[0].col : 0, k === all.length - 1 ? r[1].col : l.length)).join("\n")
       : sel.word?.trim() ? sel.word : this.lines[sel.line] ?? "";
-    const what = r ? T("{n} lines", { n: Math.abs(r.to - r.from) + 1 }) : sel.word?.trim() ? sel.word : T("the line");
+    const what = r ? T("the selection") : sel.word?.trim() ? sel.word : T("the line");
     copyText(text).then(() => notify({ title: T("Copied {what}", { what }), level: "success", timeout: 1500 }))
       .catch((e) => notify({ title: String(e.message ?? e), level: "error", timeout: 3000 }));
   }
@@ -347,7 +413,8 @@ export default class CodeView {
     else if (k === "cmd-c" || k === "ctrl-c") this.copy();
     else if (k === "ctrl--" || k === "alt-left") this.goBack(cx);
     else if (k === "ctrl-shift--" || k === "ctrl-_" || k === "alt-right") this.goForward(cx);
-    else if (k === "escape") { this.refs = null; this.hover = null; this.range = null; this.finding = false; this.focus.focus(); }
+    else if (k === "escape") { this.refs = null; this.hover = null; this.selection = null; this.finding = false; this.focus.focus(); }
+    else if (k === "pageup" || k === "pagedown") this.setTop(this.top + (k === "pageup" ? -1 : 1) * (this.viewH - ROW * 2));
     else if (k === "up" || k === "down") {
       const line = Math.min(Math.max((this.sel?.line ?? 0) + (k === "up" ? -1 : 1), 0), this.lines.length - 1);
       this.sel = { line, col: 0, start: 0, end: 0, word: null };
@@ -394,6 +461,11 @@ export default class CodeView {
         cuts.add(at); cuts.add(at + word.length);
       }
     }
+    const span = this.span();
+    if (span && span[0].line <= i && i <= span[1].line) {
+      const a = i === span[0].line ? Math.min(span[0].col, text.length) : 0, b = i === span[1].line ? Math.min(span[1].col, text.length) : text.length;
+      if (b > a) { marks.push([a, b, "range"]); cuts.add(a); cuts.add(b); }
+    }
     const diags = this.diags.filter((d) => d.line <= i && i <= d.end_line);
     for (const d of diags) {
       const s = d.line === i ? Math.min(d.col, text.length) : 0, e = d.end_line === i ? Math.min(d.end_col, text.length) : text.length;
@@ -413,7 +485,8 @@ export default class CodeView {
       if (cat && colors[cat]) el = el.text_color(colors[cat]);
       for (const [s, e, kind] of marks) {
         if (s > a || e < b) continue;
-        if (kind === "sel") el = el.bg(t.accent + "55").rounded(2);
+        if (kind === "range") el = el.bg(t.selection);
+        else if (kind === "sel") el = el.bg(t.accent + "55").rounded(2);
         else if (kind === "use") el = el.bg(t.selection + "66").rounded(2);
         else el = el.border_b(1).border_color(kind === "error" ? t.ansi1 : t.ansi3);
       }
@@ -422,10 +495,8 @@ export default class CodeView {
     const worst = diags.length ? Math.min(...diags.map((d) => d.severity ?? 1)) : 0;
     const current = this.sel?.line === i;
     const c = this.comment.draft, picked = c && c.path === this.rel() && i + 1 >= c.start && i + 1 <= c.end;
-    const r = this.range, inRange = r && i >= Math.min(r.from, r.to) && i <= Math.max(r.from, r.to);
     return h_flex().h(ROW).w_full().flex_none().whitespace_nowrap()
       .when(current, (e) => e.bg(t.hover))
-      .when(Boolean(inRange), (e) => e.bg(t.selection + "88"))
       .when(this.flash === i && !current, (e) => e.bg(t.accent + "22"))
       .when(Boolean(picked), (e) => e.bg(t.accent + "33"))
       .child(h_flex().w(this.gutter()).h_full().flex_none().items_center().pr(12).cursor_pointer()
@@ -487,7 +558,7 @@ export default class CodeView {
         ]))
         .when(Boolean(sel), (e) => e.child(button("cn-a-copy", T("Copy"), () => this.copy(), { tip: "Cmd+C" })))
         .when(Boolean(sel) && Boolean(this.rel()), (e) => e.child(button("cn-a-comment", T("Comment"), (_e, cx) => this.commentLines(sel.line, sel.line, cx), { tip: T("Comment on this line (or click its line number)") })))
-        .child(iconButton("cn-info-x", "x", T("Close (Esc)"), (_e, cx) => { this.sel = null; this.range = null; this.hover = null; this.note = null; cx.notify(); })))
+        .child(iconButton("cn-info-x", "x", T("Close (Esc)"), (_e, cx) => { this.sel = null; this.selection = null; this.hover = null; this.note = null; cx.notify(); })))
       .when(diags.length > 0 || Boolean(md) || Boolean(this.hover?.error), (e) => e.child(div().id("cn-info").flex_1().min_h(0).overflow_y_scrollbar().px(12).pb(10)
         .children(diags.map((d, i) => h_flex().gap(6).items_start().py(2).text_size(12)
           .child(div().flex_none().text_color(d.severity === 1 ? t.ansi1 : t.ansi3).child(d.severity === 1 ? "✕" : "⚠"))
@@ -544,6 +615,30 @@ export default class CodeView {
       .child(iconButton("cn-find-x", "x", T("Close (Esc)"), (_e, cx) => { this.finding = false; this.focus.focus(); cx.notify(); }));
   }
 
+  // The items on screen, as elements that take presses and drags.
+  rows(items, t, colors) {
+    const tops = this.tops;
+    this.setTop(this.top);
+    let lo = 0, hi = items.length;
+    while (lo < hi) { const mid = (lo + hi) >> 1; if (tops[mid + 1] <= this.top) lo = mid + 1; else hi = mid; }
+    const out = [];
+    for (let k = lo; k < items.length && tops[k] < this.top + this.viewH + ROW; k++) {
+      const it = items[k];
+      if (it.c) {
+        out.push(commentCard(t, it.c, { pl: this.gutter() + PAD }).id(`cn-c-${it.c.id}`).cursor_pointer()
+          .on_mouse_down("left", (_e, cx) => { this.comment.edit(it.c); cx.notify(); }));
+        continue;
+      }
+      const i = it.line;
+      out.push(this.row(i, t, colors).id(`cn-l-${i}`).cursor_text()
+        .on_mouse_down("left", (e, cx) => this.press(i, e, cx))
+        .on_mouse_move((e, cx) => this.dragTo(i, e, cx))
+        .on_mouse_up("left", (_e, cx) => this.release(i, cx))
+        .on_mouse_down("right", (e, cx) => { this.pick(i, e.local_position?.x ?? 0, cx); this.hoverAt(cx); cx.notify(); }));
+    }
+    return v_flex().absolute().left(0).w_full().top((tops[lo] ?? 0) - this.top).children(out);
+  }
+
   render(cx) {
     this.sync(cx);
     const t = theme(), s = this.shown, font = settings().font_family ?? "JetBrains Mono";
@@ -558,23 +653,20 @@ export default class CodeView {
     this.commented = new Set(this.fileComments().flatMap((c) => Array.from({ length: c.end - c.start + 1 }, (_, k) => c.start + k)));
     if (s && !this.error && !(this.loading && !this.lines.length)) body = h_flex().flex_1().min_h(0)
       .child(v_flex().flex_1().min_w(0).h_full()
-        .child(div().flex_1().min_h(0).relative().font_family(font).text_size(FONT).bg(t.background)
+        .child(div().id("cn-view").flex_1().min_h(0).relative().font_family(font).text_size(FONT).bg(t.background)
+          .on_size_change((size, cx) => { if (size.height !== this.viewH) { this.viewH = size.height; this.setTop(this.top); cx.notify(); } })
+          .on_mouse_move((e, cx) => { if (this.thumbGrab === undefined) return; this.dragThumb(e.local_position?.y ?? 0); cx.notify(); })
+          .on_mouse_up("left", () => { this.thumbGrab = undefined; this.dragging = null; })
           .child(div().id("cn-x").size_full().overflow_x_scrollbar()
-            .child(div().id("cn-wide").min_w(this.gutter() + PAD + this.width * this.cw + 40).w_full().h_full()
-              .on_mouse_down("left", (e, _cx) => { this.press = { x: e.local_position?.x ?? 0, mods: e.modifiers ?? {} }; })
-              .child(v_virtual_list("cn-lines", items.length, items.map((it) => it.c ? commentHeight(it.c) : ROW),
-                (i) => items[i].c ? `c:${items[i].c.id}` : String(items[i].line), (range) => {
-                  const out = [];
-                  for (let i = range.start; i < range.end; i++) out.push(items[i].c ? commentCard(t, items[i].c, { pl: this.gutter() + PAD }) : this.row(items[i].line, t, colors));
-                  return out;
-                }).size_full().track_scroll(this.scroll)
-                .on_item_click((k, cx) => {
-                  if (!k.startsWith("c:")) return this.click(+k, cx);
-                  const c = this.fileComments().find((x) => x.id === k.slice(2));
-                  if (c) { this.comment.edit(c); cx.notify(); }
-                })
-                .on_item_secondary_click((k, e, cx) => { if (k.startsWith("c:")) return; this.pick(+k, e.local_position?.x ?? 0, cx); this.hoverAt(cx); cx.notify(); }))))
-          .child(Scrollbar.vertical("cn-lines").absolute().inset_0()))
+            .child(div().id("cn-wide").relative().overflow_hidden().min_w(this.gutter() + PAD + this.width * this.cw + 40).w_full().h_full()
+              .on_scroll_wheel((e, cx) => {
+                if (Math.abs(e.delta.y) <= Math.abs(e.delta.x)) return;
+                cx.stop_propagation();
+                this.setTop(this.top - e.delta.y);
+                cx.notify();
+              })
+              .child(this.rows(items, t, colors))))
+          .child(this.scrollbar(t)))
         .child(this.comment.panel(t, this.rkey(), (cx) => cx.notify(), T("Comments go to the Review list, sent to the agent together")) ?? this.refsPanel(t) ?? this.infoBar(t) ?? div()))
       .child(this.outlinePanel(t) ?? div());
     return v_flex().id("codenav-code").size_full().min_h(0).relative().bg(t.background).text_color(t.foreground).text_size(13)
