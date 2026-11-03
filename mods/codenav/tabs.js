@@ -5,7 +5,7 @@
 // Right-click a tab for Close / Close Others / Close All; Cmd+W in the code
 // view closes the shown tab (the status item takes the command).
 // Back / forward (Ctrl+- / Ctrl+Shift+-) walk the tabs shown before, per space: the
-// last 10, closed ones reopening; the arrows at the strip's start do the same.
+// last 10, skipping tabs closed since; the arrows at the strip's start do the same.
 import { div } from "gpui-kit";
 import { T } from "./i18n.js";
 import { h_flex, v_flex } from "gpui-base";
@@ -82,16 +82,22 @@ function noteShown(tab) {
   setHistory({ list, at: list.length - 1 });
   return true;
 }
+// The nearest place that way whose tab is still open, or -1.
+function nextOpen(h, dir) {
+  const open = new Set(tabsNow().map((x) => x.id));
+  for (let i = h.at + dir; i >= 0 && i < h.list.length; i += dir) if (open.has(h.list[i].id)) return i;
+  return -1;
+}
 function step(dir) {
-  const h = historyNow(), to = h.list[h.at + dir];
-  if (!to) return;
+  const h = historyNow(), i = nextOpen(h, dir);
+  if (i < 0) return;
   // Until it shows (a review tab takes a moment), what shows isn't a new place.
-  setHistory({ ...h, at: h.at + dir, going: Date.now() });
-  openTab(to);
+  setHistory({ ...h, at: i, going: Date.now() });
+  openTab(h.list[i]);
 }
 export const tabBack = () => step(-1);
 export const tabForward = () => step(1);
-export const canStep = (dir) => { const h = historyNow(); return Boolean(h.list[h.at + dir]); };
+export const canStep = (dir) => nextOpen(historyNow(), dir) >= 0;
 
 export default class Tabs {
   init() {}
