@@ -6,10 +6,12 @@
     "ctrl-s": "activity.save",
     "ctrl-w": "activity.close",
     "ctrl-shift-v": "activity.preview",
-    "cmd-w": "codenav.close-tab"
+    "cmd-w": "codenav.close-tab",
+    "cmd-[": "codenav.tab-back",
+    "cmd-]": "codenav.tab-forward"
   },
   "layout:codebench": {
-    "ctrl-alt-1": "activity.view-herdr",
+    "ctrl-alt-1": "layout.toggle:spaces-col",
     "ctrl-alt-2": "activity.view-agents",
     "ctrl-alt-3": "activity.view-files",
     "ctrl-alt-4": "activity.view-search",
@@ -18,5 +20,10 @@
     "ctrl-alt-r": "codenav.review",
     "cmd-shift-o": "codenav.terminal-files",
     "ctrl-alt-5": "activity.view-review"
+  },
+  "mod:codenav": {
+    "cmd-w": "codenav.close-tab",
+    "cmd-[": "codenav.tab-back",
+    "cmd-]": "codenav.tab-forward"
   }
 }

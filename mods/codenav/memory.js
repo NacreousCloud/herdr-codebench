@@ -1,13 +1,13 @@
 // Per-space layout: Herdr keeps one layout state for every space, so this
 // remembers how each space left the window (editor area open or not, review
-// or editor, sidebar view, terminal panel, sizes, editor above or beside the
-// terminal) and puts it back when the space shows again. Kept in shared
-// "codenav.spaces".
+// or editor, terminal panel, sizes, editor above or beside the terminal) and
+// puts it back when the space shows again. Kept in shared
+// "codenav.spaces". The sidebar's view (Explorer, Review, Search) stays as it is
+// across spaces.
 import { spaces, layout, shared, setShared, run } from "herdr";
 import { find, AREA, STACK, CHILD, editorSpec, wantedChild, splitDir, setSplit } from "./common.js";
 
 const KEY = "codenav.spaces";
-const SIDEBAR = "sidebar-views";
 const PANEL = "terminal-panel";
 
 function snapshot() {
@@ -16,7 +16,6 @@ function snapshot() {
   return {
     area: !node(AREA)?.hidden,
     panel: !node(PANEL)?.hidden,
-    sidebar: node(SIDEBAR)?.active ?? null,
     review: shared("codenav.area") === "review",
     areaWeight: node(AREA)?.size?.weight ?? null,
     panelWeight: node(PANEL)?.size?.weight ?? null,
@@ -33,7 +32,6 @@ function apply(s) {
   const show = (id, on) => { if (node(id) && Boolean(node(id).hidden) === Boolean(on)) run(on ? "layout.show" : "layout.hide", { id }); };
   show(AREA, s.area);
   show(PANEL, s.panel || !s.area);
-  if (s.sidebar && node(SIDEBAR) && node(SIDEBAR).active !== s.sidebar) run("layout.select", { stack: SIDEBAR, child: s.sidebar });
   if (s.areaWeight && node(AREA)?.size?.weight !== s.areaWeight) run("layout.resize", { id: AREA, weight: s.areaWeight });
   if (s.panelWeight && node(PANEL)?.size?.weight !== s.panelWeight) run("layout.resize", { id: PANEL, weight: s.panelWeight });
   const want = s.review ? CHILD.review : wantedChild();

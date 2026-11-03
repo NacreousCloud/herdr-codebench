@@ -1,8 +1,9 @@
 // The code view: a read-only, VS Code–like view of a source file with language
 // server help. Click a name for its type and docs, Cmd+click (F12) to go to its
 // definition, Shift+F12 for references, an outline of the file's symbols,
-// diagnostics in the gutter, Cmd+F to find, Ctrl+- / Ctrl+Shift+- to go back
-// and forward. "Edit" hands the file to the activity editor. Clicking a line
+// diagnostics in the gutter and under the code (hover for the message), Cmd+F
+// to find, Ctrl+- / Ctrl+Shift+- to go back and forward in the file's jumps,
+// Cmd+[ / Cmd+] (and the header arrows) for the tabs shown before. "Edit" hands the file to the activity editor. Clicking a line
 // number starts a comment (Shift+click for a range); comments join the
 // repository's review comments (comments.js) and show inline. The gutter marks
 // lines added, changed and removed since HEAD. Drag (or Shift+click) selects
@@ -16,6 +17,7 @@ import { readTextFile, watchFolder, theme, settings, run, exec, nextCommand, not
 import { lsp } from "./lsp.js";
 import { CommentBox, commentCard, commentHeight, commentsOf, repoKey } from "./comments.js";
 import { Scroller } from "./scroller.js";
+import { tabBack, tabForward, canStep } from "./tabs.js";
 import {
   iconButton, button, editorKey, editorSpec, setEditorSpec, CHILD, STACK, hasArea, measureFont,
   syntaxColors, expandTabs, displayWidth, offsetAt, wordAt, tilde, sectionHeader, copyText,
@@ -403,6 +405,8 @@ export default class CodeView {
     else if (k === "cmd-f" || k === "ctrl-f") { this.finding = true; this.find.focus(); }
     else if (k === "cmd-shift-o") this.outline = !this.outline;
     else if (k === "cmd-c" || k === "ctrl-c") this.copy();
+    else if (k === "cmd-[") tabBack();
+    else if (k === "cmd-]") tabForward();
     else if (k === "ctrl--" || k === "alt-left") this.goBack(cx);
     else if (k === "ctrl-shift--" || k === "ctrl-_" || k === "alt-right") this.goForward(cx);
     else if (k === "escape") { this.refs = null; this.hover = null; this.selection = null; this.finding = false; this.focus.focus(); }
@@ -461,7 +465,7 @@ export default class CodeView {
     const diags = this.diags.filter((d) => d.line <= i && i <= d.end_line);
     for (const d of diags) {
       const s = d.line === i ? Math.min(d.col, text.length) : 0, e = d.end_line === i ? Math.min(d.end_col, text.length) : text.length;
-      marks.push([s, Math.max(e, s), d.severity === 1 ? "error" : "warning"]);
+      marks.push([s, Math.max(e, s), d.severity === 1 ? "error" : "warning", d]);
       cuts.add(s); cuts.add(Math.max(e, s));
     }
     const points = [...cuts].filter((c) => c >= 0 && c <= text.length).sort((a, b) => a - b);
@@ -475,13 +479,16 @@ export default class CodeView {
       const cat = spans.find((s) => s[0] <= a && a < s[1])?.[2];
       let el = div().flex_none().child(piece);
       if (cat && colors[cat]) el = el.text_color(colors[cat]);
-      for (const [s, e, kind] of marks) {
+      const problems = [];
+      for (const [s, e, kind, d] of marks) {
         if (s > a || e < b) continue;
+        if (d) problems.push(d);
         if (kind === "range") el = el.bg(t.selection);
         else if (kind === "sel") el = el.bg(t.accent + "55").rounded(2);
         else if (kind === "use") el = el.bg(t.selection + "66").rounded(2);
         else el = el.border_b(1).border_color(kind === "error" ? t.ansi1 : t.ansi3);
       }
+      if (problems.length) el = el.id(`cn-d-${i}-${a}`).tooltip(problemText(problems));
       children.push(el);
     }
     const worst = diags.length ? Math.min(...diags.map((d) => d.severity ?? 1)) : 0;
@@ -495,7 +502,7 @@ export default class CodeView {
         .child(this.changeMark(i, t))
         .child(div().w(3).h_full().flex_none().when(Boolean(picked) || this.commented?.has(i + 1), (e) => e.bg(picked ? t.accent : t.accent + "88")))
         .child(div().w(18).flex_none().flex().justify_center()
-          .when(worst > 0, (e) => e.child(div().size(7).rounded_full().bg(worst === 1 ? t.ansi1 : worst === 2 ? t.ansi3 : t.ansi4))))
+          .when(worst > 0, (e) => e.id(`cn-dg-${i}`).tooltip(problemText(diags)).child(div().size(7).rounded_full().bg(worst === 1 ? t.ansi1 : worst === 2 ? t.ansi3 : t.ansi4))))
         .child(div().flex_1().text_right().text_color(current ? t.foreground : t.dim).child(String(i + 1))))
       .child(h_flex().pl(PAD).h_full().items_center().flex_none().children(children.length ? children : [div().child(" ")]));
   }
@@ -517,8 +524,8 @@ export default class CodeView {
         info.state === "ready" ? t.ansi2 : t.ansi3, `${info.lang} · ${tilde(info.root)}${info.busy?.length ? ` · ${info.busy.join(", ")}` : ""}`);
     const errors = this.diags.filter((d) => d.severity === 1).length, warnings = this.diags.filter((d) => d.severity === 2).length;
     return h_flex().h(34).flex_none().pl(8).pr(6).gap(4).items_center().border_b(1).border_color(t.border).bg(t.chrome)
-      .child(iconButton("cn-back", "chevron-left", T("Back (Ctrl+-)"), (_e, cx) => this.goBack(cx), { color: this.back.length ? t.muted : t.dim }))
-      .child(iconButton("cn-fwd", "chevron-right", T("Forward (Ctrl+Shift+-)"), (_e, cx) => this.goForward(cx), { color: this.fwd.length ? t.muted : t.dim }))
+      .child(iconButton("cn-back", "chevron-left", T("Previous tab (Cmd+[)"), () => tabBack(), { color: canStep(-1) ? t.muted : t.dim }))
+      .child(iconButton("cn-fwd", "chevron-right", T("Next tab (Cmd+])"), () => tabForward(), { color: canStep(1) ? t.muted : t.dim }))
       .child(h_flex().flex_1().min_w(0).gap(5).items_center().overflow_hidden().text_size(12).text_color(t.muted)
         .children(crumbs.flatMap((c, i) => [i ? sep() : null, div().flex_none().when(i === crumbs.length - 1, (e) => e.text_color(t.foreground).font_semibold()).child(c)]).filter(Boolean))
         .children(scope.flatMap((sym, i) => [sep(), div().id(`cn-crumb-${i}`).flex_none().cursor_pointer().hover((e) => e.text_color(t.foreground))
@@ -649,6 +656,11 @@ export default class CodeView {
       .child(this.findBar(t) ?? div())
       .child(body);
   }
+}
+
+// What a hover over a problem says: each message with its kind and source.
+function problemText(diags) {
+  return diags.map((d) => `${d.severity === 1 ? T("Error") : d.severity === 2 ? T("Warning") : T("Info")}: ${d.message}${d.source ? `  (${d.source})` : ""}`).join("\n");
 }
 
 function chip(label, color, tip, action) {

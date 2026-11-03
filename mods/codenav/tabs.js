@@ -4,6 +4,8 @@
 // the activity editor for pictures, PDFs and edits, or the review.
 // Right-click a tab for Close / Close Others / Close All; Cmd+W in the code
 // view closes the shown tab (the status item takes the command).
+// Back / forward (Cmd+[ / Cmd+]) walk the tabs shown before, per space: the
+// last 10, closed ones reopening.
 import { div } from "gpui-kit";
 import { T } from "./i18n.js";
 import { h_flex, v_flex } from "gpui-base";
@@ -67,6 +69,30 @@ export const closeTab = (id) => closeTabs([id ?? activeId()].filter(Boolean));
 const closeOthers = (id) => { const keep = tabsNow().find((x) => x.id === id); closeTabs(tabsNow().filter((x) => x.id !== id).map((x) => x.id)); if (keep) openTab(keep); };
 const closeAll = () => closeTabs(tabsNow().map((x) => x.id));
 
+// -- where the space's tabs have been: shared "codenav.history" ----------------------------
+const HISTORY = 10;
+const historyNow = () => (shared("codenav.history") ?? {})[editorKey()] ?? { list: [], at: -1 };
+function setHistory(h) { setShared("codenav.history", { ...(shared("codenav.history") ?? {}), [editorKey()]: h }); }
+// A tab that shows becomes the newest place, dropping the places ahead of it.
+function noteShown(tab) {
+  const h = historyNow();
+  if (h.list[h.at]?.id === tab.id) return false;
+  if (h.going && Date.now() - h.going < 1500) return false;
+  const list = [...h.list.slice(0, h.at + 1).filter((x) => x.id !== tab.id), tab].slice(-HISTORY);
+  setHistory({ list, at: list.length - 1 });
+  return true;
+}
+function step(dir) {
+  const h = historyNow(), to = h.list[h.at + dir];
+  if (!to) return;
+  // Until it shows (a review tab takes a moment), what shows isn't a new place.
+  setHistory({ ...h, at: h.at + dir, going: Date.now() });
+  openTab(to);
+}
+export const tabBack = () => step(-1);
+export const tabForward = () => step(1);
+export const canStep = (dir) => { const h = historyNow(); return Boolean(h.list[h.at + dir]); };
+
 export default class Tabs {
   init() {}
 
@@ -86,6 +112,12 @@ export default class Tabs {
     if (add.length && this.adding !== sig) {
       this.adding = sig;
       cx.timer.after(0, () => { this.adding = null; setTabs([...tabsNow().filter((x) => !add.some((a) => a.id === x.id)), ...add]); });
+    }
+    const shown = tabsNow().find((x) => x.id === activeId());
+    const h = historyNow();
+    if (shown && h.list[h.at]?.id !== shown.id && this.noting !== shown.id && !(h.going && Date.now() - h.going < 1500)) {
+      this.noting = shown.id;
+      cx.timer.after(0, () => { this.noting = null; noteShown(shown); });
     }
     const want = wantedChild(), now = find(layout(), STACK)?.active;
     if (want !== now && this.routing !== want) {

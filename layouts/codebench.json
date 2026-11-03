@@ -3,8 +3,15 @@
   "type": "row",
   "children": [
     {
-      "id": "sidebar",
+      "id": "spaces-col",
       "type": "column",
+      "size": {
+        "px": 220
+      },
+      "min": 44,
+      "max": 420,
+      "background": "chrome",
+      "resizable": true,
       "children": [
         {
           "id": "brand",
@@ -17,6 +24,35 @@
           },
           "window_drag": true
         },
+        {
+          "id": "spaces-list",
+          "type": "block",
+          "content": {
+            "mod": "activity",
+            "props": {
+              "view": "spaces"
+            }
+          }
+        },
+        {
+          "id": "sidebar-footer",
+          "type": "block",
+          "content": {
+            "mod": "workspace-chrome",
+            "props": {
+              "footer": true
+            }
+          },
+          "size": {
+            "px": 69
+          }
+        }
+      ]
+    },
+    {
+      "id": "sidebar",
+      "type": "column",
+      "children": [
         {
           "id": "activity-bar",
           "type": "block",
@@ -34,16 +70,6 @@
           "id": "sidebar-views",
           "type": "stack",
           "children": [
-            {
-              "id": "view-herdr",
-              "type": "block",
-              "content": {
-                "mod": "activity",
-                "props": {
-                  "view": "spaces"
-                }
-              }
-            },
             {
               "id": "view-agents",
               "type": "block",
@@ -86,20 +112,7 @@
               }
             }
           ],
-          "active": "view-herdr"
-        },
-        {
-          "id": "sidebar-footer",
-          "type": "block",
-          "content": {
-            "mod": "workspace-chrome",
-            "props": {
-              "footer": true
-            }
-          },
-          "size": {
-            "px": 69
-          }
+          "active": "view-files"
         }
       ],
       "size": {
