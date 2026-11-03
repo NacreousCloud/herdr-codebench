@@ -30,6 +30,8 @@ python3 design/idea/sync_ui.py --check --mod my-new-mode
 | `uiToolbar(id,children)` | 툴바 크기·정렬 |
 | `uiToolHeader(id,title,{actions,content})` | 제목 또는 대체 content와 오른쪽 액션 |
 | `uiTab(id,children,{selected,active,onSelect,onClose,closeIcon,tip})` | Islands 채움, 클릭 선택, 가운데 클릭 닫기, 닫기 아이콘 |
+| `uiTabStrip(id,items,active,viewport)` | `{id,content}` 탭의 실제 폭을 측정하고 활성 탭을 보이게 이동; `TabViewport`는 init에서 생성, 수동 휠 이동은 일반 redraw에서 유지 |
+| `uiEmptyEditor(hints,footer)` | 빈 에디터의 공통 배경·중앙 정렬·보조색 안내. hints는 `[번역한 이름, 단축키]` 목록이며 실제 동작은 호출자가 소유 |
 | `uiPopupSize(count,{width,maxHeight,extraHeight})` | `{width,height}` 명시 크기 계산 |
 | `uiDialog(id,{title,body,footer})` | 제목·flex 본문·footer. 기본 높이360, 호출자가 `.h(높이)`로 실제 필요 크기 지정 |
 | `uiIslandBottom()` | 레이아웃이 소유한 섬 아래 마감. 외부 gap을 추가하지 않음 |
@@ -116,3 +118,7 @@ openOverlay({ mod: "codenav", props: { view: "designpreview" },
 Project는 에디터/리뷰의 현재 파일이 바뀔 때 선택과 anchor를 맞추고 상위 폴더를 펼쳐 읽는다. 에디터에 포커스가 있을 때는 공통 비활성 선택 색을 유지한다. 같은 파일의 일반 redraw는 수동 다중 선택·폴더 접기를 덮어쓰지 않는다. 경로 경계·머신·스페이스가 다른 파일은 선택하지 않으며, 이전 파일의 비동기 폴더 읽기는 새 선택을 바꾸지 않는다. 일반 트리의 스크롤 위치는 유지한다.
 
 회귀 검사: `node --experimental-vm-modules design/idea/check_file_selection.mjs`.
+
+탭 등록·스택 선택·빈 탭 줄의 표시 여부는 항상 보이는 Status의 `routeEditor`가 담당한다. 숨겨진 탭 줄도 탐색기에서 파일을 열면 복귀한다. 지연 콜백은 현재 스페이스와 현재 파일/리뷰를 다시 확인하고, 닫힌 탭의 이전 클릭 콜백은 파일을 다시 열지 않는다. 리뷰의 현재 파일은 스페이스와 저장소 경계를 모두 검사한다.
+
+IDEA에서 마지막 탭을 닫으면 editor-area는 유지하고 editor-tabs만 숨긴다. 빈 화면은 code child의 `emptyEditor`를 사용하며 제목·탭 도구줄 없이 중앙 안내를 보여준다. 드롭한 첫 파일은 실제 openPath로 연다. codebench는 마지막 탭을 닫으면 영역을 숨기는 기존 동작을 유지한다. 회귀 검사: `node --experimental-vm-modules design/idea/check_tabs.mjs`.

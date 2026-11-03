@@ -63,6 +63,17 @@ assert.equal(ui.uiColors().surface, "#111");
 store.layout = "idea";
 delete store["codenav.appearance"];
 
+const viewport = new ui.TabViewport();
+viewport.width = 350;
+for (const id of ["a", "b", "c", "d"]) viewport.widths.set(id, 180);
+assert.equal(viewport.place(["a", "b", "c", "d"], "d"), 370, "the last active tab is fully revealed");
+assert.equal(viewport.place(["a", "b", "c", "d"], "a"), 0, "switching back reveals the first tab");
+viewport.scroll(-150);
+assert.equal(viewport.place(["a", "b", "c", "d"], "a"), 150, "ordinary redraw preserves manual scrolling");
+viewport.width = 200;
+assert.equal(viewport.place(["a", "b", "c", "d"], "d"), 520, "resizing keeps the active tab visible");
+assert.equal(viewport.place(["a"], "a"), 0, "closing tabs clamps the offset");
+
 let chosen = 0, closed = 0, notifications = 0;
 const cx = { focus_handle: () => ({ focus() {} }), notify: () => notifications++, stop_propagation() {} };
 const menu = new ui.MenuController(cx);

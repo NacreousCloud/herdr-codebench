@@ -98,6 +98,7 @@ export function setEditorSpec(key, spec) {
 export function openInEditor(spec) {
   const key = editorKey();
   if (!key) return;
+  if (shared("codenav.area") === "review") setShared("codenav.area", null);
   setEditorSpec(key, spec);
   if (hasArea()) {
     if (find(layout(), AREA)?.hidden) run("layout.show", { id: AREA });

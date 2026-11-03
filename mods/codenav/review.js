@@ -671,11 +671,18 @@ export default class Review {
     else this.syncStore(cx);
     // The diff half tells the tab strip which file it shows (a tab per reviewed file).
     const space = spaces().find((s) => s.active)?.id ?? null;
-    const now = this.root && this.selected ? { rkey: this.rkey(), path: this.selected, space } : null;
+    const context = `${on ?? ""}:${cwd}`;
+    const now = this.context === context && !this.loading && this.root && this.selected && cwd && (cwd + "/").startsWith(this.root + "/")
+      ? { rkey: this.rkey(), path: this.selected, space } : null;
     const cur = shared("codenav.review.current");
     if (this.part !== "side" && now && (cur?.rkey !== now.rkey || cur?.path !== now.path || cur?.space !== now.space) && this.publishing !== now.path) {
       this.publishing = now.path;
-      cx.timer.after(0, () => { this.publishing = null; setShared("codenav.review.current", now); });
+      cx.timer.after(0, () => {
+        this.publishing = null;
+        const live = location();
+        if (live.space === space && `${live.on ?? ""}:${live.cwd}` === context && this.rkey() === now.rkey && this.selected === now.path)
+          setShared("codenav.review.current", now);
+      });
     }
     // Outside a repository the diff half has nothing to review: the editor's empty state.
     if (this.part === "main" && this.notRepo) {

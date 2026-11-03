@@ -90,6 +90,13 @@ export function uiListRow(id, children, { selected = false, focused = true, disa
 }
 export const uiSeparator = () => div().h(1).my(4).mx(6).flex_none().bg(uiColors().separator);
 export const uiCaption = text => ideaUI(div()).px(8).py(4).flex_none().text_size(uiSize(11)).text_color(uiColors().secondary).child(text);
+export function uiEmptyEditor(hints, footer) {
+  const c = uiColors();
+  return ideaUI(h_flex()).size_full().items_center().justify_center().bg(c.editor)
+    .child(v_flex().gap(10).text_size(uiSize()).text_color(c.disabled)
+      .children(hints.map(([label, shortcut]) => h_flex().gap(6).items_center().child(label).child(shortcut)))
+      .child(footer));
+}
 export const uiToolbar = (id, children) => ideaUI(h_flex()).id(id).h(Math.max(IDEA.toolbarHeight, uiSize() + 12)).flex_none().items_center().gap(4).px(4).children(children);
 export function uiToolHeader(id, title, { actions = [], content } = {}) {
   return ideaUI(h_flex()).id(id).h(Math.max(IDEA.toolHeaderHeight, uiSize() + 12)).flex_none().items_center().px(8).gap(4)
@@ -106,6 +113,46 @@ export function uiTab(id, children, { selected = false, active = true, onSelect,
   if (onClose) el = el.on_mouse_down("middle", (event, cx) => { cx.stop_propagation(); onClose(event, cx); });
   if (tip) el = el.tooltip(tip);
   return el;
+}
+// Normal elements retain close/context/middle-click handlers. Keep their
+// measured widths so changing the active file also reveals its whole tab.
+export class TabViewport {
+  constructor() { this.widths = new Map(); this.width = 0; this.offset = 0; }
+  place(ids, active) {
+    const live = new Set(ids);
+    for (const id of this.widths.keys()) if (!live.has(id)) this.widths.delete(id);
+    const widths = ids.map(id => this.widths.get(id) ?? 184);
+    this.total = widths.reduce((sum, width) => sum + width, 0);
+    const signature = JSON.stringify([ids, widths, this.width, active]);
+    this.offset = Math.max(0, Math.min(this.offset, Math.max(0, this.total - this.width)));
+    if (signature !== this.signature && this.width > 0) {
+      const at = ids.indexOf(active), left = widths.slice(0, at).reduce((sum, width) => sum + width, 0);
+      if (at >= 0) {
+        if (left < this.offset || widths[at] > this.width) this.offset = left;
+        else if (left + widths[at] > this.offset + this.width) this.offset = left + widths[at] - this.width;
+      }
+    }
+    this.signature = signature;
+    return this.offset;
+  }
+  scroll(delta) {
+    this.offset = Math.max(0, Math.min(this.offset - delta, Math.max(0, this.total - this.width)));
+  }
+}
+export function uiTabStrip(id, items, active, viewport) {
+  const offset = viewport.place(items.map(item => item.id), active);
+  return h_flex().id(id).flex_1().min_w(0).h_full().overflow_hidden()
+    .on_size_change((size, cx) => {
+      if (Math.abs(size.width - viewport.width) > 0.5) { viewport.width = size.width; cx.notify(); }
+    })
+    .on_scroll_wheel((event, cx) => {
+      const delta = Number(event.delta?.x) || Number(event.delta?.y) || 0;
+      viewport.scroll(delta); cx.stop_propagation(); cx.notify();
+    })
+    .child(h_flex().w(viewport.total).flex_none().h_full().ml(-offset)
+      .children(items.map(item => item.content.on_size_change((size, cx) => {
+        if (Math.abs(size.width - (viewport.widths.get(item.id) ?? 0)) > 0.5) { viewport.widths.set(item.id, size.width); cx.notify(); }
+      }))));
 }
 export function uiPopupSize(rowCount, { width = 320, maxHeight = 400, extraHeight = 14 } = {}) {
   return { width, height: Math.min(maxHeight, Math.max(0, rowCount) * Math.max(IDEA.rowHeight, uiSize() + 8) + extraHeight) };

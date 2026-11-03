@@ -24,7 +24,7 @@ import { openEverywhere } from "./everywhere.js";
 import { toolImage } from "./ideaicons.js";
 import { isHttp, httpRequests, httpEnvs, runHttp, httpBar } from "./http.js";
 import {
-  iconButton, button, editorKey, editorSpec, setEditorSpec, CHILD, STACK, hasArea, measureFont,
+  iconButton, button, editorKey, editorSpec, setEditorSpec, CHILD, STACK, hasArea, measureFont, openPath,
   syntaxColors, expandTabs, displayWidth, offsetAt, wordAt, tilde, sectionHeader, copyText, find, emptyEditor, doubleShift, codeFont, islandBottom,
 } from "./common.js";
 
@@ -66,10 +66,15 @@ export default class CodeView {
     this.loadedKey = k;
     const same = spec && this.shown && spec.path === this.shown.path && spec.on === this.shown.on;
     this.shown = spec;
-    if (!spec) { this.lines = []; return; }
+    if (!spec) {
+      this.seq = (this.seq ?? 0) + 1;
+      this.lines = []; this.loading = false; this.http = null; this.finding = false;
+      this.sel = null; this.hover = null; this.refs = null;
+      return;
+    }
     if (same && this.lines.length) { this.reveal(spec.line, spec.col); return; }
     // Deferred: render must not start work that notifies before its first await.
-    cx.timer.after(0, (cx) => this.load(spec, cx));
+    cx.timer.after(0, (cx) => { if (this.loadedKey === k && JSON.stringify(editorSpec()) === JSON.stringify(spec)) this.load(spec, cx); });
   }
 
   load(spec, cx, keepView = false) {
@@ -735,7 +740,8 @@ export default class CodeView {
     const colors = syntaxColors(t);
     const measure = measureFont(this, font, codeFont().size);
     let body;
-    if (!s) body = div().id("cn-empty").size_full().on_mouse_down("left", () => this.focus.focus()).child(emptyEditor(t));
+    if (!s) body = div().id("cn-empty").flex_1().min_h(0).on_mouse_down("left", () => this.focus.focus())
+      .on_drop((event, cx) => { cx.stop_propagation(); if (event.paths?.[0]) openPath(event.paths[0]); }).child(emptyEditor(t));
     else if (this.error) body = v_flex().p(16).gap(10).text_color(t.dim).child(this.error)
       .child(h_flex().child(button("cn-astext", T("Open in the editor"), () => this.edit(), { tip: T("The activity editor and viewers") })));
     else if (this.loading && !this.lines.length) body = div().p(16).text_color(t.dim).child(T("Loading…"));
@@ -750,7 +756,8 @@ export default class CodeView {
             () => { this.dragging = null; this.gutterDrag = null; }))))
         .child(this.comment.panel(t, this.rkey(), (cx) => cx.notify(), T("Comments go to the Review list, sent to the agent together")) ?? this.refsPanel(t) ?? this.infoBar(t) ?? div()))
       .child(this.outlinePanel(t) ?? div());
-    return ideaUI(islandBottom(v_flex().id("codenav-code").size_full().min_h(0).relative().bg(t.background))).text_color(t.foreground).text_size(uiSize(13))
+    return ideaUI(islandBottom(v_flex().id("codenav-code").size_full().min_h(0).relative().bg(t.background)))
+      .when(isIdea() && !s, el => el.rounded_t(IDEA.islandRadius)).text_color(t.foreground).text_size(uiSize(13))
       .track_focus(this.focus).on_key_down((e, cx) => this.keyDown(e, cx)).on_modifiers_changed((e) => this.modifiers(e))
       .child(measure)
       .child(this.header(t) ?? div())

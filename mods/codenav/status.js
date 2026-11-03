@@ -10,7 +10,7 @@ import { T, lang, setLang } from "./i18n.js";
 import { h_flex } from "gpui-base";
 import { theme, nextCommand, focused, run, shared, setShared, agents, openOverlay, hc, layout, notify } from "herdr";
 import { showTerminalFiles } from "./termfiles.js";
-import { closeTab, tabBack, tabForward, stepTab } from "./tabs.js";
+import { closeTab, tabBack, tabForward, stepTab, routeEditor } from "./tabs.js";
 import { toggleTool, toggleAllTools, hideActiveTool, moveTool, arrange, savedSides, openToolSettings, TOOLS } from "./tools.js";
 import { openEverywhere } from "./everywhere.js";
 import { restartPending, openRunConfigs, runStore, runConfig, stopConfig } from "./run.js";
@@ -120,6 +120,7 @@ export default class Status {
   render(cx) {
     recordAgents(this, cx);
     followSpace(this, cx);
+    routeEditor(this, cx);
     if (isIdea()) recordLocation(this, cx);
     const t = theme();
     const servers = this.servers ?? [];

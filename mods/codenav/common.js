@@ -4,7 +4,7 @@ import { div, svg } from "gpui-kit";
 import { h_flex } from "gpui-base";
 import { T } from "./i18n.js";
 import { spaces, panes, focused, run, shared, setShared, layout, theme, home, exec, writeTextFile, appHome, settings } from "herdr";
-import { isIdea, IDEA, uiSize, ideaUI, uiButton, uiIconButton, uiToolHeader } from "./idea-design.js";
+import { isIdea, IDEA, uiSize, ideaUI, uiButton, uiIconButton, uiToolHeader, uiEmptyEditor } from "./idea-design.js";
 
 const MOD = "codenav";
 export const icon = (name, size = 16) => svg(`mods/${MOD}/icons/${name}.svg`).size(size).flex_none();
@@ -73,8 +73,13 @@ const isCode = (spec) => spec?.kind === "file" && !spec.edit && !VIEWER.test(spe
 
 // Which child of the editor stack should show now.
 export function wantedChild() {
-  if (shared("codenav.area") === "review") return CHILD.review;
-  return isCode(editorSpec()) ? CHILD.code : CHILD.text;
+  if (shared("codenav.area") === "review") {
+    const review = shared("codenav.review.current"), { cwd, on, space } = location();
+    const at = review?.rkey?.indexOf(":") ?? -1, root = review?.rkey?.slice(at + 1);
+    if (!isIdea() || (review?.path && review.space === space && review.rkey.slice(0, at) === (on ?? "") && cwd && (cwd + "/").startsWith(root + "/"))) return CHILD.review;
+  }
+  const spec = editorSpec();
+  return isCode(spec) || (!spec && isIdea()) ? CHILD.code : CHILD.text;
 }
 
 export function showReview() {
@@ -120,12 +125,8 @@ export const islandTop = (el) => isIdea() ? ideaUI(el).rounded_t(IDEA.islandRadi
 // What an editor area with nothing open says: IntelliJ's hints in the idea layout.
 export function emptyEditor(t) {
   if (shared("layout") !== "idea") return div().p(16).text_color(t.dim).child(T("Open a file from the Explorer or Search view."));
-  const rows = [["Search Everywhere", "Double ⇧"], ["Go to File", "⇧⌘O"], ["Recent Files", "⌘E"], ["Project", "⌘1"], ["Terminal", "⌥F12"]];
-  return div().size_full().flex().items_center().justify_center().bg(t.background)
-    .child(div().flex().flex_col().gap(10).text_size(13)
-      .children(rows.map(([label, key]) => h_flex().gap(12).items_center()
-        .child(div().w(160).flex().justify_end().text_color(t.muted).child(T(label)))
-        .child(div().text_color(t.accent).child(key)))));
+  const rows = [["Search Everywhere", "⇧ ⇧"], ["Go to File", "⇧⌘O"], ["Recent Files", "⌘E"], ["Project", "⌘1"]];
+  return uiEmptyEditor(rows.map(([label, key]) => [T(label), key]), T("Drop files here to open"));
 }
 
 export const tilde = (p) => { const h = home(); return p?.startsWith(h + "/") ? "~" + p.slice(h.length) : p; };

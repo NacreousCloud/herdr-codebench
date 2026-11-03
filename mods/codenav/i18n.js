@@ -243,6 +243,7 @@ const KO = {
   "Enter to open": "Enter로 열기",
   "Search Everywhere": "어디서나 검색",
   "Go to File": "파일로 이동",
+  "Drop files here to open": "파일을 여기에 드롭하여 열기",
   "Remove from Stripe": "줄에서 숨기기",
   "Hidden": "숨김",
   "Hide (Shift+Esc)": "숨기기 (Shift+Esc)",
