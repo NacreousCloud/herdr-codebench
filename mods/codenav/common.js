@@ -98,6 +98,20 @@ export function openPath(arg, on = null) {
   if (find(layout(), AREA)?.hidden) run("layout.show", { id: AREA });
 }
 
+// Double Shift (IntelliJ's Search Everywhere): a handler for on_modifiers_changed
+// that calls open() on the second Shift tap within 400 ms; `state` keeps the taps.
+export function doubleShift(state, open) {
+  return (e) => {
+    const m = e.modifiers ?? e;
+    const shiftOnly = m.shift && !m.control && !m.alt && !m.platform && !m.function;
+    if (shiftOnly && !state.shiftDown) {
+      const now = Date.now();
+      if (state.lastShift && now - state.lastShift < 400) { state.lastShift = 0; open(); } else state.lastShift = now;
+    }
+    state.shiftDown = Boolean(m.shift);
+  };
+}
+
 // What an editor area with nothing open says: IntelliJ's hints in the idea layout.
 export function emptyEditor(t) {
   if (shared("layout") !== "idea") return div().p(16).text_color(t.dim).child(T("Open a file from the Explorer or Search view."));

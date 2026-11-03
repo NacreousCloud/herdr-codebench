@@ -7,12 +7,13 @@ import { div } from "gpui-kit";
 import { T } from "./i18n.js";
 import { v_flex, h_flex, InputState, Input, TextView } from "gpui-base";
 import { Scroller } from "./scroller.js";
+import { openEverywhere } from "./everywhere.js";
 import { lsp } from "./lsp.js";
 import { CommentBox, commentCard, commentHeight, commentsOf, repoKey, repoStore, saveRepo } from "./comments.js";
 import { exec, hc, readTextFile, theme, settings, shared, setShared, run, notify, watchFolder, spaces } from "herdr";
 import {
   icon, iconButton, button, sectionHeader, location, targets, setEditorSpec, editorKey, showEditor, showReview,
-  expandTabs, basename, ext, colorize, syntaxColors, offsetAt, wordAt, openPath, measureFont, copyText, emptyEditor
+  expandTabs, basename, ext, colorize, syntaxColors, offsetAt, wordAt, openPath, measureFont, copyText, emptyEditor, doubleShift
  } from "./common.js";
 
 const SEP = "\n@@CODENAV@@\n";
@@ -668,7 +669,13 @@ export default class Review {
       cx.timer.after(0, () => { this.publishing = null; setShared("codenav.review.current", now); });
     }
     // Outside a repository the diff half has nothing to review: the editor's empty state.
-    if (this.part === "main" && this.notRepo) return div().id("codenav-review").size_full().bg(t.background).text_color(t.foreground).child(emptyEditor(t));
+    if (this.part === "main" && this.notRepo) {
+      this.focus ??= cx.focus_handle();
+      return div().id("codenav-review").size_full().bg(t.background).text_color(t.foreground)
+        .track_focus(this.focus).on_mouse_down("left", () => this.focus.focus())
+        .on_modifiers_changed((this.shiftTaps ??= doubleShift(this, () => openEverywhere("all"))))
+        .child(emptyEditor(t));
+    }
     return h_flex().id("codenav-review").size_full().min_h(0).bg(t.background).text_color(t.foreground).text_size(13)
       .on_key_down((e, cx) => {
         if (this.comment.key(e, this.rkey())) this.anchor = null;

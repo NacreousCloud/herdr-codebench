@@ -22,7 +22,7 @@ import { tabBack, tabForward } from "./tabs.js";
 import { openEverywhere } from "./everywhere.js";
 import {
   iconButton, button, editorKey, editorSpec, setEditorSpec, CHILD, STACK, hasArea, measureFont,
-  syntaxColors, expandTabs, displayWidth, offsetAt, wordAt, tilde, sectionHeader, copyText, find, emptyEditor,
+  syntaxColors, expandTabs, displayWidth, offsetAt, wordAt, tilde, sectionHeader, copyText, find, emptyEditor, doubleShift,
 } from "./common.js";
 
 const ROW = 20;
@@ -410,17 +410,8 @@ export default class CodeView {
     this.reveal(d.line + 1, d.col);
   }
 
-  // Double Shift: Search Everywhere, as in IntelliJ (two Shift taps with nothing between).
-  modifiers(e) {
-    const m = e.modifiers ?? e;
-    const shiftOnly = m.shift && !m.control && !m.alt && !m.platform && !m.function;
-    if (shiftOnly && !this.shiftDown) {
-      const now = Date.now();
-      if (this.lastShift && now - this.lastShift < 400) { this.lastShift = 0; openEverywhere("all"); }
-      else this.lastShift = now;
-    }
-    this.shiftDown = Boolean(m.shift);
-  }
+  // Double Shift: Search Everywhere, as in IntelliJ.
+  modifiers(e) { (this.shiftTaps ??= doubleShift(this, () => openEverywhere("all")))(e); }
 
   // What the idea layout's Structure, Problems and status bar show, for the shown file.
   publish(cx) {
@@ -690,7 +681,7 @@ export default class CodeView {
     const colors = syntaxColors(t);
     const measure = measureFont(this, font, FONT);
     let body;
-    if (!s) body = emptyEditor(t);
+    if (!s) body = div().id("cn-empty").size_full().on_mouse_down("left", () => this.focus.focus()).child(emptyEditor(t));
     else if (this.error) body = v_flex().p(16).gap(10).text_color(t.dim).child(this.error)
       .child(h_flex().child(button("cn-astext", T("Open in the editor"), () => this.edit(), { tip: T("The activity editor and viewers") })));
     else if (this.loading && !this.lines.length) body = div().p(16).text_color(t.dim).child(T("Loading…"));
