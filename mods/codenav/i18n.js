@@ -84,6 +84,7 @@ const KO = {
   "Compare (right side)": "비교 대상 (오른쪽)",
   "Base (left side)": "기준 (왼쪽)",
   "Local": "로컬",
+  "Swap the two sides": "양쪽 맞바꾸기",
   "Fetching…": "가져오는 중…",
   "Fetch all remotes (git fetch --all --prune)": "모든 원격 가져오기 (git fetch --all --prune)",
   "Working tree": "작업 트리",

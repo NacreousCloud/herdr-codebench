@@ -219,15 +219,24 @@ export default class Review {
     cx.notify();
   }
 
+  // Choosing the branch the other side has swaps the two sides.
   setHead(head, cx) {
-    this.head = head && head !== this.branch ? head : null; this.picking = null; this.selected = null; this.rows = [];
-    this.save({ head: this.head });
-    cx.spawn(async (cx) => { this.loading = true; try { await this.loadFiles(cx); } finally { this.loading = false; cx.notify(); } });
+    const base = head && head === this.base ? this.headName() : this.base;
+    this.setSides(base, head, cx);
   }
 
   setBase(base, cx) {
-    this.base = base; this.picking = null; this.selected = null; this.rows = [];
-    this.save({ base });
+    const head = base === this.headName() ? this.base : this.head;
+    this.setSides(base, head, cx);
+  }
+
+  swap(cx) { this.setSides(this.headName(), this.base, cx); }
+
+  // head: a branch, or null for the current checkout (the working tree).
+  setSides(base, head, cx) {
+    this.base = base; this.head = head && head !== this.branch ? head : null;
+    this.picking = null; this.selected = null; this.rows = [];
+    this.save({ base, head: this.head });
     cx.spawn(async (cx) => { this.loading = true; try { await this.loadFiles(cx); } finally { this.loading = false; cx.notify(); } });
   }
 
@@ -410,12 +419,14 @@ export default class Review {
       .child(v_flex().px(12).pb(8).gap(6).flex_none()
         .child(h_flex().gap(4).items_center().text_size(12)
           .child(refButton("rv-base", this.base ?? T("choose…"), T("Base branch"), this.picking === "base", (cx) => this.pick("base", cx), t))
-          .child(div().flex_none().text_color(t.dim).child("←"))
+          .child(div().id("rv-swap").flex_none().px(3).rounded(4).text_color(t.dim).cursor_pointer()
+            .hover((e) => e.bg(t.hover).text_color(t.foreground)).tooltip(T("Swap the two sides"))
+            .on_click((_e, cx) => this.swap(cx)).child("⇄"))
           .child(refButton("rv-head", this.head ?? this.branch ?? "…", this.head ? T("Compared branch") : T("Current checkout: click to compare another branch"), this.picking === "head", (cx) => this.pick("head", cx), t)))
         .when(Boolean(this.picking), (e) => {
-          const side = this.picking, other = side === "head" ? this.base : this.headName();
+          const side = this.picking;
           const chosen = side === "head" ? this.head : this.base;
-          const fits = (r) => r.name !== other && (side === "base" || r.name !== this.branch) && r.name.toLowerCase().includes(q);
+          const fits = (r) => r.name.toLowerCase().includes(q);
           // Groups: local branches, then one per remote, in git's order.
           const groups = [{ title: T("Local"), refs: (this.refs ?? []).filter((r) => !r.remote && fits(r)) }];
           for (const r of this.refs ?? []) {
