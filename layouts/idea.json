@@ -59,8 +59,7 @@
           "size": {
             "px": 300
           },
-          "min": 160,
-          "max": 640,
+          "min": 120,
           "background": "chrome",
           "children": [
             {
@@ -193,7 +192,7 @@
               "size": {
                 "weight": 3
               },
-              "min": 140,
+              "min": 30,
               "background": "background",
               "border": {
                 "width": 1,
@@ -270,9 +269,11 @@
                     }
                   ]
                 }
-              ]
+              ],
+              "min": 60
             }
-          ]
+          ],
+          "min": 80
         },
         {
           "id": "tool-right",
@@ -280,8 +281,7 @@
           "size": {
             "px": 300
           },
-          "min": 160,
-          "max": 640,
+          "min": 120,
           "hidden": true,
           "background": "chrome",
           "children": [
