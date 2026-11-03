@@ -150,6 +150,10 @@ const KO = {
   "Comments need a file inside a git repository": "코멘트는 git 저장소 안의 파일에만 남길 수 있습니다",
   "File comment · ": "파일 코멘트 · ",
   // the idea layout
+  "Remove from Stripe": "줄에서 숨기기",
+  "Hidden": "숨김",
+  "Hide (Shift+Esc)": "숨기기 (Shift+Esc)",
+  "Where each tool window goes by default, and which stay off the stripes. Right-click a stripe button to move one for now.": "툴 윈도우마다 기본 위치와 줄에서 숨길지를 고릅니다. 지금만 옮기려면 줄의 버튼을 오른쪽 클릭하세요.",
   "Project": "프로젝트",
   "Commit": "커밋",
   "Structure": "구조",

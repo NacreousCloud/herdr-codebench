@@ -34,7 +34,7 @@
       "type": "row",
       "divider": {
         "width": 1,
-        "color": "border"
+        "color": "raised"
       },
       "children": [
         {
@@ -49,7 +49,9 @@
               "view": "stripe",
               "side": "left"
             }
-          }
+          },
+          "min": 40,
+          "max": 40
         },
         {
           "id": "sidebar",
@@ -61,20 +63,6 @@
           "max": 640,
           "background": "chrome",
           "children": [
-            {
-              "id": "left-bar",
-              "type": "block",
-              "size": {
-                "px": 32
-              },
-              "content": {
-                "mod": "codenav",
-                "props": {
-                  "view": "toolheader",
-                  "side": "left"
-                }
-              }
-            },
             {
               "id": "sidebar-views",
               "type": "stack",
@@ -127,7 +115,8 @@
                   "content": {
                     "mod": "codenav",
                     "props": {
-                      "view": "toolempty"
+                      "view": "toolempty",
+                      "side": "left"
                     }
                   }
                 }
@@ -140,7 +129,7 @@
           "type": "column",
           "divider": {
             "width": 1,
-            "color": "border"
+            "color": "raised"
           },
           "children": [
             {
@@ -274,7 +263,8 @@
                       "content": {
                         "mod": "codenav",
                         "props": {
-                          "view": "toolempty"
+                          "view": "toolempty",
+                          "side": "bottom"
                         }
                       }
                     }
@@ -296,20 +286,6 @@
           "background": "chrome",
           "children": [
             {
-              "id": "right-bar",
-              "type": "block",
-              "size": {
-                "px": 32
-              },
-              "content": {
-                "mod": "codenav",
-                "props": {
-                  "view": "toolheader",
-                  "side": "right"
-                }
-              }
-            },
-            {
               "id": "right-views",
               "type": "stack",
               "active": "right-empty",
@@ -320,7 +296,8 @@
                   "content": {
                     "mod": "codenav",
                     "props": {
-                      "view": "toolempty"
+                      "view": "toolempty",
+                      "side": "right"
                     }
                   }
                 }
@@ -340,7 +317,9 @@
               "view": "stripe",
               "side": "right"
             }
-          }
+          },
+          "min": 40,
+          "max": 40
         }
       ]
     },

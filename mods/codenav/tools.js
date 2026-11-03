@@ -40,14 +40,31 @@ export function toolOpen(name) {
   const side = SIDES[sideOf(name)], l = layout();
   return Boolean(side && find(l, side.column) && !find(l, side.column).hidden && find(l, side.stack)?.active === TOOLS[name].child);
 }
+// Tool windows taken off the stripes (shared "codenav.toolHidden"); their keys still open them.
+export const hiddenTools = () => new Set(shared("codenav.toolHidden") ?? []);
+export function setToolHidden(name, hidden) {
+  const set = hiddenTools();
+  if (hidden === set.has(name)) return;
+  hidden ? set.add(name) : set.delete(name);
+  setShared("codenav.toolHidden", [...set]);
+}
+
 // Like IntelliJ's stripe buttons and Cmd+1…: shows the tool window, or folds it when it is the one showing.
 export function toggleTool(name, show = false) {
   const side = SIDES[sideOf(name)], l = layout();
   const column = side && find(l, side.column), stack = side && find(l, side.stack);
   if (!column || !stack) return;
   if (toolOpen(name) && !show) return run("layout.hide", { id: side.column });
+  setToolHidden(name, false);
+  if (shared("codenav.lastTool") !== name) setShared("codenav.lastTool", name);
   if (stack.active !== TOOLS[name].child) run("layout.select", { stack: side.stack, child: TOOLS[name].child });
   if (column.hidden) run("layout.show", { id: side.column });
+}
+// Shift+Esc: folds the tool window opened last, else whichever side shows.
+export function hideActiveTool() {
+  const last = shared("codenav.lastTool"), l = layout();
+  const side = last && toolOpen(last) ? SIDES[sideOf(last)] : ["bottom", "right", "left"].map((k) => SIDES[k]).find((x) => find(l, x.column) && !find(l, x.column).hidden);
+  if (side) run("layout.hide", { id: side.column });
 }
 // Puts tool windows on sides ({name: side}) in one layout edit. A moved one
 // shows where it lands (with `show`); a side left with none folds.
@@ -76,7 +93,7 @@ export const moveTool = (name, to) => arrange({ [name]: to }, true);
 // The default sides (Settings → tool windows), kept in shared "codenav.toolSides".
 export const DEFAULT_SIDES = { project: "left", commit: "left", structure: "left", find: "left", terminal: "bottom", problems: "bottom" };
 export const savedSides = () => ({ ...DEFAULT_SIDES, ...(shared("codenav.toolSides") ?? {}) });
-export const openToolSettings = () => openOverlay({ mod: "codenav", props: { view: "toolsettings" }, kind: "dialog", width: 440, height: 360 });
+export const openToolSettings = () => openOverlay({ mod: "codenav", props: { view: "toolsettings" }, kind: "dialog", width: 520, height: 360 });
 
 // Cmd+Shift+F12: every tool window away for the editor, or back as they were.
 export function toggleAllTools() {
@@ -99,12 +116,13 @@ export class Stripe {
       .on_click(() => toggleTool(name))
       .on_mouse_down("right", (_e, cx) => {
         cx.stop_propagation();
-        openOverlay({ mod: "codenav", props: { view: "toolmenu", name }, kind: "popup", width: 220, height: 180 });
+        openOverlay({ mod: "codenav", props: { view: "toolmenu", name }, kind: "popup", width: 220, height: 214 });
       }))
       .child(icon(tool.icon, 17));
   }
   render() {
-    const t = theme(), top = toolsOn(this.edge), bottom = this.edge === "left" ? toolsOn("bottom") : [];
+    const t = theme(), hidden = hiddenTools(), shown = (side) => toolsOn(side).filter((n) => !hidden.has(n));
+    const top = shown(this.edge), bottom = this.edge === "left" ? shown("bottom") : [];
     return v_flex().size_full().py(6).gap(4).items_center().bg(t.chrome).when(this.edge === "left", (e) => e.border_r(1)).when(this.edge === "right", (e) => e.border_l(1)).border_color(t.border)
       .children(top.map((n) => this.button(n, t)))
       .child(div().flex_1())
@@ -122,6 +140,7 @@ export class ToolMenu {
     return v_flex().size_full().p(4).gap(2).bg(t.popover).text_color(t.foreground)
       .children(Object.keys(SIDES).filter((k) => k !== side).map((k) => item(k, T(`Move to ${SIDES[k].label}`), () => moveTool(name, k))))
       .when(toolOpen(name), (e) => e.child(item("hide", T("Hide"), () => toggleTool(name))))
+      .child(item("remove", T("Remove from Stripe"), () => { if (toolOpen(name)) toggleTool(name); setToolHidden(name, true); }))
       .child(div().h(1).my(2).bg(t.border))
       .child(item("settings", T("Tool Window Settings…"), () => openToolSettings()));
   }
@@ -130,7 +149,7 @@ export class ToolMenu {
 // Settings → where each tool window goes by default: saved, then applied now;
 // "Reset" puts them back where the defaults say.
 export class ToolSettings {
-  init() { this.sides = savedSides(); }
+  init() { this.sides = savedSides(); this.hidden = hiddenTools(); }
   render() {
     const t = theme(), { overlay } = props() ?? {};
     const choice = (name, k) => div().id(`ts-${name}-${k}`).px(10).py(3).rounded(5).text_size(12).cursor_pointer()
@@ -138,25 +157,37 @@ export class ToolSettings {
       .on_click((_e, cx) => { this.sides = { ...this.sides, [name]: k }; cx.notify(); }).child(T(SIDES[k].label));
     return v_flex().size_full().p(14).gap(10).bg(t.popover).text_color(t.foreground).text_size(13)
       .child(div().font_semibold().child(T("Tool Windows")))
-      .child(div().text_size(12).text_color(t.dim).child(T("Where each tool window goes by default. Right-click a stripe button to move one for now.")))
+      .child(div().text_size(12).text_color(t.dim).child(T("Where each tool window goes by default, and which stay off the stripes. Right-click a stripe button to move one for now.")))
       .child(v_flex().gap(6).children(Object.keys(TOOLS).map((name) => h_flex().gap(8).items_center()
         .child(icon(TOOLS[name].icon, 14).text_color(t.muted))
         .child(div().w(110).child(T(TOOLS[name].label)))
-        .child(h_flex().gap(4).children(Object.keys(SIDES).map((k) => choice(name, k)))))))
+        .child(h_flex().gap(4).children(Object.keys(SIDES).map((k) => choice(name, k))))
+        .child(div().id(`ts-${name}-hidden`).ml(8).px(10).py(3).rounded(5).text_size(12).cursor_pointer()
+          .bg(this.hidden.has(name) ? t.raised : "#00000000").border_1().border_color(this.hidden.has(name) ? t.input : t.hover)
+          .text_color(this.hidden.has(name) ? t.foreground : t.dim)
+          .on_click((_e, cx) => { const h = new Set(this.hidden); h.has(name) ? h.delete(name) : h.add(name); this.hidden = h; cx.notify(); })
+          .child(T("Hidden"))))))
       .child(div().flex_1())
       .child(h_flex().gap(8).justify_end()
         .child(div().id("ts-cancel").px(12).py(5).rounded(5).border_1().border_color(t.input).cursor_pointer().text_size(12)
           .on_click(() => closeOverlay(overlay)).child(T("Cancel")))
         .child(div().id("ts-save").px(12).py(5).rounded(5).bg(t.solid).text_color(t.solid_foreground).cursor_pointer().text_size(12)
-          .on_click(() => { setShared("codenav.toolSides", this.sides); closeOverlay(overlay); arrange(this.sides); })
+          .on_click(() => { setShared("codenav.toolSides", this.sides); setShared("codenav.toolHidden", [...this.hidden]); closeOverlay(overlay); arrange(this.sides); })
           .child(T("Save and Apply"))));
   }
 }
 
-// An empty child for each tool window stack.
+// An empty child for each tool window stack: a side showing it has nothing to show, so it folds.
 export class ToolEmpty {
-  init() {}
-  render() { return div().size_full().bg(theme().chrome); }
+  init(p) { this.side = SIDES[p?.side]; }
+  render(cx) {
+    const column = this.side && find(layout(), this.side.column);
+    if (column && !column.hidden && find(layout(), this.side.stack)?.active === this.side.empty && !this.folding) {
+      this.folding = true;
+      cx.timer.after(0, () => { this.folding = false; run("layout.hide", { id: this.side.column }); });
+    }
+    return div().size_full().bg(theme().chrome);
+  }
 }
 
 // -- the main toolbar --------------------------------------------------------------------------
@@ -193,7 +224,7 @@ export class Toolbar {
   }
 }
 
-// -- a side's header: its tool windows as tabs (the terminal's own tabs when it shows), then hide.
+// -- the bottom side's header: the terminal's tabs when it shows, then hide.
 export class ToolHeader {
   init(p) { this.side = SIDES[p?.side] ? p.side : "bottom"; }
   tab(c, t) {
@@ -209,22 +240,14 @@ export class ToolHeader {
       .when(c.active, (el) => el.child(iconButton(`th-x-${c.id}`, "x", T("Close tab"), () => run("tab.close", { id: c.id }), { size: 16, icon: 10 })));
   }
   render() {
-    const t = theme(), side = SIDES[this.side], names = toolsOn(this.side);
-    const active = names.find((n) => find(layout(), side.stack)?.active === TOOLS[n].child);
+    const t = theme(), side = SIDES[this.side];
+    const active = toolsOn(this.side).find((n) => find(layout(), side.stack)?.active === TOOLS[n].child);
     const tabs = spaces().find((s) => s.active)?.tabs ?? [];
-    const title = (name) => stopPress(div().id(`th-${name}`).flex_none().px(6).py(3).rounded(5).text_size(12).font_semibold().cursor_pointer()
-      .text_color(name === active ? t.foreground : t.muted).hover((s) => s.text_color(t.foreground))
-      .on_click(() => toggleTool(name, true))
-      .on_mouse_down("right", (_e, cx) => { cx.stop_propagation(); openOverlay({ mod: "codenav", props: { view: "toolmenu", name }, kind: "popup", width: 220, height: 180 }); })
-      .child(T(TOOLS[name].label)));
-    return h_flex().size_full().min_w(0).pl(8).pr(6).gap(4).items_center().bg(t.chrome).border_b(1).border_color(t.border)
-      .children(names.map(title))
-      .when(active === "terminal", (e) => e.child(div().w(1).h(14).mx(4).flex_none().bg(t.input))
-        .child(h_flex().id(`th-tabs-${this.side}`).flex_1().min_w(0).h_full().gap(2).items_center().overflow_x_scrollbar()
-          .children(tabs.map((c) => this.tab(c, t)))
+    return h_flex().size_full().min_w(0).pl(6).pr(6).gap(2).items_center().bg(t.chrome).border_b(1).border_color(t.border)
+      .child(h_flex().id(`th-tabs-${this.side}`).flex_1().min_w(0).h_full().gap(2).items_center().overflow_x_scrollbar()
+        .when(active === "terminal", (e) => e.children(tabs.map((c) => this.tab(c, t)))
           .child(iconButton(`th-new-${this.side}`, "plus", T("New Terminal or Agent"), () => openOverlay({ mod: "new-menu", kind: "popup", width: 250, height: 512 })))))
-      .when(active !== "terminal", (e) => e.child(div().flex_1()))
-      .child(iconButton(`th-hide-${this.side}`, "minus", T("Hide"), () => run("layout.hide", { id: side.column })));
+      .child(iconButton(`th-hide-${this.side}`, "minus", T("Hide (Shift+Esc)"), () => run("layout.hide", { id: side.column })));
   }
 }
 

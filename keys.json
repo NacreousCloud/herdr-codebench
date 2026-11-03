@@ -43,6 +43,7 @@
     "cmd-e": "codenav.find-recent",
     "cmd-[": "codenav.nav-back",
     "cmd-]": "codenav.nav-forward",
-    "ctrl-alt-r": "codenav.review"
+    "ctrl-alt-r": "codenav.review",
+    "shift-escape": "codenav.hide-active"
   }
 }
