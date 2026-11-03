@@ -123,7 +123,7 @@ export async function copyText(text) {
   await exec("mkdir", ["-p", dir]);
   const file = `${dir}/copy-${Date.now()}.txt`;
   await writeTextFile(file, text, null);
-  const r = await exec("sh", ["-c", 'if command -v pbcopy >/dev/null; then pbcopy < "$1"; elif command -v wl-copy >/dev/null; then wl-copy < "$1"; else xclip -selection clipboard < "$1"; fi; c=$?; rm -f "$1"; exit $c', "sh", file]);
+  const r = await exec("sh", ["-c", 'if command -v pbcopy >/dev/null; then LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 pbcopy < "$1"; elif command -v wl-copy >/dev/null; then wl-copy < "$1"; else xclip -selection clipboard < "$1"; fi; c=$?; rm -f "$1"; exit $c', "sh", file]);
   if (r.code !== 0) throw new Error(r.stderr.trim() || T("Could not copy to the clipboard"));
 }
 
