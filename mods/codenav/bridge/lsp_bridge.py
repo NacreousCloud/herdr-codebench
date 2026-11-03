@@ -304,7 +304,7 @@ class LspServer:
                 "capabilities": {
                     "general": {"positionEncodings": ["utf-16"]},
                     "window": {"workDoneProgress": True},
-                    "workspace": {"configuration": True, "workspaceFolders": True},
+                    "workspace": {"configuration": True, "workspaceFolders": True, "symbol": {}},
                     "textDocument": {
                         "synchronization": {"didSave": False, "dynamicRegistration": False},
                         "hover": {"contentFormat": ["markdown", "plaintext"]},
@@ -644,6 +644,28 @@ def m_diagnostics(req):
                     "severity": d.get("severity", 1), "message": d.get("message", ""),
                     "source": d.get("source") or ""})
     return {"items": out, "busy": list(srv.progress.values())}
+
+def m_workspace_symbols(req):
+    """Symbols across the project of req["path"] whose names match req["query"] (Search Everywhere)."""
+    srv = server_for(req["path"], bool(req.get("retry")))
+    srv.open(req["path"])
+    result = srv.request("workspace/symbol", {"query": req.get("query", "")}, timeout=20) or []
+    out = []
+    for s in result[:300]:
+        loc = s.get("location") or {}
+        uri, rng = loc.get("uri"), loc.get("range")
+        if not uri:
+            continue
+        try:
+            path = materialize(uri, srv)
+        except Exception:
+            continue
+        start = (rng or {}).get("start", {"line": 0, "character": 0})
+        out.append({"name": s.get("name", ""), "kind": SYMBOL_KINDS.get(s.get("kind"), "symbol"),
+                    "container": s.get("containerName") or "", "path": path,
+                    "line": start["line"], "col": start["character"]})
+    return out
+
 
 METHODS = {name[2:]: fn for name, fn in globals().items() if name.startswith("m_")}
 

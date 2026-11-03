@@ -23,6 +23,26 @@
   "mod:codenav": {
     "cmd-w": "codenav.close-tab",
     "ctrl--": "codenav.tab-back",
-    "ctrl-shift--": "codenav.tab-forward"
+    "ctrl-shift--": "codenav.tab-forward",
+    "cmd-b": "codenav.definition",
+    "f2": "codenav.next-error",
+    "shift-f2": "codenav.prev-error"
+  },
+  "layout:idea": {
+    "cmd-1": "codenav.tool-project",
+    "cmd-0": "codenav.tool-commit",
+    "cmd-7": "codenav.tool-structure",
+    "cmd-shift-f": "codenav.tool-find",
+    "alt-f12": "codenav.tool-terminal",
+    "cmd-6": "codenav.tool-problems",
+    "cmd-shift-f12": "codenav.hide-tools",
+    "cmd-o": "codenav.find-class",
+    "cmd-shift-o": "codenav.find-file",
+    "cmd-alt-o": "codenav.find-symbol",
+    "cmd-shift-a": "codenav.find-action",
+    "cmd-e": "codenav.find-recent",
+    "cmd-[": "codenav.nav-back",
+    "cmd-]": "codenav.nav-forward",
+    "ctrl-alt-r": "codenav.review"
   }
 }

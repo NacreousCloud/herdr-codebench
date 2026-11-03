@@ -17,5 +17,7 @@ for f in "$REPO"/layouts/*; do
   [ -L "$dest" ] && rm "$dest"
   cp "$f" "$dest"
 done
+mkdir -p "$HOME_DIR/themes"
+for f in "$REPO"/themes/*; do cp "$f" "$HOME_DIR/themes/$(basename "$f")"; done
 echo "Installed. Merge keys.json into $HOME_DIR/keys.json once (see README), then:"
 echo "  herdr-app do layout.switch --name codebench"

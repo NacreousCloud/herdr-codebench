@@ -14,26 +14,28 @@
 import { div } from "gpui-kit";
 import { T } from "./i18n.js";
 import { v_flex, h_flex, v_virtual_list, Scrollbar, TextView, InputState, Input } from "gpui-base";
-import { readTextFile, watchFolder, theme, settings, run, exec, nextCommand, notify } from "herdr";
+import { readTextFile, watchFolder, theme, settings, run, exec, nextCommand, notify, layout, setShared } from "herdr";
 import { lsp } from "./lsp.js";
 import { CommentBox, commentCard, commentHeight, commentsOf, repoKey } from "./comments.js";
 import { Scroller } from "./scroller.js";
 import { tabBack, tabForward } from "./tabs.js";
+import { openEverywhere } from "./everywhere.js";
 import {
   iconButton, button, editorKey, editorSpec, setEditorSpec, CHILD, STACK, hasArea, measureFont,
-  syntaxColors, expandTabs, displayWidth, offsetAt, wordAt, tilde, sectionHeader, copyText,
+  syntaxColors, expandTabs, displayWidth, offsetAt, wordAt, tilde, sectionHeader, copyText, find,
 } from "./common.js";
 
 const ROW = 20;
 const FONT = 13;
 const PAD = 12;
 const MAX_LINE = 2000;
-const KIND = { class: "C", struct: "S", interface: "I", enum: "E", function: "ƒ", method: "m", constructor: "c", field: "f", property: "p", variable: "v", constant: "K", module: "M", namespace: "N", package: "P", "type parameter": "T", "enum member": "e" };
+export const KIND = { class: "C", struct: "S", interface: "I", enum: "E", function: "ƒ", method: "m", constructor: "c", field: "f", property: "p", variable: "v", constant: "K", module: "M", namespace: "N", package: "P", "type parameter": "T", "enum member": "e" };
 
 export default class CodeView {
   init(_p, cx) {
     this.lines = []; this.toks = null; this.diags = []; this.symbols = []; this.refs = null;
-    this.cw = FONT * 0.6; this.outline = true;
+    // The idea layout has a Structure tool window instead.
+    this.cw = FONT * 0.6; this.outline = !find(layout(), "view-structure");
     this.scroll = new Scroller();
     this.focus = cx.focus_handle();
     this.find = InputState.new({ placeholder: T("Find") });
@@ -41,8 +43,8 @@ export default class CodeView {
     this.find.on("submit", (e, cx) => { this.findNext(e?.shift ? -1 : 1); cx.notify(); });
     this.sleep = (ms) => cx.sleep(ms);
     this.comment = new CommentBox();
-    // pane.go gives this view the keyboard.
-    cx.spawn(async (cx) => { for (;;) { if (await nextCommand() === "focus") this.focus.focus(); cx.notify(); } });
+    // pane.go gives this view the keyboard; keys.json's mod:codenav keys arrive as commands.
+    cx.spawn(async (cx) => { for (;;) { this.command(await nextCommand(), cx); cx.notify(); } });
   }
 
   // Back / forward belong to the space whose editor this is.
@@ -386,6 +388,58 @@ export default class CodeView {
     if (hasArea()) run("layout.select", { stack: STACK, child: CHILD.text });
   }
 
+  command(c, cx) {
+    if (c === "focus") this.focus.focus();
+    else if (c === "definition") this.definition(cx);
+    else if (c === "implementation") this.definition(cx, "implementation");
+    else if (c === "type-definition") this.definition(cx, "typeDefinition");
+    else if (c === "usages") this.references(cx);
+    else if (c === "next-error") this.nextProblem(1);
+    else if (c === "prev-error") this.nextProblem(-1);
+    else if (c === "file-structure") openEverywhere("structure");
+    else if (c === "goto-line") openEverywhere("line");
+  }
+
+  // F2 / Shift+F2: the next problem after the caret, round the file.
+  nextProblem(dir) {
+    const list = [...this.diags].sort((a, b) => a.line - b.line || a.col - b.col);
+    if (!list.length) return;
+    const at = this.sel?.line ?? -1, col = this.sel?.col ?? -1;
+    const after = (d) => d.line > at || (d.line === at && d.col > col), before = (d) => d.line < at || (d.line === at && d.col < col);
+    const d = dir > 0 ? list.find(after) ?? list[0] : [...list].reverse().find(before) ?? list[list.length - 1];
+    this.reveal(d.line + 1, d.col);
+  }
+
+  // Double Shift: Search Everywhere, as in IntelliJ (two Shift taps with nothing between).
+  modifiers(e) {
+    const m = e.modifiers ?? e;
+    const shiftOnly = m.shift && !m.control && !m.alt && !m.platform && !m.function;
+    if (shiftOnly && !this.shiftDown) {
+      const now = Date.now();
+      if (this.lastShift && now - this.lastShift < 400) { this.lastShift = 0; openEverywhere("all"); }
+      else this.lastShift = now;
+    }
+    this.shiftDown = Boolean(m.shift);
+  }
+
+  // What the idea layout's Structure, Problems and status bar show, for the shown file.
+  publish(cx) {
+    const s = this.shown;
+    if (!s || !find(layout(), "view-structure")) return;
+    const scope = this.sel ? this.scope(this.sel.line).map((x) => x.name) : [];
+    const caret = this.sel ? { path: s.path, line: this.sel.line, col: this.sel.col, scope } : null;
+    const want = [["codenav.caret", caret, JSON.stringify(caret)], ["codenav.symbols", { path: s.path, items: this.symbols.slice(0, 1500) }, this.symbols],
+      ["codenav.problems", { path: s.path, items: this.diags }, this.diags]];
+    this.published ??= {};
+    for (const [key, value, mark] of want) {
+      const sig = [s.path, mark];
+      const last = this.published[key];
+      if (last && last[0] === sig[0] && last[1] === sig[1]) continue;
+      this.published[key] = sig;
+      cx.timer.after(0, () => setShared(key, value));
+    }
+  }
+
   keyDown(e, cx) {
     const k = e.keystroke;
     if (this.comment.typing || this.finding && k !== "escape") {
@@ -394,9 +448,16 @@ export default class CodeView {
       if (!this.comment.draft) this.focus.focus();
       cx.stop_propagation(); cx.notify(); return;
     }
+    this.lastShift = 0;
+    const idea = Boolean(find(layout(), "view-structure"));
     if (k === "f12" || k === "cmd-b") this.definition(cx);
-    else if (k === "shift-f12" || k === "alt-shift-f12") this.references(cx);
-    else if (k === "cmd-f12") this.definition(cx, "implementation");
+    else if (k === "shift-f12" || k === "alt-shift-f12" || k === "alt-f7") this.references(cx);
+    else if (k === "cmd-alt-b") this.definition(cx, "implementation");
+    else if (k === "cmd-shift-b") this.definition(cx, "typeDefinition");
+    else if (k === "cmd-f12") idea ? openEverywhere("structure") : this.definition(cx, "implementation");
+    else if (k === "cmd-l") openEverywhere("line");
+    else if (k === "f2") this.nextProblem(1);
+    else if (k === "shift-f2") this.nextProblem(-1);
     else if (k === "cmd-f" || k === "ctrl-f") { this.finding = true; this.find.focus(); }
     else if (k === "cmd-shift-o") this.outline = !this.outline;
     else if (k === "cmd-c" || k === "ctrl-c") this.copy();
@@ -624,6 +685,7 @@ export default class CodeView {
 
   render(cx) {
     this.sync(cx);
+    this.publish(cx);
     const t = theme(), s = this.shown, font = settings().font_family ?? "JetBrains Mono";
     const colors = syntaxColors(t);
     const measure = measureFont(this, font, FONT);
@@ -642,7 +704,7 @@ export default class CodeView {
         .child(this.comment.panel(t, this.rkey(), (cx) => cx.notify(), T("Comments go to the Review list, sent to the agent together")) ?? this.refsPanel(t) ?? this.infoBar(t) ?? div()))
       .child(this.outlinePanel(t) ?? div());
     return v_flex().id("codenav-code").size_full().min_h(0).relative().bg(t.background).text_color(t.foreground).text_size(13)
-      .track_focus(this.focus).on_key_down((e, cx) => this.keyDown(e, cx))
+      .track_focus(this.focus).on_key_down((e, cx) => this.keyDown(e, cx)).on_modifiers_changed((e) => this.modifiers(e))
       .child(measure)
       .child(this.header(t))
       .child(this.findBar(t) ?? div())
@@ -662,7 +724,7 @@ function chip(label, color, tip, action) {
     .child(label);
 }
 
-function kindColor(kind, t) {
+export function kindColor(kind, t) {
   if (kind === "class" || kind === "struct" || kind === "interface" || kind === "enum") return t.ansi3;
   if (kind === "function" || kind === "method" || kind === "constructor") return t.ansi5;
   if (kind === "constant" || kind === "enum member") return t.ansi6;

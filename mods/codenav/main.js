@@ -9,6 +9,8 @@
 //   termmenu  — the terminal right-click menu (the layout's "terminal_menu"),
 //               opened by Herdr with props { tab: "pane", target }
 //   panehead  — a terminal pane's header: split / zoom / close
+//   the idea layout (tools.js, everywhere.js): stripe, toolbar, bottombar,
+//   structure, problems, crumbs, projects, branches, everywhere
 import { View, div } from "gpui-kit";
 import { props as herdrProps } from "herdr";
 import CodeView from "./code.js";
@@ -17,8 +19,12 @@ import Tabs, { TabMenu } from "./tabs.js";
 import Status from "./status.js";
 import { TermMenu, TermFiles } from "./termfiles.js";
 import PaneHead from "./panehead.js";
+import { Stripe, Toolbar, BottomBar, Structure, Problems, Crumbs, Projects, Branches } from "./tools.js";
+import { Everywhere } from "./everywhere.js";
 
-const VIEWS = { code: CodeView, review: Review, tabs: Tabs, status: Status, tabmenu: TabMenu, termfiles: TermFiles, termmenu: TermMenu, panehead: PaneHead };
+const VIEWS = { code: CodeView, review: Review, tabs: Tabs, status: Status, tabmenu: TabMenu, termfiles: TermFiles, termmenu: TermMenu, panehead: PaneHead,
+  stripe: Stripe, toolbar: Toolbar, bottombar: BottomBar, structure: Structure, problems: Problems, crumbs: Crumbs,
+  projects: Projects, branches: Branches, everywhere: Everywhere };
 
 export default class CodeNav extends View {
   init(initProps, cx) {

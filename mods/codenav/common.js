@@ -103,7 +103,14 @@ export const basename = (p) => (p ?? "").split("/").filter(Boolean).pop() ?? "";
 export const ext = (p) => { const b = basename(p); return b.includes(".") ? b.split(".").pop().toLowerCase() : ""; };
 
 // Syntax categories (bridge/lsp_bridge.py `tokens`) to theme colors.
+// The idea layout: IntelliJ's dark editor colors.
+const IDEA = {
+  keyword: "#cf8e6d", type: "#bcbec4", constant: "#c77dbb", builtin: "#cf8e6d", function: "#56a8f5",
+  decorator: "#b3ae60", namespace: "#bcbec4", property: "#c77dbb", escape: "#cf8e6d",
+  string: "#6aab73", number: "#2aacb8", comment: "#7a7e85", operator: "#bcbec4", punctuation: "#bcbec4",
+};
 export function syntaxColors(t) {
+  if (shared("layout") === "idea") return IDEA;
   return {
     keyword: t.ansi5, type: t.ansi3, constant: t.ansi6, builtin: t.ansi6, function: t.ansi4,
     decorator: t.ansi3, namespace: t.ansi4, property: t.ansi12 ?? t.ansi4, escape: t.ansi6,

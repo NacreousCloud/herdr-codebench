@@ -1,0 +1,303 @@
+{
+  "id": "root",
+  "type": "column",
+  "background": "chrome",
+  "titlebar": "none",
+  "traffic_lights": [
+    12,
+    13
+  ],
+  "theme": "idea",
+  "terminal_padding": [
+    10,
+    8
+  ],
+  "terminal_menu": "codenav",
+  "preview": "layouts/idea.svg",
+  "children": [
+    {
+      "id": "main-toolbar",
+      "type": "block",
+      "size": {
+        "px": 40
+      },
+      "window_drag": true,
+      "content": {
+        "mod": "codenav",
+        "props": {
+          "view": "toolbar"
+        }
+      }
+    },
+    {
+      "id": "body",
+      "type": "row",
+      "divider": {
+        "width": 1,
+        "color": "border"
+      },
+      "children": [
+        {
+          "id": "stripe",
+          "type": "block",
+          "size": {
+            "px": 40
+          },
+          "content": {
+            "mod": "codenav",
+            "props": {
+              "view": "stripe"
+            }
+          }
+        },
+        {
+          "id": "sidebar",
+          "type": "column",
+          "size": {
+            "px": 300
+          },
+          "min": 160,
+          "max": 640,
+          "background": "chrome",
+          "children": [
+            {
+              "id": "sidebar-views",
+              "type": "stack",
+              "active": "view-files",
+              "children": [
+                {
+                  "id": "view-files",
+                  "type": "block",
+                  "content": {
+                    "mod": "activity",
+                    "props": {
+                      "view": "files"
+                    }
+                  }
+                },
+                {
+                  "id": "view-review",
+                  "type": "block",
+                  "content": {
+                    "mod": "codenav",
+                    "props": {
+                      "view": "review",
+                      "part": "side"
+                    }
+                  }
+                },
+                {
+                  "id": "view-structure",
+                  "type": "block",
+                  "content": {
+                    "mod": "codenav",
+                    "props": {
+                      "view": "structure"
+                    }
+                  }
+                },
+                {
+                  "id": "view-search",
+                  "type": "block",
+                  "content": {
+                    "mod": "activity",
+                    "props": {
+                      "view": "search"
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "work",
+          "type": "column",
+          "children": [
+            {
+              "id": "work-body",
+              "type": "column",
+              "divider": {
+                "width": 1,
+                "color": "border"
+              },
+              "children": [
+                {
+                  "id": "editor-area",
+                  "type": "column",
+                  "children": [
+                    {
+                      "id": "editor-tabs",
+                      "type": "block",
+                      "content": {
+                        "mod": "codenav",
+                        "props": {
+                          "view": "tabs"
+                        }
+                      },
+                      "size": {
+                        "px": 32
+                      }
+                    },
+                    {
+                      "id": "editor-stack",
+                      "type": "stack",
+                      "children": [
+                        {
+                          "id": "editor-code",
+                          "type": "block",
+                          "content": {
+                            "mod": "codenav",
+                            "props": {
+                              "view": "code",
+                              "slot": true
+                            }
+                          }
+                        },
+                        {
+                          "id": "editor-text",
+                          "type": "block",
+                          "content": {
+                            "mod": "activity",
+                            "props": {
+                              "view": "editor",
+                              "slot": true
+                            }
+                          }
+                        },
+                        {
+                          "id": "editor-review",
+                          "type": "block",
+                          "content": {
+                            "mod": "codenav",
+                            "props": {
+                              "view": "review",
+                              "part": "main"
+                            }
+                          }
+                        }
+                      ],
+                      "active": "editor-code"
+                    }
+                  ],
+                  "size": {
+                    "weight": 3
+                  },
+                  "min": 140,
+                  "background": "background",
+                  "border": {
+                    "width": 1,
+                    "color": "border"
+                  },
+                  "radius": 10
+                },
+                {
+                  "id": "terminal-panel",
+                  "type": "column",
+                  "size": {
+                    "weight": 2
+                  },
+                  "children": [
+                    {
+                      "id": "bottom-bar",
+                      "type": "block",
+                      "size": {
+                        "px": 32
+                      },
+                      "content": {
+                        "mod": "codenav",
+                        "props": {
+                          "view": "bottombar"
+                        }
+                      }
+                    },
+                    {
+                      "id": "bottom-stack",
+                      "type": "stack",
+                      "active": "bottom-terminal",
+                      "children": [
+                        {
+                          "id": "bottom-terminal",
+                          "type": "block",
+                          "content": {
+                            "tab": "active",
+                            "pane": {
+                              "header": {
+                                "content": {
+                                  "mod": "codenav",
+                                  "props": {
+                                    "view": "panehead"
+                                  }
+                                },
+                                "reveal": "hover",
+                                "height": 28,
+                                "position": "top"
+                              },
+                              "background": "background",
+                              "border": {
+                                "width": 1,
+                                "color": "border"
+                              },
+                              "focus": {
+                                "width": 1,
+                                "color": "accent"
+                              },
+                              "radius": 6,
+                              "gap": 6
+                            }
+                          }
+                        },
+                        {
+                          "id": "bottom-problems",
+                          "type": "block",
+                          "content": {
+                            "mod": "codenav",
+                            "props": {
+                              "view": "problems"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "status-row",
+      "type": "row",
+      "size": {
+        "px": 26
+      },
+      "children": [
+        {
+          "id": "crumbs",
+          "type": "block",
+          "content": {
+            "mod": "codenav",
+            "props": {
+              "view": "crumbs"
+            }
+          }
+        },
+        {
+          "id": "codenav-status",
+          "type": "block",
+          "size": {
+            "px": 260
+          },
+          "content": {
+            "mod": "codenav",
+            "props": {
+              "view": "status"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
