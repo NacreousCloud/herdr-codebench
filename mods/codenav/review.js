@@ -387,7 +387,7 @@ export default class Review {
         }
         this.note = null;
         notify({ title: how === "copy" ? T("Review copied") : T(how === "send" ? "Review sent to {name}" : "Review pasted to {name}", { name: to.name }), body: T("{n} comments", { n: comments.length }), level: "success", timeout: 3000 });
-        if (this.clearAfter && how !== "copy") this.save({ comments: [] });
+        if (clearAfterSend() && how !== "copy") this.save({ comments: [] });
       } catch (e) { this.note = String(e.message ?? e); }
       cx.notify();
     });
@@ -517,9 +517,9 @@ export default class Review {
           .child(button("rv-send", T("Send ↵"), (_e, cx) => this.deliver("send", cx), { tip: T("Types it and presses Enter (hc send)") }))
           .child(iconButton("rv-copy", "copy", T("Copy the review"), (_e, cx) => this.deliver("copy", cx))))
         .child(h_flex().id("rv-clear-after").gap(6).items_center().text_size(11.5).text_color(t.muted).cursor_pointer()
-          .on_click((_e, cx) => { this.clearAfter = !this.clearAfter; cx.notify(); })
+          .on_click(() => setShared("codenav.clearAfterSend", !clearAfterSend()))
           .child(div().size(12).rounded(3).border_1().border_color(t.border).flex().items_center().justify_center()
-            .when(Boolean(this.clearAfter), (e) => e.bg(t.accent).child(icon("check", 10).text_color(t.accent_foreground))))
+            .when(clearAfterSend(), (e) => e.bg(t.accent).child(icon("check", 10).text_color(t.accent_foreground))))
           .child(T("Clear comments after sending")))
         .when(Boolean(this.note), (e) => e.child(div().text_size(11.5).text_color(t.ansi1).child(this.note))));
   }
@@ -634,6 +634,9 @@ export default class Review {
 // "ahead 2, behind 1" as arrows.
 const trackMark = (track) => /gone/.test(track) ? "gone"
   : track.replace(/ahead (\d+)/, "↑$1").replace(/behind (\d+)/, "↓$1").replace(", ", " ");
+
+// "Clear comments after sending": on unless turned off (shared, so both halves agree).
+const clearAfterSend = () => shared("codenav.clearAfterSend") !== false;
 
 function refButton(id, label, tip, open, action, t) {
   return h_flex().id(id).flex_1().min_w(0).h(24).px(6).gap(4).items_center().rounded(5).border_1().cursor_pointer()

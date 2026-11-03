@@ -194,6 +194,7 @@
                 "weight": 2.210036039352417
               },
               "min": 140,
+              "hidden": true,
               "background": "background",
               "border": {
                 "width": 1,
