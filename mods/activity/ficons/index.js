@@ -4,7 +4,8 @@
 // theirs: path rule, then name (folders also without a leading . _ - or __x__),
 // then the longest extension first.
 import { image } from "gpui-kit";
-import { settings } from "herdr";
+import { settings, shared } from "herdr";
+import { ideaImage } from "./idea.js";
 import ICONS from "./table.js";
 
 const DIR = "mods/activity/ficons/svg";
@@ -29,5 +30,6 @@ export function fileIcon(path, dir = false, open = false, dark = true) {
 }
 
 /** The icon of `path` as an element, for the current theme (light themes get the _light variants). */
-export const fileImage = (path, dir = false, open = false, size = 16) =>
-  image(fileIcon(path, dir, open, settings()?.dark !== false)).size(size).flex_none();
+// The idea layout draws IntelliJ's icons instead (idea.js).
+export const fileImage = (path, dir = false, open = false, size = 16) => shared("layout") === "idea" ? ideaImage(path, dir, size)
+  : image(fileIcon(path, dir, open, settings()?.dark !== false)).size(size).flex_none();

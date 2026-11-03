@@ -1,0 +1,56 @@
+// IntelliJ's New UI icons (mods/codenav/idea-icons, Apache-2.0, see its NOTICE)
+// for files, folders and symbols, as the idea layout shows them. The same file is
+// mods/codenav/ideaicons.js (a mod can't import another's code): keep both alike.
+import { image } from "gpui-kit";
+
+const DIR = "mods/codenav/idea-icons";
+const EXT = {
+  kt: "kotlin", kts: "kotlinScript", java: "java", class: "javaClass", js: "javaScript", mjs: "javaScript", cjs: "javaScript", jsx: "javaScript",
+  ts: "typeScript", tsx: "typeScript", mts: "typeScript", json: "json", yml: "yaml", yaml: "yaml", xml: "xml", html: "html", htm: "html",
+  css: "css", scss: "css", less: "css", md: "markdown", markdown: "markdown", mdx: "markdown", properties: "properties", gradle: "gradle",
+  sh: "shell", bash: "shell", zsh: "shell", fish: "shell", sql: "sql", txt: "text", log: "text", toml: "toml", http: "http", rest: "http",
+  png: "image", jpg: "image", jpeg: "image", gif: "image", svg: "image", webp: "image", ico: "image", bmp: "image",
+  zip: "archive", jar: "archive", war: "archive", tar: "archive", gz: "archive", tgz: "archive", "7z": "archive",
+  csv: "csv", swift: "swiftLang", vue: "vue", groovy: "groovy", c: "c", cpp: "cpp", cc: "cpp", h: "h", hpp: "h", cs: "Csharp",
+  pl: "perl", patch: "patch", diff: "patch", ttf: "font", otf: "font", woff: "font", woff2: "font", ipynb: "jupyter", tf: "terraform",
+  graphql: "graphql", gql: "graphql", xhtml: "xhtml", conf: "config", cfg: "config", ini: "config", env: "config", lock: "text",
+};
+const NAME = {
+  dockerfile: "docker", ".dockerignore": "ignored", ".gitignore": "gitignore", ".editorconfig": "editorConfig", "manifest.mf": "manifest",
+  "build.gradle.kts": "kotlinGradleScript", "settings.gradle.kts": "kotlinGradleScript", gradlew: "shell", "gradlew.bat": "shell",
+};
+const EXCLUDED = new Set(["build", "out", "target", ".gradle", "node_modules", "dist", ".next", "__pycache__", ".venv"]);
+const SOURCE = /(^|\/)src\/([^/]+)\/(java|kotlin|groovy|scala|swift|go|ts|js)$/;
+const RESOURCES = /(^|\/)src\/([^/]+)\/resources$/;
+const isTest = (set) => /test/i.test(set);
+
+/** The icon path (for image()) of a path relative to its project. */
+export function ideaIcon(path, dir = false) {
+  const lower = path.toLowerCase(), name = lower.split("/").pop();
+  if (dir) {
+    if (EXCLUDED.has(name)) return `${DIR}/excludeRoot.svg`;
+    let m = SOURCE.exec(path);
+    if (m) return `${DIR}/${isTest(m[2]) ? "testRoot" : "sourceRoot"}.svg`;
+    m = RESOURCES.exec(path);
+    if (m) return `${DIR}/${isTest(m[2]) ? "testResourcesRoot" : "resourcesRoot"}.svg`;
+    // Folders below a source root are packages.
+    if (/(^|\/)src\/[^/]+\/(java|kotlin|groovy|scala)\/./.test(path)) return `${DIR}/package.svg`;
+    return `${DIR}/folder.svg`;
+  }
+  const id = NAME[name] ?? EXT[name.includes(".") ? name.split(".").pop() : ""] ?? "anyType";
+  return `${DIR}/${id}.svg`;
+}
+export const ideaImage = (path, dir = false, size = 16) => image(ideaIcon(path, dir)).size(size).flex_none();
+
+// Symbols, by the language server's kind; Kotlin files get Kotlin's own.
+const KIND = { class: "class", interface: "interface", enum: "enum", struct: "class", object: "class", method: "method", function: "function",
+  constructor: "method", field: "field", property: "property", variable: "variable", constant: "constant", "enum member": "constant",
+  module: "package", namespace: "package", package: "package", "type parameter": "type", typeParameter: "type" };
+const KOTLIN = { class: "classKotlin", interface: "interfaceKotlin", enum: "enumKotlin", object: "objectKotlin", function: "functionKotlin",
+  method: "functionKotlin", property: "fieldValueKotlin", field: "fieldValueKotlin", variable: "fieldVariableKotlin" };
+export function symbolIcon(kind, path = "") {
+  const kt = /\.kts?$/.test(path) && KOTLIN[kind];
+  return `${DIR}/${kt || KIND[kind] || "unknown"}.svg`;
+}
+export const symbolImage = (kind, path, size = 16) => image(symbolIcon(kind, path)).size(size).flex_none();
+export const toolImage = (name, size = 18) => image(`${DIR}/${name}.svg`).size(size).flex_none();

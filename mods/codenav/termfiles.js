@@ -5,7 +5,8 @@ import { div, svg } from "gpui-kit";
 import { v_flex, h_flex, InputState, Input } from "gpui-base";
 import { run, props, closeOverlay, openOverlay, theme, terminals, panes, exec, hc, notify } from "herdr";
 import { T } from "./i18n.js";
-import { openPath, tilde, basename } from "./common.js";
+import { openPath, tilde, basename, uiFontFamily } from "./common.js";
+import { ideaImage, toolImage } from "./ideaicons.js";
 
 // "src/a.kt:42:5", "src/a.kt(42,5)", "src/a.kt#L42", "file:///x/a.kt", "~/a.kt", "./a.kt".
 const PATH = /(?:file:\/\/)?(?:~|\.{1,2})?\/?(?:[\w.@+-]+\/)*[\w.@+-]+\.[A-Za-z][\w]{0,9}(?:(?::\d+(?::\d+)?)|(?:\(\d+(?:,\d+)?\))|(?:#L\d+))?/g;
@@ -86,7 +87,7 @@ const openAt = (f, on) => openPath(`${f.abs}${f.line ? `:${f.line}${f.col ? `:${
 
 export function showTerminalFiles(terminal) {
   if (!terminal) return;
-  openOverlay({ mod: "codenav", props: { view: "termfiles", terminal }, kind: "dialog", width: 620, height: 460 });
+  openOverlay({ mod: "codenav", props: { view: "termfiles", terminal }, kind: "dialog", width: 820, height: 520 });
 }
 
 // Copies the terminal's selection and opens the path in it.
@@ -199,10 +200,13 @@ export class TermFiles {
     openAt(f, this.place?.on ?? null);
   }
 
+  // Like IntelliJ's Go to File popup: a title row, a framed query, file icons,
+  // the folder dimmed and the project on the right, the selected path below.
   render(cx) {
-    const t = theme(), list = this.shown();
-    const where = (abs) => this.place?.repo && abs.startsWith(this.place.repo + "/") ? abs.slice(this.place.repo.length + 1) : tilde(abs);
-    return v_flex().id("cn-termfiles").size_full().p(10).gap(8).bg(t.popover).text_color(t.foreground).text_size(12.5)
+    const t = theme(), list = this.shown(), repo = this.place?.repo;
+    const where = (abs) => repo && abs.startsWith(repo + "/") ? abs.slice(repo.length + 1).replace(/\/?[^/]*$/, "") : tilde(abs).replace(/\/[^/]*$/, "");
+    const sel = list[this.at];
+    return v_flex().id("cn-termfiles").size_full().bg(t.popover).text_color(t.foreground).text_size(13).font_family(uiFontFamily())
       .on_key_down((e, cx) => {
         if (e.key === "down") this.at = Math.min(this.at + 1, list.length - 1);
         else if (e.key === "up") this.at = Math.max(this.at - 1, 0);
@@ -210,19 +214,30 @@ export class TermFiles {
         else return;
         cx.stop_propagation(); cx.notify();
       })
-      .child(h_flex().gap(8).items_center()
+      .child(h_flex().h(40).flex_none().px(14).gap(10).items_center()
+        .child(toolImage("terminal", 16))
         .child(div().flex_none().font_semibold().child(T("Files in this terminal")))
-        .child(div().flex_1().min_w(0).truncate().text_size(11.5).text_color(t.dim).child(this.place?.cwd ? tilde(this.place.cwd) : "")))
-      .child(Input.new(this.filter))
-      .child(div().id("cn-tf-list").flex_1().min_h(0).overflow_y_scrollbar()
-        .when(this.files === null, (e) => e.child(div().p(8).text_color(t.dim).child(T("Loading…"))))
-        .when(this.files !== null && !list.length, (e) => e.child(div().p(8).text_color(t.dim).child(this.error ?? T("No file paths in this terminal's output"))))
-        .children(list.map((f, i) => h_flex().id(`cn-tf-${i}`).h(28).px(8).gap(8).items_center().rounded(5).cursor_pointer()
-          .when(i === this.at, (e) => e.bg(t.selected)).hover((e) => e.bg(t.hover))
+        .child(div().flex_1().min_w(0).truncate().text_size(12).text_color(t.dim).child(this.place?.cwd ? tilde(this.place.cwd) : ""))
+        .child(div().flex_none().text_size(12).text_color(t.dim).child(this.files ? T("{n} files", { n: list.length }) : "")))
+      .child(h_flex().mx(10).h(36).flex_none().px(10).gap(8).items_center().rounded(6).border_2().border_color(t.accent).bg(t.background)
+        .child(toolImage("search", 15))
+        .child(div().flex_1().min_w(0).child(Input.new(this.filter)))
+        .child(div().flex_none().text_size(11.5).text_color(t.dim).child(T("Newest first"))))
+      .child(div().id("cn-tf-list").flex_1().min_h(0).mt(6).overflow_y_scrollbar()
+        .when(this.files === null, (e) => e.child(div().px(16).py(10).text_color(t.dim).child(T("Loading…"))))
+        .when(this.files !== null && !list.length, (e) => e.child(div().px(16).py(10).text_color(t.dim).child(this.error ?? T("No file paths in this terminal's output"))))
+        .children(list.map((f, i) => h_flex().id(`cn-tf-${i}`).h(30).mx(4).px(10).gap(9).items_center().rounded(4).cursor_pointer()
+          .bg(i === this.at ? t.selected : "#00000000").hover((e) => e.bg(i === this.at ? t.selected : t.hover))
           .on_click(() => this.open(f))
-          .child(div().flex_none().max_w(220).truncate().font_semibold().child(basename(f.abs)))
-          .child(div().flex_1().min_w(0).truncate().text_size(11.5).text_color(t.dim).child(where(f.abs)))
-          .when(Boolean(f.line), (e) => e.child(div().flex_none().text_size(11.5).text_color(t.accent).child(`:${f.line}`))))))
-      .child(div().text_size(11).text_color(t.dim).child(T("Newest first · Enter opens · Esc closes")));
+          .child(ideaImage(f.abs, false, 16))
+          .child(div().flex_none().max_w(320).truncate().text_size(13.5).child(basename(f.abs)))
+          .when(Boolean(f.line), (e) => e.child(div().flex_none().text_size(12.5).text_color(t.accent).child(`:${f.line}`)))
+          .child(div().flex_1().min_w(0).truncate().text_size(12.5).text_color(t.dim).child(where(f.abs)))
+          .when(Boolean(repo) && f.abs.startsWith((repo ?? "") + "/"), (e) => e
+            .child(div().flex_none().max_w(200).truncate().text_size(12.5).text_color(t.dim).child(basename(repo)))
+            .child(ideaImage(repo, true, 14))))))
+      .child(h_flex().h(30).flex_none().px(14).gap(8).items_center().border_t(1).border_color(t.border).text_size(12)
+        .child(div().flex_1().min_w(0).truncate().text_color(t.dim).child(sel ? tilde(sel.abs) + (sel.line ? `:${sel.line}` : "") : ""))
+        .child(div().flex_none().text_color(t.accent).child(T("Enter to open"))));
   }
 }

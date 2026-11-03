@@ -12,14 +12,15 @@ import { T } from "./i18n.js";
 import { find, icon, iconButton, location, openPath, editorSpec, basename, tilde, sectionHeader } from "./common.js";
 import { KIND, kindColor } from "./code.js";
 import { openEverywhere } from "./everywhere.js";
+import { ideaImage, symbolImage, toolImage } from "./ideaicons.js";
 
 export const TOOLS = {
-  project: { child: "view-files", icon: "folder", label: "Project", key: "⌘1" },
-  commit: { child: "view-review", icon: "git-commit", label: "Commit", key: "⌘0" },
-  structure: { child: "view-structure", icon: "layers", label: "Structure", key: "⌘7" },
-  find: { child: "view-search", icon: "search", label: "Find", key: "⌘⇧F" },
-  terminal: { child: "bottom-terminal", icon: "terminal", label: "Terminal", key: "⌥F12" },
-  problems: { child: "bottom-problems", icon: "alert", label: "Problems", key: "⌘6" },
+  project: { child: "view-files", icon: "folder", idea: "project", label: "Project", key: "⌘1" },
+  commit: { child: "view-review", icon: "git-commit", idea: "commit", label: "Commit", key: "⌘0" },
+  structure: { child: "view-structure", icon: "layers", idea: "structure", label: "Structure", key: "⌘7" },
+  find: { child: "view-search", icon: "search", idea: "find", label: "Find", key: "⌘⇧F" },
+  terminal: { child: "bottom-terminal", icon: "terminal", idea: "terminal", label: "Terminal", key: "⌥F12" },
+  problems: { child: "bottom-problems", icon: "alert", idea: "problems", label: "Problems", key: "⌘6" },
 };
 // The three places a tool window can be. Each stack keeps an empty child, so a
 // side whose tools all moved away still has one.
@@ -118,7 +119,7 @@ export class Stripe {
         cx.stop_propagation();
         openOverlay({ mod: "codenav", props: { view: "toolmenu", name }, kind: "popup", width: 220, height: 214 });
       }))
-      .child(icon(tool.icon, 17));
+      .child(toolImage(tool.idea, 20));
   }
   // The terminal's tab strip goes with it: a left or right side shows its header
   // only while the terminal shows there (the bottom one always shows).
@@ -173,7 +174,7 @@ export class ToolSettings {
       .child(div().font_semibold().child(T("Tool Windows")))
       .child(div().text_size(12).text_color(t.dim).child(T("Where each tool window goes by default, and which stay off the stripes. Right-click a stripe button to move one for now.")))
       .child(v_flex().gap(6).children(Object.keys(TOOLS).map((name) => h_flex().gap(8).items_center()
-        .child(icon(TOOLS[name].icon, 14).text_color(t.muted))
+        .child(toolImage(TOOLS[name].idea, 16))
         .child(div().w(110).child(T(TOOLS[name].label)))
         .child(h_flex().gap(4).children(Object.keys(SIDES).map((k) => choice(name, k))))
         .child(div().id(`ts-${name}-hidden`).ml(8).px(10).py(3).rounded(5).text_size(12).cursor_pointer()
@@ -219,6 +220,13 @@ function widget(id, t, children, action) {
     .children(children);
 }
 
+// A toolbar button drawn with an IntelliJ icon.
+function ideaButton(id, name, tip, action) {
+  const t = theme();
+  return stopPress(div().id(id).size(28).flex_none().flex().items_center().justify_center().rounded(6).cursor_pointer()
+    .hover((s) => s.bg(t.hover)).tooltip(tip).on_click(() => action())).child(toolImage(name, 16));
+}
+
 export class Toolbar {
   init() {}
   render() {
@@ -232,9 +240,9 @@ export class Toolbar {
         div().text_color(t.foreground).max_w(220).truncate().child(space.branch), icon("chevron-down", 12).text_color(t.muted)],
         () => openOverlay({ mod: "codenav", props: { view: "branches" }, kind: "popup", width: 320, height: 420 }))))
       .child(div().flex_1())
-      .child(iconButton("tb-everywhere", "search", T("Search Everywhere (Double Shift)"), () => openEverywhere("all"), { size: 28, icon: 16 }))
-      .child(iconButton("tb-tools", "panel-bottom", T("Tool Window Settings…"), () => openToolSettings(), { size: 28, icon: 16 }))
-      .child(iconButton("tb-settings", "settings", T("Settings"), () => run("app.settings"), { size: 28, icon: 16 }));
+      .child(ideaButton("tb-everywhere", "search", T("Search Everywhere (Double Shift)"), () => openEverywhere("all")))
+      .child(ideaButton("tb-tools", "layout", T("Tool Window Settings…"), () => openToolSettings()))
+      .child(ideaButton("tb-settings", "settings", T("Settings"), () => run("app.settings")));
   }
 }
 
@@ -283,7 +291,7 @@ export class Structure {
           .children(items.slice(0, 1500).map((s, i) => h_flex().id(`tw-s-${i}`).h(22).pl(10 + s.depth * 14).pr(8).gap(6).items_center().text_size(12.5).cursor_pointer()
             .when(current === s, (e) => e.bg(t.selected)).hover((e) => e.bg(t.hover))
             .on_click(() => jump(syms.path, s.line, s.col))
-            .child(div().w(14).flex_none().text_center().text_size(11).font_bold().text_color(kindColor(s.kind, t)).child(KIND[s.kind] ?? "·"))
+            .child(symbolImage(s.kind, syms.path, 15))
             .child(div().flex_none().max_w(200).truncate().child(s.name))
             .child(div().flex_1().min_w(0).truncate().text_size(11).text_color(t.dim).child(s.detail ?? "")))));
   }

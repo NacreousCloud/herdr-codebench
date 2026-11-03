@@ -14,17 +14,12 @@ import { theme, props, closeOverlay, openOverlay, exec, run, commands, keys, sha
 import { T } from "./i18n.js";
 import { icon, location, openPath, editorSpec, editorKey, basename, tilde, uiFontFamily } from "./common.js";
 import { lsp } from "./lsp.js";
+import { ideaImage, symbolImage, toolImage } from "./ideaicons.js";
 
 const TABS = ["all", "classes", "files", "symbols", "actions", "text"];
 const LABEL = { all: "All", classes: "Classes", files: "Files", symbols: "Symbols", actions: "Actions", text: "Text", recent: "Recent Files", structure: "File Structure", line: "Go to Line" };
 const SIZE = { line: [420, 110] };
-// File icons by kind, IntelliJ-ish colors.
-const EXT_COLOR = { kt: "#7f6df2", kts: "#7f6df2", java: "#e76f00", ts: "#3178c6", tsx: "#3178c6", js: "#e0bb65", jsx: "#e0bb65", mjs: "#e0bb65",
-  json: "#e0bb65", yml: "#6aab73", yaml: "#6aab73", toml: "#6aab73", xml: "#e76f00", md: "#548af7", http: "#548af7", py: "#3572a5", go: "#2aacb8",
-  rs: "#dea584", swift: "#f05138", sql: "#c77dbb", sh: "#6aab73", gradle: "#5fb865", properties: "#9da0a8" };
-const KIND_BADGE = { class: ["C", "#548af7"], interface: ["I", "#5fb865"], enum: ["E", "#e0bb65"], struct: ["S", "#548af7"], object: ["O", "#548af7"],
-  function: ["f", "#c77dbb"], method: ["m", "#c77dbb"], constructor: ["c", "#c77dbb"], property: ["p", "#e0bb65"], field: ["f", "#e0bb65"],
-  variable: ["v", "#9da0a8"], constant: ["K", "#c77dbb"], module: ["M", "#2aacb8"], namespace: ["N", "#2aacb8"], package: ["P", "#2aacb8"] };
+
 const CLASSY = new Set(["class", "interface", "enum", "struct", "object"]);
 const CODE = /\.(kt|kts|java|ts|tsx|js|jsx|mjs|py|rs|go|swift)$/;
 
@@ -213,15 +208,10 @@ export class Everywhere {
     const t = theme(), list = this.list, tabbed = TABS.includes(this.mode);
     const project = this.root ? basename(this.root) : "";
     const badge = (r) => {
-      if (r.kind === "file" || r.kind === "text") {
-        const e = (basename(r.path).split(".").pop() ?? "").toLowerCase();
-        return icon(r.kind === "text" ? "search" : "file-text", 15).text_color(EXT_COLOR[e] ?? t.muted);
-      }
-      if (r.kind === "action") return icon("settings", 14).text_color(t.muted);
+      if (r.kind === "file" || r.kind === "text") return ideaImage(r.path, false, 16);
+      if (r.kind === "action") return toolImage("settings", 15);
       if (r.kind === "line") return icon("arrow-down", 14).text_color(t.muted);
-      const [ch, color] = KIND_BADGE[r.symKind] ?? ["•", t.muted];
-      return div().size(16).flex_none().rounded_full().border_1().border_color(color).flex().items_center().justify_center()
-        .text_size(9.5).font_bold().text_color(color).child(ch);
+      return symbolImage(r.symKind, r.path, 16);
     };
     const row = (r, i) => {
       if (r.kind === "head") return div().px(14).pt(8).pb(3).text_size(11.5).text_color(t.dim).child(r.title);

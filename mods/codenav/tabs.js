@@ -11,6 +11,7 @@ import { T } from "./i18n.js";
 import { h_flex, v_flex } from "gpui-base";
 import { theme, shared, setShared, layout, run, spaces, openOverlay, closeOverlay, props } from "herdr";
 import { icon, iconButton, find, STACK, AREA, editorSpec, editorKey, setEditorSpec, wantedChild, showReview, basename, location } from "./common.js";
+import { ideaImage } from "./ideaicons.js";
 
 const KEY = "codenav.tabs";
 const MAX = 20;
@@ -153,7 +154,8 @@ export default class Tabs {
           cx.stop_propagation();
           openOverlay({ mod: "codenav", props: { view: "tabmenu", id: x.id }, kind: "popup", width: 210, height: 112 });
         })
-        .child(icon(x.type === "file" ? "file-text" : "git-branch", 13).text_color(x.type === "review" ? t.accent : on ? t.foreground : t.muted))
+        .child(x.type === "file" && shared("layout") === "idea" ? ideaImage(x.spec.path, false, 14)
+          : icon(x.type === "file" ? "file-text" : "git-branch", 13).text_color(x.type === "review" ? t.accent : on ? t.foreground : t.muted))
         .child(div().max_w(180).truncate().child(name))
         .when(count > 0, (e) => e.child(div().px(5).h(15).flex().items_center().rounded(8).bg(t.accent).text_color(t.accent_foreground).text_size(10).font_bold().child(String(count))))
         .child(iconButton(`cn-tab-x-${i}`, "x", T("Close (Cmd+W)"), () => closeTab(x.id), { size: 16, icon: 11 }));
