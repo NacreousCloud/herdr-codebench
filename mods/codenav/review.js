@@ -46,6 +46,10 @@ git ${G} diff --no-color --no-ext-diff --no-renames --name-status $mb \${3:+"$3"
 git ${G} diff --no-color --no-ext-diff --no-renames --numstat $mb \${3:+"$3"}; printf "$s"
 [ -n "$3" ] || git ${G} ls-files --others --exclude-standard; true`;
 
+// Rendering thousands of file rows at once gets the script interrupted (a stale
+// base branch can make a diff of thousands of files): show only the first ones.
+const MAX_FILE_ROWS = 300;
+
 const LANG = { ts: "ts", tsx: "tsx", js: "js", jsx: "jsx", mjs: "js", py: "python", rs: "rust", go: "go", kt: "kotlin", kts: "kotlin", java: "java", swift: "swift", md: "md", json: "json", yml: "yaml", yaml: "yaml", sh: "sh" };
 
 function diffRows(lines) {
@@ -550,7 +554,7 @@ export default class Review {
           : `${T("{n} files · +{add} −{del}", { n: this.files.length, add: adds, del: dels })}${this.mergeBase ? T(" · base {sha}", { sha: this.mergeBase.slice(0, 7) }) : ""}`)))
       .when(side && Boolean(this.error), (e) => e.child(div().px(12).pb(8).text_size(uiSize(12)).text_color(t.dim).child(this.error)))
       .child(div().id("rv-files").flex_1().min_h(0).overflow_y_scrollbar()
-        .children(this.files.map((f, i) => {
+        .children(this.files.slice(0, MAX_FILE_ROWS).map((f, i) => {
           const dir = f.path.includes("/") ? f.path.slice(0, f.path.lastIndexOf("/")) : "";
           return h_flex().id(`rv-f-${i}`).h(isIdea() ? IDEA.rowHeight : 24).mx(isIdea() ? 4 : 0).rounded(isIdea() ? IDEA.selectionRadius : 0).px(isIdea() ? 8 : 12).gap(6).items_center().text_size(uiSize(12)).cursor_pointer()
             .when(f.path === this.selected, (e) => e.bg(t.selected)).hover((e) => e.bg(t.hover))
@@ -561,7 +565,9 @@ export default class Review {
             .when(count.has(f.path), (e) => e.child(h_flex().gap(2).items_center().text_size(uiSize(11)).text_color(t.accent).child(icon("message", 11)).child(String(count.get(f.path)))))
             .child(div().flex_none().text_size(uiSize(11)).text_color(t.ansi2).child(f.add === null ? "" : `+${f.add}`))
             .child(div().flex_none().text_size(uiSize(11)).text_color(t.ansi1).child(f.del ? `−${f.del}` : ""));
-        })))
+        }))
+        .when(this.files.length > MAX_FILE_ROWS, (e) => e.child(div().px(12).py(6).text_size(uiSize(11.5)).text_color(t.dim)
+          .child(T("+{n} more files (check the base branch)", { n: this.files.length - MAX_FILE_ROWS })))))
       .child(v_flex().flex_none().max_h(260).border_t(1).border_color(t.border)
         .child(sectionHeader(T("Comments ({n})", { n: comments.length }), comments.length ? [iconButton("rv-clear", "trash", T("Delete all comments"), (_e, cx) => { this.save({ comments: [] }); this.comment.close(); cx.notify(); })] : []))
         .child(div().id("rv-comments").flex_1().min_h(0).overflow_y_scrollbar()

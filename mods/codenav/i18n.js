@@ -132,6 +132,7 @@ const KO = {
   "Committed changes on {head} · ": "{head}의 커밋된 변경 · ",
   "back to current checkout": "현재 체크아웃으로",
   "{n} files · +{add} −{del}": "파일 {n}개 · +{add} −{del}",
+  "+{n} more files (check the base branch)": "외 파일 {n}개 (base 브랜치를 확인하세요)",
   " · base {sha}": " · 기준 {sha}",
   "Comments ({n})": "코멘트 ({n})",
   "Delete all comments": "코멘트 모두 삭제",
