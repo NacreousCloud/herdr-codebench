@@ -313,5 +313,6 @@
       ]
     }
   ],
-  "preview": "layouts/codebench.svg"
+  "preview": "layouts/codebench.svg",
+  "terminal_menu": "codenav"
 }

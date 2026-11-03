@@ -75,13 +75,13 @@ export function showEditor() {
   run("layout.select", { stack: STACK, child: wantedChild() });
 }
 
-// Opens a local file in the editor area: "<absolute path>[:line[:col]]".
-export function openPath(arg) {
+// Opens a file in the editor area: "<absolute path>[:line[:col]]", here or on machine `on`.
+export function openPath(arg, on = null) {
   const m = /^(.*?)(?::(\d+))?(?::(\d+))?$/.exec(arg.trim());
   if (!m?.[1]) return;
   const path = m[1], root = path.replace(/\/[^/]*$/, "");
   showEditor();
-  setEditorSpec(editorKey(), { kind: "file", path, root, rel: basename(path), on: null, line: m[2] ? +m[2] : undefined, col: m[3] ? +m[3] - 1 : undefined });
+  setEditorSpec(editorKey(), { kind: "file", path, root, rel: basename(path), on, line: m[2] ? +m[2] : undefined, col: m[3] ? +m[3] - 1 : undefined });
   if (find(layout(), AREA)?.hidden) run("layout.show", { id: AREA });
 }
 

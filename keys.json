@@ -16,6 +16,7 @@
     "ctrl-`": "layout.toggle:terminal-panel",
     "ctrl-alt-e": "layout.toggle:editor-area",
     "ctrl-alt-r": "codenav.review",
+    "cmd-shift-o": "codenav.terminal-files",
     "ctrl-alt-5": "activity.view-review"
   }
 }

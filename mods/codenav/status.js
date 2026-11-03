@@ -1,10 +1,12 @@
 // A status-bar item: language servers the bridge is running, and the language.
-// Always on screen, so it also takes the mod's commands: `review`, `lang[:ko|en]`
-// and `open:<absolute path>[:line]` (herdr-app do codenav.open:/repo/src/a.go:42).
+// Always on screen, so it also takes the mod's commands: `review`, `lang[:ko|en]`,
+// `terminal-files` (the focused terminal's paths) and
+// `open:<absolute path>[:line]` (herdr-app do codenav.open:/repo/src/a.go:42).
 import { div } from "gpui-kit";
 import { T, lang, setLang } from "./i18n.js";
 import { h_flex } from "gpui-base";
-import { theme, nextCommand } from "herdr";
+import { theme, nextCommand, focused } from "herdr";
+import { showTerminalFiles } from "./termfiles.js";
 import { showReview, openPath } from "./common.js";
 import { followSpace } from "./memory.js";
 import { peek } from "./lsp.js";
@@ -17,6 +19,7 @@ export default class Status {
         const c = await nextCommand();
         if (c === "review") showReview();
         else if (c.startsWith("open:")) openPath(c.slice(5));
+        else if (c === "terminal-files") showTerminalFiles(focused()?.terminal);
         else if (c === "lang") setLang(lang() === "ko" ? "en" : "ko");
         else if (c.startsWith("lang:")) setLang(c.slice(5));
         cx.notify();
