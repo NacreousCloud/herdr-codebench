@@ -5,8 +5,8 @@
 import { div } from "gpui-kit";
 import { T } from "./i18n.js";
 import { v_flex, h_flex, Editor, EditorState, Scrollbar, v_virtual_list, TextView, h_resizable, resizable_panel } from "gpui-base";
-import { exec, readTextFile, writeTextFile, watchFolder, theme, settings, shared, setShared, props, run, panes, nextCommand, home } from "herdr";
-import { iconButton, icon, READ, AREA, editorKey, setEditorSpec } from "./common.js";
+import { exec, readTextFile, writeTextFile, watchFolder, theme, settings, shared, setShared, props, run, panes, nextCommand, home, layout } from "herdr";
+import { iconButton, icon, READ, AREA, editorKey, setEditorSpec, find } from "./common.js";
 import { Viewer, viewerKind, human } from "./viewer.js";
 import { writeRemoteText, stat } from "./io.js";
 import { fileImage } from "./ficons/index.js";
@@ -215,6 +215,13 @@ export default class EditorPane {
     if (this.slot) {
       if (this.dirty && !this.closeArmed) { this.closeArmed = true; this.note = "Unsaved changes: save (Ctrl+S), or close again to discard them."; return; }
       this.closeArmed = false; this.dirty = false;
+      // With codenav's tab strip: an edit goes back to its code view, a viewer closes its tab.
+      if (find(layout(), "editor-tabs")) {
+        const { edit, ...rest } = this.shown ?? {};
+        if (edit) setEditorSpec(this.slotKey(), rest);
+        else run("codenav.close-tab");
+        return;
+      }
       setEditorSpec(this.slotKey(), null);
       run("layout.hide", { id: AREA });
       return;
