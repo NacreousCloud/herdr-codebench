@@ -2,7 +2,8 @@
 // "activity.editor"), the editor area's stack, theme colors and small widgets.
 import { div, svg } from "gpui-kit";
 import { h_flex } from "gpui-base";
-import { spaces, panes, focused, run, shared, setShared, layout, theme, home } from "herdr";
+import { T } from "./i18n.js";
+import { spaces, panes, focused, run, shared, setShared, layout, theme, home, exec, writeTextFile, appHome } from "herdr";
 
 const MOD = "codenav";
 export const icon = (name, size = 16) => svg(`mods/${MOD}/icons/${name}.svg`).size(size).flex_none();
@@ -115,6 +116,16 @@ export function syntaxColors(t) {
 export const measureFont = (self, font, size) => div().absolute().top(-100).left(0).font_family(font).text_size(size).whitespace_nowrap()
   .on_size_change((s, cx) => { const cw = s.width / 100; if (cw > 1 && Math.abs(cw - (self.cw ?? 0)) > 0.01) { self.cw = cw; cx.notify(); } })
   .child("0".repeat(100));
+
+// Puts text on the system clipboard (through a file: exec takes no input).
+export async function copyText(text) {
+  const dir = `${appHome()}/mods/codenav/.cache`;
+  await exec("mkdir", ["-p", dir]);
+  const file = `${dir}/copy-${Date.now()}.txt`;
+  await writeTextFile(file, text, null);
+  const r = await exec("sh", ["-c", 'if command -v pbcopy >/dev/null; then pbcopy < "$1"; elif command -v wl-copy >/dev/null; then wl-copy < "$1"; else xclip -selection clipboard < "$1"; fi; c=$?; rm -f "$1"; exit $c', "sh", file]);
+  if (r.code !== 0) throw new Error(r.stderr.trim() || T("Could not copy to the clipboard"));
+}
 
 // A small square icon button.
 export function iconButton(id, name, tip, action, opts = {}) {

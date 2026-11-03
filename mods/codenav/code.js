@@ -5,16 +5,17 @@
 // and forward. "Edit" hands the file to the activity editor. Clicking a line
 // number starts a comment (Shift+click for a range); comments join the
 // repository's review comments (comments.js) and show inline. The gutter marks
-// lines added, changed and removed since HEAD.
+// lines added, changed and removed since HEAD. Cmd+C copies the selected name,
+// the lines picked with Shift+click, or the current line.
 import { div } from "gpui-kit";
 import { T } from "./i18n.js";
 import { v_flex, h_flex, v_virtual_list, VirtualListScrollHandle, Scrollbar, TextView, InputState, Input } from "gpui-base";
-import { readTextFile, watchFolder, theme, settings, run, exec, nextCommand } from "herdr";
+import { readTextFile, watchFolder, theme, settings, run, exec, nextCommand, notify } from "herdr";
 import { lsp } from "./lsp.js";
 import { CommentBox, commentCard, commentHeight, commentsOf, repoKey } from "./comments.js";
 import {
   iconButton, button, editorKey, editorSpec, setEditorSpec, CHILD, STACK, hasArea, measureFont,
-  syntaxColors, expandTabs, displayWidth, offsetAt, wordAt, tilde, sectionHeader,
+  syntaxColors, expandTabs, displayWidth, offsetAt, wordAt, tilde, sectionHeader, copyText,
 } from "./common.js";
 
 const ROW = 20;
@@ -237,10 +238,27 @@ export default class CodeView {
       else { this.commentAnchor = line; this.commentLines(line, line, cx); }
       return;
     }
+    if (press.mods.shift && this.sel) {
+      this.range = { from: this.range?.from ?? this.sel.line, to: line };
+      cx.notify();
+      return;
+    }
+    this.range = null;
     this.pick(line, press.x, cx);
     if (press.mods.platform || press.mods.control) this.definition(cx);
     else this.hoverAt(cx);
     cx.notify();
+  }
+
+  // What Cmd+C takes: the picked lines, else the selected name, else the current line.
+  copy() {
+    const r = this.range, sel = this.sel;
+    if (!r && !sel) return;
+    const text = r ? this.lines.slice(Math.min(r.from, r.to), Math.max(r.from, r.to) + 1).join("\n")
+      : sel.word?.trim() ? sel.word : this.lines[sel.line] ?? "";
+    const what = r ? T("{n} lines", { n: Math.abs(r.to - r.from) + 1 }) : sel.word?.trim() ? sel.word : T("the line");
+    copyText(text).then(() => notify({ title: T("Copied {what}", { what }), level: "success", timeout: 1500 }))
+      .catch((e) => notify({ title: String(e.message ?? e), level: "error", timeout: 3000 }));
   }
 
   posArgs() { return { path: this.shown.path, line: this.sel.line, col: this.sel.col }; }
@@ -326,9 +344,10 @@ export default class CodeView {
     else if (k === "cmd-f12") this.definition(cx, "implementation");
     else if (k === "cmd-f" || k === "ctrl-f") { this.finding = true; this.find.focus(); }
     else if (k === "cmd-shift-o") this.outline = !this.outline;
+    else if (k === "cmd-c" || k === "ctrl-c") this.copy();
     else if (k === "ctrl--" || k === "alt-left") this.goBack(cx);
     else if (k === "ctrl-shift--" || k === "ctrl-_" || k === "alt-right") this.goForward(cx);
-    else if (k === "escape") { this.refs = null; this.hover = null; this.finding = false; this.focus.focus(); }
+    else if (k === "escape") { this.refs = null; this.hover = null; this.range = null; this.finding = false; this.focus.focus(); }
     else if (k === "up" || k === "down") {
       const line = Math.min(Math.max((this.sel?.line ?? 0) + (k === "up" ? -1 : 1), 0), this.lines.length - 1);
       this.sel = { line, col: 0, start: 0, end: 0, word: null };
@@ -403,8 +422,10 @@ export default class CodeView {
     const worst = diags.length ? Math.min(...diags.map((d) => d.severity ?? 1)) : 0;
     const current = this.sel?.line === i;
     const c = this.comment.draft, picked = c && c.path === this.rel() && i + 1 >= c.start && i + 1 <= c.end;
+    const r = this.range, inRange = r && i >= Math.min(r.from, r.to) && i <= Math.max(r.from, r.to);
     return h_flex().h(ROW).w_full().flex_none().whitespace_nowrap()
       .when(current, (e) => e.bg(t.hover))
+      .when(Boolean(inRange), (e) => e.bg(t.selection + "88"))
       .when(this.flash === i && !current, (e) => e.bg(t.accent + "22"))
       .when(Boolean(picked), (e) => e.bg(t.accent + "33"))
       .child(h_flex().w(this.gutter()).h_full().flex_none().items_center().pr(12).cursor_pointer()
@@ -454,7 +475,6 @@ export default class CodeView {
     const diags = sel ? this.diags.filter((d) => d.line <= sel.line && sel.line <= d.end_line) : [];
     const md = this.hover?.markdown;
     const can = this.lspReady() && sel?.word;
-    if (!md && !diags.length && !this.note && !can && !this.hover?.error && !(sel && this.rel())) return null;
     return v_flex().flex_none().max_h(220).border_t(1).border_color(t.border).bg(t.chrome)
       .child(h_flex().h(30).flex_none().px(10).gap(6).items_center()
         .child(div().flex_1().min_w(0).truncate().text_size(12).text_color(t.muted)
@@ -465,8 +485,9 @@ export default class CodeView {
           button("cn-a-impl", T("Implementations"), (_e, cx) => this.definition(cx, "implementation"), { tip: "Cmd+F12" }),
           button("cn-a-refs", T("References"), (_e, cx) => this.references(cx), { tip: "Shift+F12" }),
         ]))
+        .when(Boolean(sel), (e) => e.child(button("cn-a-copy", T("Copy"), () => this.copy(), { tip: "Cmd+C" })))
         .when(Boolean(sel) && Boolean(this.rel()), (e) => e.child(button("cn-a-comment", T("Comment"), (_e, cx) => this.commentLines(sel.line, sel.line, cx), { tip: T("Comment on this line (or click its line number)") })))
-        .child(iconButton("cn-info-x", "x", T("Close (Esc)"), (_e, cx) => { this.sel = null; this.hover = null; this.note = null; cx.notify(); })))
+        .child(iconButton("cn-info-x", "x", T("Close (Esc)"), (_e, cx) => { this.sel = null; this.range = null; this.hover = null; this.note = null; cx.notify(); })))
       .when(diags.length > 0 || Boolean(md) || Boolean(this.hover?.error), (e) => e.child(div().id("cn-info").flex_1().min_h(0).overflow_y_scrollbar().px(12).pb(10)
         .children(diags.map((d, i) => h_flex().gap(6).items_start().py(2).text_size(12)
           .child(div().flex_none().text_color(d.severity === 1 ? t.ansi1 : t.ansi3).child(d.severity === 1 ? "✕" : "⚠"))

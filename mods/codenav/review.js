@@ -8,10 +8,10 @@ import { T } from "./i18n.js";
 import { v_flex, h_flex, v_virtual_list, VirtualListScrollHandle, Scrollbar, InputState, Input, TextView } from "gpui-base";
 import { lsp } from "./lsp.js";
 import { CommentBox, commentCard, commentHeight, commentsOf, repoKey, repoStore, saveRepo } from "./comments.js";
-import { exec, hc, readTextFile, writeTextFile, appHome, theme, settings, shared, setShared, run, notify, watchFolder, spaces } from "herdr";
+import { exec, hc, readTextFile, theme, settings, shared, setShared, run, notify, watchFolder, spaces } from "herdr";
 import {
   icon, iconButton, button, sectionHeader, location, targets, setEditorSpec, editorKey, showEditor, showReview,
-  expandTabs, basename, ext, colorize, syntaxColors, offsetAt, wordAt, openPath, measureFont,
+  expandTabs, basename, ext, colorize, syntaxColors, offsetAt, wordAt, openPath, measureFont, copyText,
 } from "./common.js";
 
 const SEP = "\n@@CODENAV@@\n";
@@ -445,7 +445,7 @@ export default class Review {
           const r = await hc(["send", to.terminal, text]);
           if (r.code !== 0) throw new Error(r.stderr.trim() || "hc send failed");
         } else {
-          await this.copy(text);
+          await copyText(text);
           if (how === "paste") { run("pane.focus", { pane: to.pane }); run("terminal.paste"); }
         }
         this.note = null;
@@ -454,15 +454,6 @@ export default class Review {
       } catch (e) { this.note = String(e.message ?? e); }
       cx.notify();
     });
-  }
-
-  async copy(text) {
-    const dir = `${appHome()}/mods/codenav/.cache`;
-    await exec("mkdir", ["-p", dir]);
-    const file = `${dir}/review-${Date.now()}.txt`;
-    await writeTextFile(file, text, null);
-    const r = await exec("sh", ["-c", 'if command -v pbcopy >/dev/null; then pbcopy < "$1"; elif command -v wl-copy >/dev/null; then wl-copy < "$1"; else xclip -selection clipboard < "$1"; fi; c=$?; rm -f "$1"; exit $c', "sh", file]);
-    if (r.code !== 0) throw new Error(r.stderr.trim() || T("Could not copy to the clipboard"));
   }
 
   openFile(path, line) {
