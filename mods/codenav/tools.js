@@ -286,7 +286,9 @@ export class ToolHeader {
     return h_flex().size_full().min_w(0).pl(6).pr(6).gap(2).items_center().bg(t.chrome).border_b(1).border_color(t.border)
       .child(h_flex().id(`th-tabs-${this.side}`).flex_1().min_w(0).h_full().gap(2).items_center().overflow_x_scrollbar()
         .when(active === "terminal", (e) => e.children(tabs.map((c) => this.tab(c, t)))
-          .child(iconButton(`th-new-${this.side}`, "plus", T("New Terminal or Agent"), () => openOverlay({ mod: "new-menu", kind: "popup", width: 250, height: 512 })))))
+          .child(iconButton(`th-new-${this.side}`, "plus", T("New Terminal or Agent"), () => openOverlay({ mod: "new-menu", kind: "popup", width: 250, height: 512 }))))
+        .when(active === "problems", (e) => e.child(problemsSummary(t)))
+        .when(active === "notifications", (e) => e.child(notificationsSummary(t))))
       .child(iconButton(`th-hide-${this.side}`, "minus", T("Hide (Shift+Esc)"), () => run("layout.hide", { id: side.column })));
   }
 }
@@ -319,11 +321,7 @@ export class Problems {
   init() {}
   render() {
     const t = theme(), p = forShown("codenav.problems"), items = p?.items ?? [];
-    const errors = items.filter((d) => d.severity === 1).length;
-    return v_flex().size_full().bg(t.background).text_color(t.foreground)
-      .child(h_flex().h(28).flex_none().px(12).gap(8).items_center().text_size(12).text_color(t.muted)
-        .child(div().child(p ? `${basename(p.path)}` : T("Current file")))
-        .child(div().text_color(errors ? t.ansi1 : t.dim).child(T("{e} errors, {w} warnings", { e: errors, w: items.length - errors }))))
+    return v_flex().size_full().pt(4).bg(t.background).text_color(t.foreground)
       .child(!items.length ? div().px(12).text_size(12).text_color(t.dim).child(p ? T("No problems in this file.") : T("Open a file to see its problems."))
         : div().id("tw-problems").flex_1().min_h(0).overflow_y_scrollbar().pb(8)
           .children(items.map((d, i) => h_flex().id(`tw-p-${i}`).min_h(24).px(12).gap(8).items_center().text_size(12.5).cursor_pointer()
@@ -341,20 +339,35 @@ export class Notifications {
   init() {}
   render() {
     const t = theme(), list = shared("codenav.notifications") ?? [];
-    return v_flex().size_full().bg(t.background).text_color(t.foreground)
-      .child(h_flex().h(28).flex_none().px(12).gap(8).items_center().text_size(12).text_color(t.muted)
-        .child(div().flex_1().child(T("{n} notifications", { n: list.length })))
-        .when(list.length > 0, (e) => e.child(div().id("nt-clear").px(6).py(2).rounded(4).cursor_pointer().hover((s) => s.bg(t.hover)).text_color(t.accent)
-          .on_click(() => setShared("codenav.notifications", [])).child(T("Clear all")))))
+    return v_flex().size_full().pt(4).bg(t.background).text_color(t.foreground)
       .child(!list.length ? div().px(12).text_size(12).text_color(t.dim).child(T("No notifications yet. Agents that finish or wait for you show here."))
         : div().id("tw-notifications").flex_1().min_h(0).overflow_y_scrollbar().pb(8)
           .children(list.map((n, i) => h_flex().id(`nt-${i}`).px(12).py(6).gap(10).items_start().cursor_pointer().hover((e) => e.bg(t.hover))
-            .on_click(() => { if (n.space) run("space.select", { id: n.space }); if (n.terminal) run("agent.focus", { terminal: n.terminal }); })
+            .on_click(() => {
+              setShared("codenav.notifications", (shared("codenav.notifications") ?? []).filter((x) => !(x.at === n.at && x.terminal === n.terminal)));
+              if (n.space) run("space.select", { id: n.space });
+              if (n.terminal) run("agent.focus", { terminal: n.terminal });
+            })
             .child(div().mt(4).size(8).flex_none().rounded_full().bg(n.level === "blocked" ? t.blocked : t.done ?? t.ansi2))
             .child(v_flex().flex_1().min_w(0).gap(2)
               .child(div().truncate().text_size(13).child(n.title))
               .child(div().truncate().text_size(11.5).text_color(t.dim).child(`${n.where} · ${ago(n.at)}`))))));
   }
+}
+
+// The header lines of Problems and Notifications.
+function problemsSummary(t) {
+  const p = forShown("codenav.problems"), items = p?.items ?? [], errors = items.filter((d) => d.severity === 1).length;
+  return h_flex().px(4).gap(8).items_center().text_size(12).text_color(t.muted)
+    .child(div().flex_none().child(p ? basename(p.path) : T("Current file")))
+    .child(div().flex_none().text_color(errors ? t.ansi1 : t.dim).child(T("{e} errors, {w} warnings", { e: errors, w: items.length - errors })));
+}
+function notificationsSummary(t) {
+  const list = shared("codenav.notifications") ?? [];
+  return h_flex().px(4).gap(10).items_center().text_size(12).text_color(t.muted)
+    .child(div().flex_none().child(T("{n} notifications", { n: list.length })))
+    .when(list.length > 0, (e) => e.child(stopPress(div().id("nt-clear").px(6).py(2).rounded(4).cursor_pointer().hover((s) => s.bg(t.hover)).text_color(t.accent)
+      .on_click(() => setShared("codenav.notifications", []))).child(T("Clear all"))));
 }
 
 // -- the status bar's path: folders › file › symbols, then Ln:Col ----------------------------
