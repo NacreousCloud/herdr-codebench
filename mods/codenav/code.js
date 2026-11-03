@@ -397,6 +397,7 @@ export default class CodeView {
     else if (c === "prev-error") this.nextProblem(-1);
     else if (c === "file-structure") openEverywhere("structure");
     else if (c === "goto-line") openEverywhere("line");
+    else if (c === "rich-view" && this.isMarkdown()) this.toggleRich();
   }
 
   // F2 / Shift+F2: the next problem after the caret, round the file.
@@ -430,6 +431,15 @@ export default class CodeView {
     }
   }
 
+  // Markdown: the rendered page (rich view) or the source with comments, per file.
+  isMarkdown() { return /\.(md|markdown|mdx)$/i.test(this.shown?.path ?? ""); }
+  richView() { return this.isMarkdown() && Boolean(this.rich?.has(this.shown.path)); }
+  toggleRich() {
+    this.rich ??= new Set();
+    const p = this.shown?.path;
+    if (p) this.rich.has(p) ? this.rich.delete(p) : this.rich.add(p);
+  }
+
   keyDown(e, cx) {
     const k = e.keystroke;
     if (this.comment.typing || this.finding && k !== "escape") {
@@ -451,6 +461,7 @@ export default class CodeView {
     else if (k === "cmd-f" || k === "ctrl-f") { this.finding = true; this.find.focus(); }
     else if (k === "cmd-shift-o") this.outline = !this.outline;
     else if (k === "cmd-c" || k === "ctrl-c") this.copy();
+    else if (k === "ctrl-shift-v" && this.isMarkdown()) this.toggleRich();
     else if (k === "ctrl--") tabBack();
     else if (k === "ctrl-shift--" || k === "ctrl-_") tabForward();
     else if (k === "alt-left") this.goBack(cx);
@@ -576,6 +587,7 @@ export default class CodeView {
           .on_click((_e, cx) => { this.reveal(sym.line + 1, sym.col); cx.notify(); }).child(`${KIND[sym.kind] ?? ""} ${sym.name}`)])))
       .when(errors + warnings > 0, (e) => e.child(chip(`${errors ? `✕ ${errors}` : ""}${errors && warnings ? "  " : ""}${warnings ? `⚠ ${warnings}` : ""}`, errors ? t.ansi1 : t.ansi3, T("Problems in this file"))))
       .when(Boolean(lspChip), (e) => e.child(lspChip))
+      .when(this.isMarkdown(), (e) => e.child(iconButton("cn-md", "eye", T("Rich view (Ctrl+Shift+V)"), (_e, cx) => { this.toggleRich(); cx.notify(); }, { color: this.richView() ? t.accent : undefined })))
       .child(iconButton("cn-find", "search", T("Find (Cmd+F)"), (_e, cx) => { this.finding = !this.finding; if (this.finding) this.find.focus(); else this.focus.focus(); cx.notify(); }, { color: this.finding ? t.accent : undefined }))
       .child(iconButton("cn-outline", "layers", T("Outline (Cmd+Shift+O)"), (_e, cx) => { this.outline = !this.outline; cx.notify(); }, { color: this.outline ? t.accent : undefined }))
       .child(iconButton("cn-edit", "pencil", T("Edit this file"), () => this.edit()));
@@ -688,9 +700,11 @@ export default class CodeView {
     this.commented = new Set(this.fileComments().flatMap((c) => Array.from({ length: c.end - c.start + 1 }, (_, k) => c.start + k)));
     if (s && !this.error && !(this.loading && !this.lines.length)) body = h_flex().flex_1().min_h(0)
       .child(v_flex().flex_1().min_w(0).h_full()
-        .child(div().flex_1().min_h(0).flex().font_family(font).text_size(codeFont().size).bg(t.background)
+        .when(this.richView(), (e) => e.child(div().id("cn-rich").flex_1().min_h(0).overflow_y_scrollbar().bg(t.background).px(32).py(20)
+          .child(div().max_w(900).child(TextView.markdown("cn-rich-md", this.text ?? "").selectable().text_size(14)))))
+        .when(!this.richView(), (e) => e.child(div().flex_1().min_h(0).flex().font_family(font).text_size(codeFont().size).bg(t.background)
           .child(this.scroll.view("cn-view", t, this.gutter() + PAD + this.width * this.cw + 40, (k) => this.item(items[k], t, colors),
-            () => { this.dragging = null; this.gutterDrag = null; })))
+            () => { this.dragging = null; this.gutterDrag = null; }))))
         .child(this.comment.panel(t, this.rkey(), (cx) => cx.notify(), T("Comments go to the Review list, sent to the agent together")) ?? this.refsPanel(t) ?? this.infoBar(t) ?? div()))
       .child(this.outlinePanel(t) ?? div());
     return v_flex().id("codenav-code").size_full().min_h(0).relative().bg(t.background).text_color(t.foreground).text_size(13)
