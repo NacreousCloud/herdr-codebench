@@ -6,7 +6,7 @@
 import { div } from "gpui-kit";
 import { T, lang, setLang } from "./i18n.js";
 import { v_flex, h_flex, v_virtual_list, VirtualListScrollHandle, Scrollbar, InputState, Input, TextareaState, Textarea } from "gpui-base";
-import { exec, hc, readTextFile, writeTextFile, appHome, theme, settings, shared, setShared, run, notify, nextCommand, watchFolder } from "herdr";
+import { exec, hc, readTextFile, writeTextFile, appHome, theme, settings, shared, setShared, run, notify, nextCommand, watchFolder, spaces } from "herdr";
 import {
   icon, iconButton, button, sectionHeader, location, targets, setEditorSpec, editorKey, showEditor, showReview,
   expandTabs, basename, ext,
@@ -107,7 +107,12 @@ export default class Review {
     const { cwd, on } = location();
     const context = `${on ?? ""}:${cwd}`;
     if (!cwd || this.loading) return;
-    if (context !== this.context) { this.context = context; this.root = null; this.files = []; this.rows = []; this.selected = null; this.composer = null; quiet = false; }
+    // Another folder: nothing of the last repository may show here.
+    if (context !== this.context) {
+      Object.assign(this, { context, root: null, branch: null, base: null, head: null, refs: [], branches: [], mergeBase: null,
+        files: [], rows: [], selected: null, composer: null, cur: null, anchor: null, picking: null, error: null, note: null });
+      quiet = false;
+    }
     this.loading = true; if (!quiet) cx.notify();
     cx.spawn(async (cx) => {
       try {
@@ -411,6 +416,10 @@ export default class Review {
     const to = this.target();
     const q = this.filter.value().toLowerCase();
     const side = this.part === "side";
+    // Not a repository (or not read yet): only why, nothing from another one.
+    if (!this.root) return v_flex().when(side, (e) => e.size_full()).when(!side, (e) => e.w(300).flex_none().h_full().border_r(1).border_color(t.border)).bg(t.chrome)
+      .child(sectionHeader(T("Review"), [iconButton("rv-refresh", "refresh", T("Refresh"), (_e, cx) => this.refresh(cx))]))
+      .child(div().px(12).py(4).text_size(12).text_color(t.dim).child(this.error ?? T("Loading…")));
     return v_flex().when(side, (e) => e.size_full()).when(!side, (e) => e.w(300).flex_none().h_full().border_r(1).border_color(t.border)).bg(t.chrome)
       .child(sectionHeader(T("Review"), [
         iconButton("rv-refresh", "refresh", T("Refresh"), (_e, cx) => this.refresh(cx)),
@@ -604,9 +613,10 @@ export default class Review {
     if (`${on ?? ""}:${cwd}` !== this.context && !this.loading) cx.timer.after(0, (cx) => this.refresh(cx));
     else this.syncStore(cx);
     // The diff half tells the tab strip which file it shows (a tab per reviewed file).
-    const now = this.root && this.selected ? { rkey: this.rkey(), path: this.selected } : null;
+    const space = spaces().find((s) => s.active)?.id ?? null;
+    const now = this.root && this.selected ? { rkey: this.rkey(), path: this.selected, space } : null;
     const cur = shared("codenav.review.current");
-    if (this.part !== "side" && now && (cur?.rkey !== now.rkey || cur?.path !== now.path) && this.publishing !== now.path) {
+    if (this.part !== "side" && now && (cur?.rkey !== now.rkey || cur?.path !== now.path || cur?.space !== now.space) && this.publishing !== now.path) {
       this.publishing = now.path;
       cx.timer.after(0, () => { this.publishing = null; setShared("codenav.review.current", now); });
     }

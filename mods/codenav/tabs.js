@@ -5,7 +5,7 @@
 import { div } from "gpui-kit";
 import { T } from "./i18n.js";
 import { h_flex } from "gpui-base";
-import { theme, shared, setShared, layout, run, nextCommand } from "herdr";
+import { theme, shared, setShared, layout, run, nextCommand, spaces } from "herdr";
 import { icon, iconButton, find, STACK, AREA, editorSpec, editorKey, setEditorSpec, wantedChild, showReview, basename } from "./common.js";
 
 const KEY = "codenav.tabs";
@@ -30,7 +30,11 @@ export default class Tabs {
     all[editorKey()] = list.slice(-MAX);
     setShared(KEY, all);
   }
-  current() { return shared("codenav.review.current") ?? null; }
+  // The reviewed file, if it belongs to the shown space (each space has its own repository).
+  current() {
+    const r = shared("codenav.review.current");
+    return r && r.space === spaces().find((s) => s.active)?.id ? r : null;
+  }
   reviewing() { return shared("codenav.area") === "review"; }
   activeId() {
     if (this.reviewing()) { const r = this.current(); return r?.path ? reviewId(r) : null; }
