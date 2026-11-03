@@ -53,6 +53,9 @@ function closeTabs(ids) {
   const at = list.findIndex((x) => x.id === active);
   const rest = list.filter((x) => !gone.has(x.id));
   setTabs(rest);
+  // The editor's file goes with its tab, or the strip would bring the tab back.
+  const spec = editorSpec();
+  if (spec && gone.has(fileId(spec))) setEditorSpec(editorKey(), null);
   if (!gone.has(active)) return;
   const next = rest.find((x, i) => i >= at) ?? rest[rest.length - 1];
   if (next) return openTab(next);
