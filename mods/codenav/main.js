@@ -3,15 +3,16 @@
 //   code   — source view with language-server help (bridge/lsp_bridge.py)
 //   review — diff against a base branch, line comments, sent to a terminal
 //   tabs   — the editor area's strip; keeps its stack on the right child
-//   status — status-bar item: running language servers, Review button
+//   status — status-bar item: running language servers, language
+//   tabmenu — a tab's right-click popup: Close / Close Others / Close All
 import { View, div } from "gpui-kit";
 import { props as herdrProps } from "herdr";
 import CodeView from "./code.js";
 import Review from "./review.js";
-import Tabs from "./tabs.js";
+import Tabs, { TabMenu } from "./tabs.js";
 import Status from "./status.js";
 
-const VIEWS = { code: CodeView, review: Review, tabs: Tabs, status: Status };
+const VIEWS = { code: CodeView, review: Review, tabs: Tabs, status: Status, tabmenu: TabMenu };
 
 export default class CodeNav extends View {
   init(initProps, cx) {

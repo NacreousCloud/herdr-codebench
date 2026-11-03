@@ -5,7 +5,8 @@
   "mod:activity": {
     "ctrl-s": "activity.save",
     "ctrl-w": "activity.close",
-    "ctrl-shift-v": "activity.preview"
+    "ctrl-shift-v": "activity.preview",
+    "cmd-w": "codenav.close-tab"
   },
   "layout:codebench": {
     "ctrl-alt-1": "activity.view-herdr",

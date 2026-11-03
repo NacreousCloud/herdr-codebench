@@ -103,6 +103,7 @@ export default class CodeView {
         const top = await exec("git", ["rev-parse", "--show-toplevel"], { cwd: dir, on: spec.on }).catch(() => null);
         if (!alive()) return;
         this.repo = top?.code === 0 ? top.stdout.trim() : null;
+        await this.loadChanges(spec, alive);
         cx.notify();
         // Colors first (fast), then the language server.
         const toks = await lsp("tokens", spec.on ? { path: spec.path, text } : { path: spec.path }, this.sleep).catch(() => null);
@@ -194,6 +195,23 @@ export default class CodeView {
     this.sel = { line, col: w ? w.start : col, ...(w ?? { start: col, end: col, word: null }) };
     this.flash = null;
     return this.sel;
+  }
+
+  // What changed since the last commit, by line of the file as it is now:
+  // "add" (new lines), "mod" (changed lines), "del" (lines removed just below).
+  async loadChanges(spec, alive) {
+    this.changes = new Map();
+    const rel = this.rel();
+    if (!rel) return;
+    const r = await exec("git", ["--no-optional-locks", "diff", "-U0", "--no-color", "--no-ext-diff", "HEAD", "--", rel], { cwd: this.repo, on: spec.on }).catch(() => null);
+    if (!alive() || r?.code !== 0) return;
+    const changes = new Map();
+    for (const m of r.stdout.matchAll(/^@@ -\d+(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/gm)) {
+      const removed = m[1] === undefined ? 1 : +m[1], start = +m[2], added = m[3] === undefined ? 1 : +m[3];
+      if (added === 0) changes.set(Math.max(start - 1, 0), "del");
+      else for (let k = 0; k < added; k++) changes.set(start - 1 + k, k < removed ? "mod" : "add");
+    }
+    this.changes = changes;
   }
 
   // -- comments ------------------------------------------------------------------
@@ -377,7 +395,17 @@ export default class CodeView {
     cx.notify();
   }
 
-  gutter() { return 21 + Math.max(3, String(this.lines.length).length) * this.cw + 12; }
+  gutter() { return 25 + Math.max(3, String(this.lines.length).length) * this.cw + 12; }
+
+  // The change mark at the gutter's edge, as VS Code draws it.
+  changeMark(i, t) {
+    const c = this.changes?.get(i);
+    const mark = div().w(3).h_full().flex_none().mr(1);
+    if (c === "add") return mark.bg(t.ansi2);
+    if (c === "mod") return mark.bg(t.ansi4);
+    if (c === "del") return mark.flex().flex_col().justify_end().child(div().w(4).h(5).bg(t.ansi1).rounded(1));
+    return mark;
+  }
 
   // A comment under the lines it covers.
   commentRow(c, t) {
@@ -465,6 +493,7 @@ export default class CodeView {
       .when(this.flash === i && !current, (e) => e.bg(t.accent + "22"))
       .when(Boolean(picked), (e) => e.bg(t.accent + "33"))
       .child(h_flex().w(this.gutter()).h_full().flex_none().items_center().pr(12).cursor_pointer()
+        .child(this.changeMark(i, t))
         .child(div().w(3).h_full().flex_none().when(Boolean(picked) || this.commented?.has(i + 1), (e) => e.bg(picked ? t.accent : t.accent + "88")))
         .child(div().w(18).flex_none().flex().justify_center()
           .when(worst > 0, (e) => e.child(div().size(7).rounded_full().bg(worst === 1 ? t.ansi1 : worst === 2 ? t.ansi3 : t.ansi4))))
