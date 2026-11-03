@@ -14,7 +14,7 @@ import { KIND, kindColor } from "./code.js";
 import { openEverywhere } from "./everywhere.js";
 import { runStore, isRunning, runConfig, stopConfig, openRunConfigs } from "./run.js";
 import { ideaImage, symbolImage, toolImage } from "./ideaicons.js";
-import { IDEA, uiSize, ideaUI, popupSurface, uiIconButton, uiStripeButton, uiToolHeader, uiIslandBottom, MenuController, uiMenu, uiButton, uiDialog } from "./idea-design.js";
+import { IDEA, uiSize, ideaUI, popupSurface, uiIconButton, uiStripeButton, uiToolHeader, uiIslandBottom, MenuController, uiMenu } from "./idea-design.js";
 import { ensureIdeaIslands } from "./islands.js";
 import { openIdeaSettings } from "./settings.js";
 
@@ -106,7 +106,7 @@ export const moveTool = (name, to) => arrange({ [name]: to }, true);
 // The default sides (Settings → tool windows), kept in shared "codenav.toolSides".
 export const DEFAULT_SIDES = { project: "left", commit: "left", structure: "left", find: "left", terminal: "bottom", problems: "bottom", notifications: "bottom", agents: "bottom" };
 export const savedSides = () => ({ ...DEFAULT_SIDES, ...(shared("codenav.toolSides") ?? {}) });
-export const openToolSettings = () => openOverlay({ mod: "codenav", props: { view: "toolsettings" }, kind: "dialog", frame: "none", width: 600, height: 500 });
+export const openToolSettings = () => openIdeaSettings("windows");
 
 // Cmd+Shift+F12: every tool window away for the editor, or back as they were.
 export function toggleAllTools() {
@@ -188,35 +188,6 @@ export class ToolMenu {
       { id: "settings", label: T("Tool Window Settings…"), action: () => openToolSettings() });
     return uiMenu("tool-menu", entries.flatMap(entry => entry.id === "settings" ? [{ separator: true }, entry] : [entry]), this.menu, cx,
       { width: 240, maxHeight: 260, onClose: () => closeOverlay(overlay) });
-  }
-}
-
-// Settings → where each tool window goes by default: saved, then applied now;
-// "Reset" puts them back where the defaults say.
-export class ToolSettings {
-  init(_p, cx) { this.sides = savedSides(); this.hidden = hiddenTools(); this.focus = cx.focus_handle(); this.focus.focus(); }
-  render() {
-    const t = theme(), { overlay } = props() ?? {};
-    const choice = (name, k) => uiButton(`ts-${name}-${k}`, T(SIDES[k].label), (_e, cx) => {
-      this.sides = { ...this.sides, [name]: k }; cx.notify();
-    }, { small: true, primary: this.sides[name] === k });
-    const body = v_flex().size_full().min_h(0).gap(12)
-      .child(div().flex_none().text_size(uiSize(12)).text_color(t.dim).child(T("Where each tool window goes by default, and which stay off the stripes. Right-click a stripe button to move one for now.")))
-      .child(v_flex().id("tool-settings-list").flex_1().min_h(0).overflow_y_scrollbar().gap(6).children(Object.keys(TOOLS).map((name) => h_flex().flex_none().gap(8).items_center()
-        .child(toolImage(TOOLS[name].idea, 16))
-        .child(div().w(110).child(T(TOOLS[name].label)))
-        .child(h_flex().gap(4).children(Object.keys(SIDES).map((k) => choice(name, k))))
-        .child(uiButton(`ts-${name}-hidden`, T("Hidden"), (_e, cx) => {
-          const h = new Set(this.hidden); h.has(name) ? h.delete(name) : h.add(name); this.hidden = h; cx.notify();
-        }, { small: true, primary: this.hidden.has(name) }).ml(8)))));
-    return uiDialog("tool-settings", { title: T("Tool Windows"), body, footer: [
-      uiButton("ts-cancel", T("Cancel"), () => closeOverlay(overlay)),
-      uiButton("ts-save", T("Save and Apply"), () => {
-        setShared("codenav.toolSides", this.sides); setShared("codenav.toolHidden", [...this.hidden]); closeOverlay(overlay); arrange(this.sides);
-      }, { primary: true }),
-    ] }).h(500).track_focus(this.focus).on_key_down((e, cx) => {
-      if (e.key === "escape") { cx.stop_propagation(); closeOverlay(overlay); }
-    });
   }
 }
 

@@ -100,3 +100,11 @@ openOverlay({ mod: "codenav", props: { view: "designpreview" },
 본문은 스크롤하며 현재 설정의 밀도·치수·UI 글꼴, 11/13/16 텍스트, 의미별 색, 정상/주요/비활성 버튼, 아이콘 버튼, 정상/포커스/오류/monospace 입력, 선택/비활성 선택/비활성/들여쓰기 행, 탭, 툴바, 툴 제목과 섬 아래 마감을 보여준다. 명시된 입력 테두리는 상태 예제이며 실제 작업의 실패나 성공을 나타내지 않는다. 빈/로딩/실패 예제도 명확히 sample로 표시한다.
 
 `Open 100-row menu…`는 같은 view의 `variant:"menu"`를 논리 320×360 팝업으로 연다. 메뉴는 공통 컨트롤러의 긴 목록·비활성 건너뛰기·숫자 shortcut·선택 스크롤을 검증하는 예제다. 활성화하면 로컬 상태 문구만 바꾸고 유지되며 Escape로 닫는다. 갤러리는 settings/shared를 쓰거나 외부 명령·파일·네트워크 작업을 실행하지 않는다. 각 instance의 release에서 메뉴 handle을 해제한다.
+
+## 툴 윈도우 설정
+
+툴 윈도우의 기본 위치·줄 표시·레이아웃 복원은 IdeaSettings의 `windows` 페이지에 통합한다. `openToolSettings()`와 기존 `codenav.tool-settings`는 `openIdeaSettings("windows")`로 연결한다. 별도 ToolSettings dialog는 만들지 않는다.
+
+위치/표시는 다른 설정과 같은 draft 및 Apply/OK/Cancel 수명을 따른다. 일반 Apply에서는 수정된 툴의 위치만 arrange에 전달한다. 명시적 레이아웃 복원은 Apply 후 현재 draft의 전체 알려진 위치를 적용한다. 표시만 바꿀 때는 레이아웃을 재배치하지 않으며 알 수 없는 미래 설정과 동시에 바뀐 다른 항목을 유지한다.
+
+회귀 검사: `node --experimental-vm-modules design/idea/check_settings.mjs`.

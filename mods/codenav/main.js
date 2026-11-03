@@ -9,7 +9,7 @@
 //   termmenu  — the terminal right-click menu (the layout's "terminal_menu"),
 //               opened by Herdr with props { tab: "pane", target }
 //   panehead  — a terminal pane's header: split / zoom / close
-//   the idea layout (tools.js, everywhere.js): stripe, toolmenu, toolsettings, toolempty, toolheader, toolbar,
+//   the idea layout (tools.js, everywhere.js): stripe, toolmenu, settings, toolempty, toolheader, toolbar,
 //   structure, problems, crumbs, projects, everywhere
 import { View, div } from "gpui-kit";
 import { props as herdrProps } from "herdr";
@@ -19,7 +19,7 @@ import Tabs, { TabMenu, TabList } from "./tabs.js";
 import Status from "./status.js";
 import { TermMenu, TermFiles } from "./termfiles.js";
 import PaneHead from "./panehead.js";
-import { Stripe, ToolMenu, ToolSettings, ToolEmpty, ToolHeader, IslandBottom, Notifications, Toolbar, Structure, Problems, Crumbs, Projects } from "./tools.js";
+import { Stripe, ToolMenu, ToolEmpty, ToolHeader, IslandBottom, Notifications, Toolbar, Structure, Problems, Crumbs, Projects } from "./tools.js";
 import { Everywhere } from "./everywhere.js";
 import { RunMenu, RunConfigs } from "./run.js";
 import { HttpEnvMenu } from "./http.js";
@@ -30,7 +30,7 @@ import RecentFiles from "./recent.js";
 import DesignPreview from "./design-preview.js";
 
 const VIEWS = { code: CodeView, review: Review, tabs: Tabs, status: Status, tabmenu: TabMenu, termfiles: TermFiles, termmenu: TermMenu, panehead: PaneHead,
-  stripe: Stripe, notifications: Notifications, toolmenu: ToolMenu, toolsettings: ToolSettings, toolempty: ToolEmpty, toolheader: ToolHeader, islandbottom: IslandBottom, toolbar: Toolbar, structure: Structure, problems: Problems, crumbs: Crumbs,
+  stripe: Stripe, notifications: Notifications, toolmenu: ToolMenu, toolempty: ToolEmpty, toolheader: ToolHeader, islandbottom: IslandBottom, toolbar: Toolbar, structure: Structure, problems: Problems, crumbs: Crumbs,
   projects: Projects, everywhere: Everywhere, runmenu: RunMenu, runconfigs: RunConfigs, httpenv: HttpEnvMenu,
   settings: IdeaSettings, agents: Agents, newterminal: NewTerminal, tablist: TabList,
   recent: RecentFiles, designpreview: DesignPreview };

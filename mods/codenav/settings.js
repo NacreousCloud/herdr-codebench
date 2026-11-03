@@ -7,6 +7,9 @@ import { uiSize, IDEA, uiInputBox, uiButton, uiToolbar, uiColors, uiCaption, uiS
 import { icon, button, codeFont } from "./common.js";
 import { T } from "./i18n.js";
 
+import { TOOLS, SIDES, savedSides, hiddenTools, arrange } from "./tools.js";
+import { toolImage } from "./ideaicons.js";
+
 export const openIdeaSettings = (page = "appearance") => openOverlay({
   mod: "codenav", props: { view: "settings", page }, kind: "dialog", frame: "none", width: 900, height: 700,
 });
@@ -46,8 +49,10 @@ export default class IdeaSettings {
       uiFont: a.uiFont ?? s.ui_font_family ?? ".AppleSystemUIFont", uiSize: a.uiSize ?? 13,
       editorFont: a.editorFont ?? codeFont().family, editorSize: a.editorSize ?? codeFont().size,
       terminalFont: s.font_family ?? "JetBrains Mono", terminalSize: s.font_size ?? 14, compact: a.compact !== false,
+      toolSides: savedSides(), toolHidden: [...hiddenTools()],
     };
     this.saved = JSON.stringify(this.draft);
+    this.savedToolSides = { ...this.draft.toolSides };
     this.focus = cx.focus_handle(); this.focus.focus();
     this.shortcutFocus = cx.focus_handle();
     this.pendingBindings = []; this.collapsed = new Set(["Tool Windows", "Navigation", "Editor", "Run", "Appearance & Behavior", "Other"]); this.sidebarCollapsed = new Set();
@@ -118,7 +123,8 @@ export default class IdeaSettings {
     this.saving = true; cx.notify();
     cx.spawn(async (cx) => {
       try {
-        const d = { ...this.draft }, s = settings();
+        const d = { ...this.draft, toolSides: { ...this.draft.toolSides }, toolHidden: [...this.draft.toolHidden] }, s = settings();
+        const restoreToolLayout = this.restoreToolLayout;
         await this.saveShortcuts();
         if (d.terminalFont !== s.font_family || d.terminalSize !== s.font_size) {
           const path = `${appHome()}/settings.json`;
@@ -131,6 +137,22 @@ export default class IdeaSettings {
         }
         setShared("codenav.appearance", { ...(shared("codenav.appearance") ?? {}),
           uiFont: d.uiFont.trim(), uiSize: d.uiSize, editorFont: d.editorFont.trim(), editorSize: d.editorSize, compact: d.compact });
+        const moved = Object.fromEntries(Object.entries(d.toolSides).filter(([name, side]) => TOOLS[name] && SIDES[side] && (restoreToolLayout || side !== this.savedToolSides[name])));
+        if (Object.keys(moved).length) {
+          setShared("codenav.toolSides", { ...(shared("codenav.toolSides") ?? {}), ...moved });
+          arrange(moved);
+        }
+        const previous = JSON.parse(this.saved);
+        if (JSON.stringify(d.toolHidden) !== JSON.stringify(previous.toolHidden)) {
+          const hidden = new Set(hiddenTools());
+          for (const name of Object.keys(TOOLS)) {
+            if (d.toolHidden.includes(name) === previous.toolHidden.includes(name)) continue;
+            d.toolHidden.includes(name) ? hidden.add(name) : hidden.delete(name);
+          }
+          setShared("codenav.toolHidden", [...hidden]);
+        }
+        this.savedToolSides = { ...d.toolSides };
+        this.restoreToolLayout = false;
         this.saved = JSON.stringify(d);
         if (close) closeOverlay(props().overlay);
       } catch (e) { this.error = String(e); }
@@ -182,12 +204,34 @@ export default class IdeaSettings {
         .child(this.label("Font:", this.field(editor ? "editorFont" : "terminalFont", editor ? "editorSize" : "terminalSize", t), t))
         .child(this.preview(t, editor, !editor));
     }
-    if (this.page === "windows") return v_flex().gap(16)
-      .child(div().text_color(t.muted).child(T("Choose which tool windows appear and where they open.")))
-      .child(h_flex().child(button("settings-windows", T("Tool Window Settings…"), () => { closeOverlay(props().overlay); run("codenav.tool-settings"); })))
-      .child(h_flex().child(button("settings-restore-windows", T("Restore Tool Window Layout"), () => run("codenav.tool-reset"))))
-      .child(h_flex().child(button("settings-herdr", T("Herdr Settings…"), () => { closeOverlay(props().overlay); run("app.settings"); })));
+    if (this.page === "windows") return this.toolWindowsBody();
     return this.keymapBody(t);
+  }
+
+  toolWindowsBody() {
+    const c = uiColors();
+    const positions = Object.keys(SIDES);
+    return v_flex().gap(14)
+      .child(uiCaption(T("Choose which tool windows appear and where they open.")))
+      .child(v_flex().border_1().border_color(c.separator).rounded(4).overflow_hidden()
+        .child(h_flex().h(28).flex_none().px(10).gap(12).items_center().border_b(1).border_color(c.separator).text_color(c.secondary)
+          .child(div().flex_1().child(T("Tool Window")))
+          .child(div().w(170).child(T("Default position")))
+          .child(div().w(120).child(T("Visibility"))))
+        .children(Object.entries(TOOLS).map(([name, tool]) => h_flex().h(34).flex_none().px(10).gap(12).items_center()
+          .child(h_flex().flex_1().min_w(0).gap(8).items_center().child(toolImage(tool.idea, IDEA.iconSize)).child(div().truncate().child(T(tool.label))))
+          .child(h_flex().w(170).gap(4).children(positions.map(side => uiButton(`settings-tool-${name}-${side}`, T(SIDES[side].label), (_e, cx) => {
+            this.draft.toolSides = { ...this.draft.toolSides, [name]: side }; cx.notify();
+          }, { small: true, primary: this.draft.toolSides[name] === side, disabled: this.saving }))))
+          .child(uiCheckbox(`settings-tool-${name}-visible`, T("Show on Stripe"), (_e, cx) => {
+            const hidden = new Set(this.draft.toolHidden);
+            hidden.has(name) ? hidden.delete(name) : hidden.add(name);
+            this.draft.toolHidden = [...hidden]; cx.notify();
+          }, { checked: !this.draft.toolHidden.includes(name), disabled: this.saving }).w(120)))))
+      .child(h_flex().child(uiButton("settings-tool-restore", T("Restore Tool Window Layout"), (_e, cx) => {
+        this.restoreToolLayout = true; cx.notify();
+      }, { disabled: this.saving })))
+      .child(uiCaption(T("Changes take effect with Apply. Other tool window positions are kept.")));
   }
 
   keymapBody(t) {
@@ -249,7 +293,7 @@ export default class IdeaSettings {
 
   render() {
     const t = theme(), c = uiColors(), current = PAGES.find(([id]) => id === this.page);
-    const dirty = JSON.stringify(this.draft) !== this.saved || Boolean(this.pendingBindings.length);
+    const dirty = JSON.stringify(this.draft) !== this.saved || Boolean(this.pendingBindings.length) || Boolean(this.restoreToolLayout);
     const content = v_flex().h_full().min_h(0).gap(18).text_color(c.foreground)
       .child(div().flex_none().h(24).font_semibold().text_size(uiSize()).child(T(this.page === "keymap" ? "Keymap" : current[2])))
       .child(v_flex().id("settings-body").flex_1().min_h(0)

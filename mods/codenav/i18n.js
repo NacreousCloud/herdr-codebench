@@ -23,6 +23,8 @@ const KO = {
   "Font": "글꼴", "Tools": "도구", "Window": "창", "Tool Windows": "툴 윈도우", "Keymap": "키맵",
   "Theme:": "테마:", "Interface font:": "인터페이스 글꼴:", "Font:": "글꼴:", "Size:": "크기:", "Zoom:": "확대/축소:",
   "Search settings": "설정 검색", "Enter a font family.": "글꼴 이름을 입력하세요.",
+  "Tool Window": "툴 윈도우", "Default position": "기본 위치", "Visibility": "표시", "Show on Stripe": "줄에 표시",
+  "Changes take effect with Apply. Other tool window positions are kept.": "적용을 누르면 변경사항을 반영합니다. 다른 툴 윈도우 위치는 유지됩니다.",
   "Choose which tool windows appear and where they open.": "표시할 툴 윈도우와 열리는 위치를 선택합니다.",
   "Restore Tool Window Layout": "툴 윈도우 레이아웃 복원", "Herdr Settings…": "Herdr 설정…", "Reset": "초기화",
   "Open Tabs": "열린 탭", "Back (Cmd+[)": "뒤로 (⌘[)", "Forward (Cmd+])": "앞으로 (⌘])",
