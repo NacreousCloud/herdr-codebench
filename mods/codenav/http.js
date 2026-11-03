@@ -7,7 +7,7 @@
 // looked for from the file's folder up to the repository; the chosen one is kept per folder in shared "codenav.httpEnv".
 import { div } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
-import { theme, shared, setShared, props, closeOverlay, openOverlay, readTextFile, exec } from "herdr";
+import { theme, shared, setShared, props, closeOverlay, openOverlay, readTextFile, writeTextFile, exec } from "herdr";
 import { T } from "./i18n.js";
 import { basename } from "./common.js";
 import { toolImage } from "./ideaicons.js";
@@ -89,13 +89,20 @@ function withGlobals(block, saved, names, first) {
   return out;
 }
 
-// A path nobody can guess, created fresh and private (only you can read it) in one
-// step, with its text: it fails when anything, a link included, is there already.
-async function freshPath(dir, ext, text = null) {
-  const path = `${dir}/.codenav-${Math.random().toString(36).slice(2)}${Date.now().toString(36)}${ext}`;
-  const make = text === null ? 'umask 077 && mkdir "$1"' : 'umask 077 && set -C && printf "%s" "$2" > "$1"';
-  const r = await exec("sh", ["-c", make, "sh", path, text ?? ""]).catch(() => null);
-  return r?.code === 0 ? path : null;
+const fresh = (dir, ext) => `${dir}/.codenav-${Math.random().toString(36).slice(2)}${Date.now().toString(36)}${ext}`;
+const sh = (script, ...args) => exec("sh", ["-c", script, "sh", ...args]).then((r) => r.code === 0).catch(() => false);
+
+// The run's copy beside the .http file, private and with nothing in argv: written
+// inside a fresh 0700 folder (the run's report folder), made 0600 there, then moved
+// beside the file without replacing anything (a link included) already there.
+async function privateCopy(dir, text) {
+  const report = fresh(dir, ""), staged = `${report}/request.http`, copy = fresh(dir, ".http");
+  if (!await sh('umask 077 && mkdir "$1"', report)) return null;
+  const ok = await writeTextFile(staged, text, null).then(() => true).catch(() => false)
+    && await sh('chmod 600 "$1"', staged)
+    && await sh('[ ! -e "$2" ] && [ ! -L "$2" ] && mv -n "$1" "$2" && [ -f "$2" ] && [ ! -e "$1" ]', staged, copy);
+  if (!ok) { await exec("rm", ["-rf", report]).catch(() => {}); return null; }
+  return { copy, report };
 }
 
 // Runs one request (req) or the whole file.
@@ -108,8 +115,9 @@ export async function runHttp(path, lines, envs, req, after) {
   const saved = kept.get(dir) ?? {}, names = globalNames(lines);
   const reqs = req ? [req] : httpRequests(lines);
   const text = [...(req ? [] : lines.slice(0, reqs[0]?.start ?? 0)), ...reqs.flatMap((r, i) => withGlobals(lines.slice(r.start, r.end), saved, names, i === 0))].join("\n") + "\n";
-  const tmp = await freshPath(dir, ".http", text), report = tmp && await freshPath(dir, "");
-  if (!tmp || !report) { if (tmp) exec("rm", ["-f", tmp]).catch(() => {}); return; }
+  const made = await privateCopy(dir, text);
+  if (!made) return;
+  const { copy: tmp, report } = made;
   // The copy holds kept values: gone when the run ends, even by Ctrl+C.
   runConfig({ name: "HTTP", command: `(trap ${sq(`rm -f ${sq(tmp)}`)} EXIT INT TERM; ${opts} -r ${sq(report)} ${sq(tmp)})`, folder: dir }, after);
   // The run's report, once written: the globals it ended with.
