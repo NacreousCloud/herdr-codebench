@@ -450,7 +450,8 @@ export default class CodeView {
     const spans = [];
     if (toks) { let o = 0; for (const [n, cat] of toks) { spans.push([o, o + n, cat]); o += n; cuts.add(Math.min(o, text.length)); } }
     const marks = [];
-    const word = this.sel?.word;
+    // Blank selections mark nothing (every space would light up).
+    const word = this.sel?.word?.trim() ? this.sel.word : null;
     if (word) {
       const isWord = /^[\p{L}\p{N}_$]+$/u.test(word);
       for (let at = text.indexOf(word); at >= 0; at = text.indexOf(word, at + word.length)) {
@@ -543,7 +544,7 @@ export default class CodeView {
     return v_flex().flex_none().max_h(220).border_t(1).border_color(t.border).bg(t.chrome)
       .child(h_flex().h(30).flex_none().px(10).gap(6).items_center()
         .child(div().flex_1().min_w(0).truncate().text_size(12).text_color(t.muted)
-          .child(this.note ?? (sel ? `${sel.word ? `${sel.word} · ` : ""}${T("Ln {line}, Col {col}", { line: sel.line + 1, col: sel.col + 1 })}` : "")))
+          .child(this.note ?? (sel ? `${sel.word?.trim() ? `${sel.word} · ` : ""}${T("Ln {line}, Col {col}", { line: sel.line + 1, col: sel.col + 1 })}` : "")))
         .when(Boolean(can), (e) => e.children([
           pill("cn-a-def", T("Definition"), T("F12 or Cmd+click"), (_e, cx) => this.definition(cx), t),
           pill("cn-a-type", T("Type"), T("Go to type definition"), (_e, cx) => this.definition(cx, "typeDefinition"), t),
