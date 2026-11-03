@@ -4,15 +4,17 @@
 // diagnostics in the gutter, Cmd+F to find, Ctrl+- / Ctrl+Shift+- to go back
 // and forward. "Edit" hands the file to the activity editor. Clicking a line
 // number starts a comment (Shift+click for a range); comments join the
-// repository's review comments (shared "codenav.reviews") and show inline.
+// repository's review comments (comments.js) and show inline. The gutter marks
+// lines added, changed and removed since HEAD.
 import { div } from "gpui-kit";
-import { T, lang, setLang } from "./i18n.js";
-import { v_flex, h_flex, v_virtual_list, VirtualListScrollHandle, Scrollbar, TextView, InputState, Input, TextareaState, Textarea } from "gpui-base";
-import { readTextFile, watchFolder, theme, settings, shared, setShared, props, run, exec, nextCommand } from "herdr";
+import { T } from "./i18n.js";
+import { v_flex, h_flex, v_virtual_list, VirtualListScrollHandle, Scrollbar, TextView, InputState, Input } from "gpui-base";
+import { readTextFile, watchFolder, theme, settings, run, exec, nextCommand } from "herdr";
 import { lsp } from "./lsp.js";
+import { CommentBox, commentCard, commentHeight, commentsOf, repoKey } from "./comments.js";
 import {
-  icon, iconButton, editorKey, setEditorSpec, CHILD, STACK, AREA, hasArea, find, showReview,
-  syntaxColors, expandTabs, displayWidth, offsetAt, wordAt, tilde, basename, sectionHeader,
+  iconButton, button, editorKey, editorSpec, setEditorSpec, CHILD, STACK, hasArea, measureFont,
+  syntaxColors, expandTabs, displayWidth, offsetAt, wordAt, tilde, sectionHeader,
 } from "./common.js";
 
 const ROW = 20;
@@ -20,11 +22,9 @@ const FONT = 13;
 const PAD = 12;
 const MAX_LINE = 2000;
 const KIND = { class: "C", struct: "S", interface: "I", enum: "E", function: "ƒ", method: "m", constructor: "c", field: "f", property: "p", variable: "v", constant: "K", module: "M", namespace: "N", package: "P", "type parameter": "T", "enum member": "e" };
-const SEVERITY = ["", "error", "warning", "info", "hint"];
 
 export default class CodeView {
-  init(p, cx) {
-    this.slot = Boolean(p?.slot); this.tab = p?.tab ?? null;
+  init(_p, cx) {
     this.lines = []; this.toks = null; this.diags = []; this.symbols = []; this.refs = null;
     this.cw = FONT * 0.6; this.outline = true;
     this.scroll = VirtualListScrollHandle.new();
@@ -33,32 +33,14 @@ export default class CodeView {
     this.find.on("change", (_e, cx) => { this.findQuery = this.find.value(); this.findAt = -1; cx.notify(); });
     this.find.on("submit", (e, cx) => { this.findNext(e?.shift ? -1 : 1); cx.notify(); });
     this.sleep = (ms) => cx.sleep(ms);
-    this.box = TextareaState.new({ placeholder: T("Leave a comment for the agent… (Cmd+Enter to save)"), rows: 3 });
-    this.box.set_auto_grow(2, 8);
-    this.box.on("submit", (e, cx) => { if (e?.secondary) this.saveComment(cx); });
-    this.box.on("focus", () => { this.typing = true; });
-    this.box.on("blur", () => { this.typing = false; });
-    cx.spawn(async (cx) => {
-      for (;;) {
-        const c = await nextCommand();
-        if (c === "focus") this.focus.focus();
-        else if (c === "review") showReview();
-        else if (c === "back") this.goBack(cx);
-        else if (c === "forward") this.goForward(cx);
-        else if (c === "definition") this.definition(cx);
-        else if (c === "references") this.references(cx);
-        else if (c === "outline") this.outline = !this.outline;
-        cx.notify();
-      }
-    });
+    this.comment = new CommentBox();
+    // pane.go gives this view the keyboard.
+    cx.spawn(async (cx) => { for (;;) { if (await nextCommand() === "focus") this.focus.focus(); cx.notify(); } });
   }
 
-  key() { return this.slot ? editorKey() : this.tab; }
-  spec() { return (shared("activity.editor") ?? {})[this.key()] ?? (this.slot ? null : props()?.spec ?? null); }
-
-  // Back / forward belong to the space (or tab) whose editor this is.
+  // Back / forward belong to the space whose editor this is.
   history() {
-    const k = this.key() ?? "";
+    const k = editorKey() ?? "";
     this.histories ??= {};
     return (this.histories[k] ??= { back: [], fwd: [] });
   }
@@ -68,7 +50,7 @@ export default class CodeView {
   set fwd(v) { this.history().fwd = v; }
 
   sync(cx) {
-    const spec = this.spec();
+    const spec = editorSpec();
     const k = spec ? `${spec.path}\u0000${spec.on ?? ""}\u0000${spec.at ?? ""}` : null;
     if (k === this.loadedKey) return;
     this.loadedKey = k;
@@ -95,7 +77,7 @@ export default class CodeView {
         this.text = text;
         this.lines = text.split("\n");
         this.width = Math.max(...this.lines.slice(0, 20000).map((l) => displayWidth(l.length > MAX_LINE ? l.slice(0, MAX_LINE) : l)), 40);
-        if (!keepView) { this.composer = null; this.reveal(spec.line, spec.col); }
+        if (!keepView) { this.comment.close(); this.reveal(spec.line, spec.col); }
         this.loading = false; cx.notify();
         this.watch(spec, cx);
         // The repository the file is in: its review comments are kept there.
@@ -181,7 +163,7 @@ export default class CodeView {
     if (s && path === s.path && !spec?.on === !s.on) { this.reveal(line, col); this.hoverAt(cx); cx.notify(); return; }
     const root = spec?.root ?? (s?.root && path.startsWith(s.root + "/") ? s.root : path.replace(/\/[^/]*$/, ""));
     const rel = path.startsWith(root + "/") ? path.slice(root.length + 1) : tilde(path);
-    setEditorSpec(this.key(), { kind: "file", path, root, rel, on: spec?.on ?? null, line, col });
+    setEditorSpec(editorKey(), { kind: "file", path, root, rel, on: spec?.on ?? null, line, col });
   }
 
   goBack(cx) { const to = this.back.pop(); if (!to) return; const cur = this.here(); if (cur) this.fwd.push(cur); this.goTo(to, cx); }
@@ -215,15 +197,9 @@ export default class CodeView {
   }
 
   // -- comments ------------------------------------------------------------------
-  rkey() { return this.repo ? `${this.shown?.on ?? ""}:${this.repo}` : null; }
+  rkey() { return this.repo ? repoKey(this.shown?.on, this.repo) : null; }
   rel() { const p = this.shown?.path ?? ""; return this.repo && p.startsWith(this.repo + "/") ? p.slice(this.repo.length + 1) : null; }
-  store() { return (shared("codenav.reviews") ?? {})[this.rkey()] ?? {}; }
-  fileComments() { const rel = this.rel(); return rel ? (this.store().comments ?? []).filter((c) => c.path === rel && c.side !== "old") : []; }
-  saveStore(comments) {
-    const all = { ...(shared("codenav.reviews") ?? {}) };
-    all[this.rkey()] = { ...this.store(), comments };
-    setShared("codenav.reviews", all);
-  }
+  fileComments() { const rel = this.rel(); return rel ? commentsOf(this.rkey()).filter((c) => c.path === rel && c.side !== "old") : []; }
 
   // Lines and the comments under them, as the list shows them.
   items() {
@@ -248,34 +224,7 @@ export default class CodeView {
   commentLines(from, to, cx) {
     if (!this.rel()) { this.note = T("Comments need a file inside a git repository"); cx.notify(); return; }
     const lo = Math.min(from, to), hi = Math.max(from, to);
-    const keep = this.composer && !this.composer.id ? this.box.value() : "";
-    this.composer = { path: this.rel(), side: "new", start: lo + 1, end: hi + 1, code: this.lines.slice(lo, hi + 1).slice(0, 30).map((l) => `  ${l}`), kind: "file" };
-    this.box.set_value(keep);
-    this.box.focus();
-    cx.notify();
-  }
-
-  editComment(c, cx) {
-    this.composer = { ...c };
-    this.box.set_value(c.body);
-    this.box.focus();
-    cx.notify();
-  }
-
-  saveComment(cx) {
-    const c = this.composer;
-    if (!c || !this.rkey()) return;
-    const body = this.box.value().trim();
-    let list = (this.store().comments ?? []).filter((x) => x.id !== c.id);
-    if (body) list = [...list, { ...c, id: c.id ?? `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, body, at: Date.now() }];
-    this.saveStore(list);
-    this.composer = null; this.box.set_value("");
-    cx.notify();
-  }
-
-  deleteComment(id, cx) {
-    this.saveStore((this.store().comments ?? []).filter((x) => x.id !== id));
-    this.composer = null; this.box.set_value("");
+    this.comment.open({ path: this.rel(), side: "new", start: lo + 1, end: hi + 1, code: this.lines.slice(lo, hi + 1).slice(0, 30).map((l) => `  ${l}`), kind: "file" });
     cx.notify();
   }
 
@@ -354,13 +303,8 @@ export default class CodeView {
   edit() {
     const s = this.shown;
     if (!s) return;
-    setEditorSpec(this.key(), { ...s, edit: true, line: (this.sel?.line ?? 0) + 1 });
+    setEditorSpec(editorKey(), { ...s, edit: true, line: (this.sel?.line ?? 0) + 1 });
     if (hasArea()) run("layout.select", { stack: STACK, child: CHILD.text });
-  }
-
-  closeFile() {
-    setEditorSpec(this.key(), null);
-    if (hasArea()) run("layout.hide", { id: AREA });
   }
 
   openInVscode() {
@@ -371,11 +315,10 @@ export default class CodeView {
 
   keyDown(e, cx) {
     const k = e.keystroke;
-    if (this.typing || this.finding && k !== "escape") {
+    if (this.comment.typing || this.finding && k !== "escape") {
       // Typing a comment (or a search): only its own keys.
-      if (this.typing && (k === "cmd-enter" || k === "ctrl-enter")) this.saveComment(cx);
-      else if (this.typing && k === "escape") { this.composer = null; this.focus.focus(); }
-      else return;
+      if (!(this.comment.typing && this.comment.key(e, this.rkey()))) return;
+      if (!this.comment.draft) this.focus.focus();
       cx.stop_propagation(); cx.notify(); return;
     }
     if (k === "f12" || k === "cmd-b") this.definition(cx);
@@ -405,35 +348,6 @@ export default class CodeView {
     if (c === "mod") return mark.bg(t.ansi4);
     if (c === "del") return mark.flex().flex_col().justify_end().child(div().w(4).h(5).bg(t.ansi1).rounded(1));
     return mark;
-  }
-
-  // A comment under the lines it covers.
-  commentRow(c, t) {
-    return v_flex().w_full().pl(this.gutter() + PAD).pr(16).py(4).flex_none()
-      .child(v_flex().max_w(760).px(10).py(6).gap(2).rounded(6).border_1().border_color(t.accent + "66").bg(t.accent + "12")
-        .font_family(settings().ui_font ?? "Geist").text_size(12.5)
-        .child(div().text_size(11).text_color(t.muted).child(c.end !== c.start ? T("lines {start}-{end} · click to edit", c) : T("line {start} · click to edit", c)))
-        .child(div().whitespace_normal().child(c.body)));
-  }
-  commentHeight(c) {
-    return 34 + Math.min(12, c.body.split("\n").reduce((n, l) => n + Math.max(1, Math.ceil(l.length / 100)), 0)) * 18;
-  }
-
-  composerPanel(t) {
-    const c = this.composer;
-    if (!c) return null;
-    const where = `${c.path}:${c.start}${c.end !== c.start ? `-${c.end}` : ""}`;
-    return v_flex().flex_none().p(10).gap(8).border_t(1).border_color(t.border).bg(t.chrome)
-      .child(h_flex().gap(8).items_center().text_size(12)
-        .child(icon("message", 13).text_color(t.accent))
-        .child(div().flex_1().min_w(0).truncate().text_color(t.muted)
-          .child(`${T(c.id ? "Edit comment on {where}" : "Comment on {where}", { where })}${T("  ·  Shift+click a line number for a range")}`)))
-      .child(Textarea.new(this.box))
-      .child(h_flex().gap(6).items_center()
-        .child(div().flex_1().text_size(11.5).text_color(t.dim).child(T("Comments go to the Review list, sent to the agent together")))
-        .when(Boolean(c.id), (e) => e.child(pill("cn-c-del", T("Delete"), T("Delete"), (_e, cx) => this.deleteComment(c.id, cx), t)))
-        .child(pill("cn-c-cancel", T("Cancel"), "Esc", (_e, cx) => { this.composer = null; this.box.set_value(""); cx.notify(); }, t))
-        .child(pill("cn-c-save", c.id ? T("Update") : T("Add comment"), "Cmd+Enter", (_e, cx) => this.saveComment(cx), t)));
   }
 
   // The symbols whose range holds a line, outermost first.
@@ -488,7 +402,7 @@ export default class CodeView {
     }
     const worst = diags.length ? Math.min(...diags.map((d) => d.severity ?? 1)) : 0;
     const current = this.sel?.line === i;
-    const c = this.composer, picked = c && c.path === this.rel() && i + 1 >= c.start && i + 1 <= c.end;
+    const c = this.comment.draft, picked = c && c.path === this.rel() && i + 1 >= c.start && i + 1 <= c.end;
     return h_flex().h(ROW).w_full().flex_none().whitespace_nowrap()
       .when(current, (e) => e.bg(t.hover))
       .when(this.flash === i && !current, (e) => e.bg(t.accent + "22"))
@@ -546,12 +460,12 @@ export default class CodeView {
         .child(div().flex_1().min_w(0).truncate().text_size(12).text_color(t.muted)
           .child(this.note ?? (sel ? `${sel.word?.trim() ? `${sel.word} · ` : ""}${T("Ln {line}, Col {col}", { line: sel.line + 1, col: sel.col + 1 })}` : "")))
         .when(Boolean(can), (e) => e.children([
-          pill("cn-a-def", T("Definition"), T("F12 or Cmd+click"), (_e, cx) => this.definition(cx), t),
-          pill("cn-a-type", T("Type"), T("Go to type definition"), (_e, cx) => this.definition(cx, "typeDefinition"), t),
-          pill("cn-a-impl", T("Implementations"), "Cmd+F12", (_e, cx) => this.definition(cx, "implementation"), t),
-          pill("cn-a-refs", T("References"), "Shift+F12", (_e, cx) => this.references(cx), t),
+          button("cn-a-def", T("Definition"), (_e, cx) => this.definition(cx), { tip: T("F12 or Cmd+click") }),
+          button("cn-a-type", T("Type"), (_e, cx) => this.definition(cx, "typeDefinition"), { tip: T("Go to type definition") }),
+          button("cn-a-impl", T("Implementations"), (_e, cx) => this.definition(cx, "implementation"), { tip: "Cmd+F12" }),
+          button("cn-a-refs", T("References"), (_e, cx) => this.references(cx), { tip: "Shift+F12" }),
         ]))
-        .when(Boolean(sel) && Boolean(this.rel()), (e) => e.child(pill("cn-a-comment", T("Comment"), T("Comment on this line (or click its line number)"), (_e, cx) => this.commentLines(sel.line, sel.line, cx), t)))
+        .when(Boolean(sel) && Boolean(this.rel()), (e) => e.child(button("cn-a-comment", T("Comment"), (_e, cx) => this.commentLines(sel.line, sel.line, cx), { tip: T("Comment on this line (or click its line number)") })))
         .child(iconButton("cn-info-x", "x", T("Close (Esc)"), (_e, cx) => { this.sel = null; this.hover = null; this.note = null; cx.notify(); })))
       .when(diags.length > 0 || Boolean(md) || Boolean(this.hover?.error), (e) => e.child(div().id("cn-info").flex_1().min_h(0).overflow_y_scrollbar().px(12).pb(10)
         .children(diags.map((d, i) => h_flex().gap(6).items_start().py(2).text_size(12)
@@ -613,14 +527,11 @@ export default class CodeView {
     this.sync(cx);
     const t = theme(), s = this.shown, font = settings().font_family ?? "JetBrains Mono";
     const colors = syntaxColors(t);
-    // The code font's advance, measured: columns come from where the pointer was.
-    const measure = div().absolute().top(-100).left(0).font_family(font).text_size(FONT).whitespace_nowrap()
-      .on_size_change((size, cx) => { const cw = size.width / 100; if (cw > 1 && Math.abs(cw - this.cw) > 0.01) { this.cw = cw; cx.notify(); } })
-      .child("0".repeat(100));
+    const measure = measureFont(this, font, FONT);
     let body;
     if (!s) body = div().p(16).text_color(t.dim).child(T("Open a file from the Explorer or Search view."));
     else if (this.error) body = v_flex().p(16).gap(10).text_color(t.dim).child(this.error)
-      .child(h_flex().child(pill("cn-astext", T("Open in the editor"), T("The activity editor and viewers"), () => this.edit(), t)));
+      .child(h_flex().child(button("cn-astext", T("Open in the editor"), () => this.edit(), { tip: T("The activity editor and viewers") })));
     else if (this.loading && !this.lines.length) body = div().p(16).text_color(t.dim).child(T("Loading…"));
     const items = this.items();
     this.commented = new Set(this.fileComments().flatMap((c) => Array.from({ length: c.end - c.start + 1 }, (_, k) => c.start + k)));
@@ -630,20 +541,20 @@ export default class CodeView {
           .child(div().id("cn-x").size_full().overflow_x_scrollbar()
             .child(div().id("cn-wide").min_w(this.gutter() + PAD + this.width * this.cw + 40).w_full().h_full()
               .on_mouse_down("left", (e, _cx) => { this.press = { x: e.local_position?.x ?? 0, mods: e.modifiers ?? {} }; })
-              .child(v_virtual_list("cn-lines", items.length, items.map((it) => it.c ? this.commentHeight(it.c) : ROW),
+              .child(v_virtual_list("cn-lines", items.length, items.map((it) => it.c ? commentHeight(it.c) : ROW),
                 (i) => items[i].c ? `c:${items[i].c.id}` : String(items[i].line), (range) => {
                   const out = [];
-                  for (let i = range.start; i < range.end; i++) out.push(items[i].c ? this.commentRow(items[i].c, t) : this.row(items[i].line, t, colors));
+                  for (let i = range.start; i < range.end; i++) out.push(items[i].c ? commentCard(t, items[i].c, { pl: this.gutter() + PAD }) : this.row(items[i].line, t, colors));
                   return out;
                 }).size_full().track_scroll(this.scroll)
                 .on_item_click((k, cx) => {
                   if (!k.startsWith("c:")) return this.click(+k, cx);
                   const c = this.fileComments().find((x) => x.id === k.slice(2));
-                  if (c) this.editComment(c, cx);
+                  if (c) { this.comment.edit(c); cx.notify(); }
                 })
                 .on_item_secondary_click((k, e, cx) => { if (k.startsWith("c:")) return; this.pick(+k, e.local_position?.x ?? 0, cx); this.hoverAt(cx); cx.notify(); }))))
           .child(Scrollbar.vertical("cn-lines").absolute().inset_0()))
-        .child(this.composerPanel(t) ?? this.refsPanel(t) ?? this.infoBar(t) ?? div()))
+        .child(this.comment.panel(t, this.rkey(), (cx) => cx.notify(), T("Comments go to the Review list, sent to the agent together")) ?? this.refsPanel(t) ?? this.infoBar(t) ?? div()))
       .child(this.outlinePanel(t) ?? div());
     return v_flex().id("codenav-code").size_full().min_h(0).relative().bg(t.background).text_color(t.foreground).text_size(13)
       .track_focus(this.focus).on_key_down((e, cx) => this.keyDown(e, cx))
@@ -658,14 +569,6 @@ function chip(label, color, tip, action) {
   return div().id(`cn-chip-${label}`).flex_none().h(20).px(7).flex().items_center().rounded(10).text_size(11)
     .border_1().border_color(color + "66").text_color(color).bg(color + "14").tooltip(tip)
     .when(Boolean(action), (e) => e.cursor_pointer().on_click((_e, cx) => action(cx)))
-    .child(label);
-}
-
-function pill(id, label, tip, action, t) {
-  return div().id(id).flex_none().h(22).px(8).flex().items_center().rounded(5).text_size(11.5).cursor_pointer()
-    .border_1().border_color(t.border).hover((e) => e.bg(t.hover)).tooltip(tip)
-    .on_mouse_down("left", (_e, cx) => cx.stop_propagation())
-    .on_click((e, cx) => { cx.stop_propagation(); action(e, cx); })
     .child(label);
 }
 

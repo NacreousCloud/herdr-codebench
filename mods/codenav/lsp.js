@@ -4,7 +4,7 @@
 // the bridge's answer to "health" must name the pid from that file.
 import { hc, exec, appHome, home, readTextFile } from "herdr";
 
-export const PORT = 47821;
+const PORT = 47821;
 const URL = `http://127.0.0.1:${PORT}`;
 const SCRIPT = () => `${appHome()}/mods/codenav/bridge/lsp_bridge.py`;
 const STATE = () => `${home()}/.cache/herdr-codenav/bridge.json`;
@@ -50,7 +50,7 @@ async function python() {
 
 // Starts the bridge in a herdr-core terminal without Herdr labels, so it stays
 // out of the window and outlives it.
-export function ensureBridge(sleep) {
+function ensureBridge(sleep) {
   if (!starting) {
     starting = (async () => {
       if (await alive()) return true;

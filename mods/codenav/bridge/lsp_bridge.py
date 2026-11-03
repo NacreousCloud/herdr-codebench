@@ -10,7 +10,7 @@ Lines and columns are 0-based UTF-16 offsets, as in LSP and JavaScript strings.
 Every request carries X-Codenav-Token: the token the bridge writes at start to
 ~/.cache/herdr-codenav/bridge.json (mode 0600) with its port and pid.
 Methods: health, status, tokens, info, hover, definition, references, symbols,
-diagnostics, wsymbols. Servers are chosen by servers.json next to this file.
+diagnostics. Servers are chosen by servers.json next to this file.
 The bridge stops itself after an hour without requests; the mod starts it again.
 """
 import argparse
@@ -300,7 +300,7 @@ class LspServer:
                 "capabilities": {
                     "general": {"positionEncodings": ["utf-16"]},
                     "window": {"workDoneProgress": True},
-                    "workspace": {"configuration": True, "workspaceFolders": True, "symbol": {"dynamicRegistration": False}},
+                    "workspace": {"configuration": True, "workspaceFolders": True},
                     "textDocument": {
                         "synchronization": {"didSave": False, "dynamicRegistration": False},
                         "hover": {"contentFormat": ["markdown", "plaintext"]},
@@ -634,21 +634,6 @@ def m_diagnostics(req):
                     "severity": d.get("severity", 1), "message": d.get("message", ""),
                     "source": d.get("source") or ""})
     return {"items": out, "busy": list(srv.progress.values())}
-
-
-def m_wsymbols(req):
-    srv = server_for(req["path"], bool(req.get("retry")))
-    srv.open(req["path"])
-    result = srv.request("workspace/symbol", {"query": req.get("query", "")}, timeout=30) or []
-    out = []
-    for s in result[:300]:
-        loc = s.get("location") or {}
-        rng = loc.get("range") or {"start": {"line": 0, "character": 0}}
-        out.append({"name": s.get("name", ""), "kind": SYMBOL_KINDS.get(s.get("kind"), "symbol"),
-                    "detail": s.get("containerName") or "", "path": materialize(loc.get("uri", ""), srv) if loc.get("uri") else "",
-                    "line": rng["start"]["line"], "col": rng["start"]["character"]})
-    return out
-
 
 METHODS = {name[2:]: fn for name, fn in globals().items() if name.startswith("m_")}
 

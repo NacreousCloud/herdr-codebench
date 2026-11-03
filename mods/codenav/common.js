@@ -4,7 +4,7 @@ import { div, svg } from "gpui-kit";
 import { h_flex } from "gpui-base";
 import { spaces, panes, focused, run, shared, setShared, layout, theme, home } from "herdr";
 
-export const MOD = "codenav";
+const MOD = "codenav";
 export const icon = (name, size = 16) => svg(`mods/${MOD}/icons/${name}.svg`).size(size).flex_none();
 
 // The codebench layout: an editor area (a column) holding the tab strip and a
@@ -25,7 +25,7 @@ export const hasArea = () => Boolean(find(layout(), STACK));
 
 // The editor area and the terminal panel sit in "work-body": a column puts
 // them one above the other, a row side by side.
-export const BODY = "work-body";
+const BODY = "work-body";
 export const splitDir = () => find(layout(), BODY)?.type === "row" ? "row" : "column";
 export function setSplit(dir) {
   const tree = JSON.parse(JSON.stringify(layout()));
@@ -67,7 +67,7 @@ export function setEditorSpec(key, spec) {
 
 // Files the activity editor shows better: pictures, PDFs, media, archives.
 const VIEWER = /\.(png|jpe?g|gif|webp|bmp|svg|tiff?|avif|ico|pdf|mp3|mp4|m4a|wav|flac|ogg|mov|mkv|webm|avi|zip|gz|tgz|bz2|xz|7z|rar|tar|jar|war|class|so|dylib|dll|exe|bin|o|a|woff2?|ttf|otf|eot|sqlite|db|md|markdown|mdx)$/i;
-export const isCode = (spec) => spec?.kind === "file" && !spec.edit && !VIEWER.test(spec.path ?? "");
+const isCode = (spec) => spec?.kind === "file" && !spec.edit && !VIEWER.test(spec.path ?? "");
 
 // Which child of the editor stack should show now.
 export function wantedChild() {
@@ -110,6 +110,12 @@ export function syntaxColors(t) {
   };
 }
 
+// The code font's advance, measured off screen into self.cw: a click's
+// column comes from where the pointer was.
+export const measureFont = (self, font, size) => div().absolute().top(-100).left(0).font_family(font).text_size(size).whitespace_nowrap()
+  .on_size_change((s, cx) => { const cw = s.width / 100; if (cw > 1 && Math.abs(cw - (self.cw ?? 0)) > 0.01) { self.cw = cw; cx.notify(); } })
+  .child("0".repeat(100));
+
 // A small square icon button.
 export function iconButton(id, name, tip, action, opts = {}) {
   const t = theme();
@@ -141,7 +147,7 @@ export function sectionHeader(title, actions = []) {
 }
 
 // Display columns of a line: tabs to the next multiple of 4, wide (CJK) glyphs as 2.
-export const TAB = 4;
+const TAB = 4;
 const wide = (c) => c >= 0x1100 && (c <= 0x115f || (c >= 0x2e80 && c <= 0xa4cf) || (c >= 0xac00 && c <= 0xd7a3) || (c >= 0xf900 && c <= 0xfaff) || (c >= 0xfe30 && c <= 0xfe4f) || (c >= 0xff00 && c <= 0xff60) || (c >= 0xffe0 && c <= 0xffe6));
 export function expandTabs(text, startCol = 0) {
   if (!text.includes("\t")) return text;
@@ -166,6 +172,22 @@ export function offsetAt(text, target) {
     col += w; i += ch.length;
   }
   return text.length;
+}
+
+// A line as colored pieces: toks are [utf16 length, category] from the bridge.
+export function colorize(text, toks, colors) {
+  if (!toks?.length) return [div().flex_none().child(expandTabs(text) || " ")];
+  const out = [];
+  let o = 0, col = 0;
+  for (const [n, cat] of toks) {
+    const piece = text.slice(o, o + n);
+    o += n;
+    if (!piece) continue;
+    out.push(div().flex_none().when(Boolean(colors[cat]), (e) => e.text_color(colors[cat])).child(expandTabs(piece, col)));
+    col += displayWidth(piece);
+  }
+  if (o < text.length) out.push(div().flex_none().child(expandTabs(text.slice(o), col)));
+  return out.length ? out : [div().child(" ")];
 }
 
 // The identifier around a UTF-16 offset, or null.

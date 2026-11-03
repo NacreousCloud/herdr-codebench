@@ -9,14 +9,11 @@ export const setLang = (l) => setShared("codenav.lang", l === "ko" ? "ko" : "en"
 const KO = {
   // tabs, status bar
   "Editor": "편집기",
-  "Close file": "파일 닫기",
   "Review": "리뷰",
   "Back to the code view (language server help)": "코드 뷰로 돌아가기 (언어 서버 기능)",
   "Hide the editor area (Ctrl+Alt+E)": "편집기 영역 숨기기 (Ctrl+Alt+E)",
   "LSP bridge not running (starts when a source file opens)": "LSP bridge가 꺼져 있습니다 (소스 파일을 열면 켜집니다)",
   "No language server running": "실행 중인 언어 서버가 없습니다",
-  "Branch review (Ctrl+Alt+R)": "브랜치 리뷰 (Ctrl+Alt+R)",
-  "Review · {n}": "리뷰 · {n}",
   "Language: English (click for 한국어)": "언어: 한국어 (클릭하면 English)",
   // code view
   "Find": "찾기",
@@ -46,8 +43,6 @@ const KO = {
   "Close": "닫기",
   "Close (Cmd+W)": "닫기 (Cmd+W)",
   "Close Others": "다른 탭 모두 닫기",
-  "Editor beside the terminal": "편집기와 터미널을 좌우로",
-  "Editor above the terminal": "편집기와 터미널을 위아래로",
   "Open selected path in code view": "선택한 경로를 코드 뷰에서 열기",
   "Files in this terminal…": "이 터미널의 파일…",
   "Files in this terminal": "이 터미널의 파일",

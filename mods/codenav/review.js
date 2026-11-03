@@ -4,12 +4,14 @@
 // kept per repository and go to a terminal's input as one message: pasted for
 // the person to edit and send, or sent with Enter.
 import { div } from "gpui-kit";
-import { T, lang, setLang } from "./i18n.js";
-import { v_flex, h_flex, v_virtual_list, VirtualListScrollHandle, Scrollbar, InputState, Input, TextareaState, Textarea } from "gpui-base";
-import { exec, hc, readTextFile, writeTextFile, appHome, theme, settings, shared, setShared, run, notify, nextCommand, watchFolder, spaces } from "herdr";
+import { T } from "./i18n.js";
+import { v_flex, h_flex, v_virtual_list, VirtualListScrollHandle, Scrollbar, InputState, Input, TextView } from "gpui-base";
+import { lsp } from "./lsp.js";
+import { CommentBox, commentCard, commentHeight, commentsOf, repoKey, repoStore, saveRepo } from "./comments.js";
+import { exec, hc, readTextFile, writeTextFile, appHome, theme, settings, shared, setShared, run, notify, watchFolder, spaces } from "herdr";
 import {
   icon, iconButton, button, sectionHeader, location, targets, setEditorSpec, editorKey, showEditor, showReview,
-  expandTabs, basename, ext,
+  expandTabs, basename, ext, colorize, syntaxColors, offsetAt, wordAt, openPath, measureFont,
 } from "./common.js";
 
 const SEP = "\n@@CODENAV@@\n";
@@ -18,6 +20,9 @@ const G = READ.join(" ");
 const MAX_ROWS = 20000;
 // Where the line numbers end in a diff row (bar 3, two numbers 44, gaps 8).
 const GUTTER = 111;
+// Where a row's code starts (after both numbers and the +/- sign).
+const TEXT_X = 135;
+const FONT = 12.5;
 
 // Repository, branch, branches and the remote's default branch, in one round trip.
 const REPO = `cd "$1" 2>/dev/null || { echo "No such folder: $1" >&2; exit 2; }
@@ -69,31 +74,15 @@ export default class Review {
     this.scroll = VirtualListScrollHandle.new();
     this.filter = InputState.new({ placeholder: T("Filter branches") });
     this.filter.on("change", (_e, cx) => cx.notify());
-    this.box = TextareaState.new({ placeholder: T("Leave a comment for the agent… (Cmd+Enter to save)"), rows: 4 });
-    this.box.set_auto_grow(3, 10);
-    this.box.on("submit", (e, cx) => { if (e?.secondary) this.saveComment(cx); });
-    this.targetIndex = 0;
-    cx.spawn(async (cx) => {
-      for (;;) {
-        const c = await nextCommand();
-        if (c === "review") showReview();
-        else if (c === "refresh") this.refresh(cx);
-        else if (c === "paste") this.deliver("paste", cx);
-        cx.notify();
-      }
-    });
+    this.comment = new CommentBox();
     cx.timer.every(5000, (cx) => { if (this.on) this.refresh(cx, true); });
   }
 
   // -- repository ------------------------------------------------------------
-  rkey() { return `${this.on ?? ""}:${this.root}`; }
-  store() { return (shared("codenav.reviews") ?? {})[this.rkey()] ?? {}; }
-  comments() { return this.store().comments ?? []; }
-  save(patch) {
-    const all = { ...(shared("codenav.reviews") ?? {}) };
-    all[this.rkey()] = { ...this.store(), ...patch };
-    setShared("codenav.reviews", all);
-  }
+  rkey() { return repoKey(this.on, this.root); }
+  store() { return repoStore(this.rkey()); }
+  comments() { return commentsOf(this.rkey()); }
+  save(patch) { saveRepo(this.rkey(), patch); }
 
   sh(script, args) { return exec("sh", ["-c", script, "sh", ...args], { on: this.on }); }
   git(args) { return exec("git", [...READ, ...args], { cwd: this.root, on: this.on }); }
@@ -107,18 +96,23 @@ export default class Review {
     const { cwd, on } = location();
     const context = `${on ?? ""}:${cwd}`;
     if (!cwd || this.loading) return;
-    // Another folder: nothing of the last repository may show here.
-    if (context !== this.context) {
-      Object.assign(this, { context, root: null, branch: null, base: null, head: null, refs: [], branches: [], mergeBase: null,
-        files: [], rows: [], selected: null, composer: null, cur: null, anchor: null, picking: null, error: null, note: null });
-      quiet = false;
-    }
-    this.loading = true; if (!quiet) cx.notify();
+    // The focused folder moves often (an agent's commands): what shows stays
+    // until the answer names another repository, so nothing blinks.
+    this.context = context;
+    this.loading = true; if (!quiet && !this.root) cx.notify();
+    const clear = () => {
+      Object.assign(this, { root: null, repoKey: null, branch: null, base: null, head: null, refs: [], branches: [], mergeBase: null,
+        files: [], rows: [], selected: null, cur: null, anchor: null, picking: null, error: null, note: null });
+      this.comment.close();
+    };
     cx.spawn(async (cx) => {
       try {
         const r = await this.sh(REPO, [cwd]);
-        if (r.code !== 0) { this.root = null; this.error = r.code === 3 ? T("Not a git repository") : r.stderr.trim() || T("Cannot read this folder"); return; }
+        // Not a repository: nothing of the last one may show here.
+        if (r.code !== 0) { clear(); this.error = r.code === 3 ? T("Not a git repository") : r.stderr.trim() || T("Cannot read this folder"); return; }
         const [top, branch, refs, originHead] = r.stdout.split(SEP);
+        const repoKey = `${on ?? ""}:${top.trim()}`;
+        if (repoKey !== this.repoKey) { clear(); this.repoKey = repoKey; }
         this.root = top.trim(); this.on = on; this.branch = branch.trim();
         // Local branches (with what they track), then each remote's branches.
         this.refs = refs.split("\n").filter(Boolean).map((l) => {
@@ -177,7 +171,103 @@ export default class Review {
     this.rows = diffRows(lines.slice(0, MAX_ROWS));
     this.binary = !this.rows.length;
     this.width = Math.max(400, ...this.rows.slice(0, 5000).map((r) => expandTabs(r.text).length * 7.8 + 120));
+    this.lspSel = null; this.newToks = null; this.oldToks = null;
+    // The new side is the file on disk only against the working tree, on this computer.
+    this.lspOk = !this.on && !this.to() && file.status !== "D";
     cx.notify();
+    if (!this.binary) this.loadColors(file, seq, cx);
+  }
+
+  // Syntax colors: the new side from the file as it is, removed lines from the merge base.
+  loadColors(file, seq, cx) {
+    const abs = `${this.root}/${file.path}`, sleep = (ms) => cx.sleep(ms);
+    cx.spawn(async (cx) => {
+      const colors = async (text) => lsp("tokens", text === undefined ? { path: abs } : { path: abs, text }, sleep).catch(() => null);
+      if (file.status !== "D") {
+        const toks = this.on ? await colors(await readTextFile(abs, { on: this.on }).catch(() => "") ?? "") : await colors();
+        if (seq !== this.diffSeq) return;
+        this.newToks = toks; cx.notify();
+      }
+      if (!file.untracked && file.status !== "A") {
+        const r = await this.git(["show", `${this.mergeBase}:${file.path}`]).catch(() => null);
+        if (r?.code !== 0 || seq !== this.diffSeq) return;
+        this.oldToks = await colors(r.stdout);
+        if (seq === this.diffSeq) cx.notify();
+      }
+    });
+  }
+
+  // -- language server on the new side ---------------------------------------------
+  absPath() { return `${this.root}/${this.selected}`; }
+
+  pickWord(item, x, mods, cx) {
+    const r = item.r;
+    if (!this.lspOk || r.b === undefined || x < TEXT_X) { this.lspSel = null; return; }
+    const col = offsetAt(r.text, Math.max(0, Math.floor((x - TEXT_X) / (this.cw ?? FONT * 0.6))));
+    const w = wordAt(r.text, col);
+    if (!w) { this.lspSel = null; return; }
+    this.lspSel = { i: item.i, line: r.b - 1, col: w.start, word: w.word, hover: null, refs: null };
+    if (mods?.platform || mods?.control) this.lspDefinition(cx);
+    else this.lspHover(cx);
+  }
+
+  lspArgs() { return { path: this.absPath(), line: this.lspSel.line, col: this.lspSel.col }; }
+
+  lspHover(cx) {
+    const sel = this.lspSel;
+    cx.spawn(async (cx) => {
+      const r = await lsp("hover", this.lspArgs(), (ms) => cx.sleep(ms)).catch((e) => ({ error: String(e.message ?? e) }));
+      if (this.lspSel === sel) { sel.hover = r; cx.notify(); }
+    });
+  }
+
+  // The definition opens in the code view.
+  lspDefinition(cx) {
+    const sel = this.lspSel;
+    sel.note = T("Looking for the definition…"); cx.notify();
+    cx.spawn(async (cx) => {
+      try {
+        const r = await lsp("definition", this.lspArgs(), (ms) => cx.sleep(ms));
+        if (this.lspSel !== sel) return;
+        if (!r.length) sel.note = T("No {kind} found for {word}", { kind: T("definition"), word: sel.word });
+        else openPath(`${r[0].path}:${r[0].line + 1}:${r[0].col + 1}`);
+      } catch (e) { sel.note = String(e.message ?? e); }
+      cx.notify();
+    });
+  }
+
+  lspReferences(cx) {
+    const sel = this.lspSel;
+    sel.refs = []; sel.note = T("Searching…"); cx.notify();
+    cx.spawn(async (cx) => {
+      try {
+        const items = await lsp("references", this.lspArgs(), (ms) => cx.sleep(ms));
+        if (this.lspSel !== sel) return;
+        sel.refs = items; sel.note = T("{n} references to {word}", { n: items.length, word: sel.word });
+      } catch (e) { sel.note = String(e.message ?? e); }
+      cx.notify();
+    });
+  }
+
+  lspPanel(t) {
+    const sel = this.lspSel;
+    if (!sel) return null;
+    const where = (p) => p.startsWith(this.root + "/") ? p.slice(this.root.length + 1) : p;
+    const md = sel.hover?.markdown;
+    return v_flex().flex_none().max_h(240).border_t(1).border_color(t.border).bg(t.chrome)
+      .child(h_flex().h(30).flex_none().px(10).gap(6).items_center()
+        .child(div().flex_1().min_w(0).truncate().text_size(12).text_color(t.muted).child(sel.note ?? `${sel.word} · ${T("Ln {line}, Col {col}", { line: sel.line + 1, col: sel.col + 1 })}`))
+        .child(button("rv-l-def", T("Definition"), (_e, cx) => this.lspDefinition(cx), { tip: T("F12 or Cmd+click") }))
+        .child(button("rv-l-refs", T("References"), (_e, cx) => this.lspReferences(cx)))
+        .child(iconButton("rv-l-x", "x", T("Close (Esc)"), (_e, cx) => { this.lspSel = null; cx.notify(); })))
+      .child(div().id("rv-l-body").flex_1().min_h(0).overflow_y_scrollbar().px(12).pb(8)
+        .when(Boolean(sel.refs?.length), (e) => e.children(sel.refs.slice(0, 200).map((it, k) =>
+          h_flex().id(`rv-l-r-${k}`).h(22).gap(10).items_center().text_size(12).cursor_pointer().hover((s) => s.bg(t.hover))
+            .on_click(() => openPath(`${it.path}:${it.line + 1}:${it.col + 1}`))
+            .child(div().flex_none().max_w(360).truncate().text_color(t.muted).child(`${where(it.path)}:${it.line + 1}`))
+            .child(div().flex_1().min_w(0).truncate().font_family(settings().font_family ?? "JetBrains Mono").child(it.text ?? "")))))
+        .when(!sel.refs?.length && Boolean(md), (e) => e.child(TextView.markdown("rv-l-hover", md).selectable().text_size(12.5)))
+        .when(!sel.refs?.length && Boolean(sel.hover?.error), (e) => e.child(div().text_size(12).text_color(t.dim).child(sel.hover.error))));
   }
 
   watch(cx) {
@@ -199,7 +289,7 @@ export default class Review {
     if (this.part === "side") showReview();
     if (this.selected === path) return;
     this.selected = path; this.rows = []; this.anchor = null; this.cur = null;
-    if (this.composer && this.composer.path !== path) this.composer = null;
+    if (this.comment.draft && this.comment.draft.path !== path) this.comment.close();
     this.scroll.scroll_to_item(0);
     cx.spawn(async (cx) => { await this.loadDiff(cx); cx.notify(); });
   }
@@ -262,11 +352,11 @@ export default class Review {
       cx.timer.after(0, (cx) => cx.spawn(async (cx) => { this.loading = true; try { await this.loadFiles(cx); } finally { this.loading = false; this.syncing = false; cx.notify(); } }));
     } else if (st.selected && st.selected !== this.selected && this.files.some((f) => f.path === st.selected)) {
       this.selected = st.selected; this.rows = []; this.anchor = null; this.syncing = true;
-      if (this.composer && this.composer.path !== st.selected) this.composer = null;
+      if (this.comment.draft && this.comment.draft.path !== st.selected) this.comment.close();
       cx.timer.after(0, (cx) => cx.spawn(async (cx) => { try { this.scroll.scroll_to_item(0); await this.loadDiff(cx); } finally { this.syncing = false; cx.notify(); } }));
     } else if (this.part !== "side" && st.editing) {
       const c = this.comments().find((x) => x.id === st.editing);
-      cx.timer.after(0, (cx) => { this.save({ editing: null }); if (c && c.path === this.selected) this.editComment(c, cx); });
+      cx.timer.after(0, (cx) => { this.save({ editing: null }); if (c && c.path === this.selected) { this.comment.edit(c); cx.notify(); } });
     }
   }
 
@@ -294,10 +384,10 @@ export default class Review {
 
   // A click on a row: on its line numbers it starts a comment (Shift extends the
   // last one); on the code it only selects the row, for the Comment button.
-  clickRow(item, cx, shift, x) {
-    if (item.type === "comment") return this.editComment(item.c, cx);
+  clickRow(item, cx, shift, x, mods) {
+    if (item.type === "comment") { this.comment.edit(item.c); cx.notify(); return; }
     if (item.r.kind === "@") return;
-    if (x >= GUTTER) { this.cur = item.i; cx.notify(); return; }
+    if (x >= GUTTER) { this.cur = item.i; this.pickWord(item, x, mods, cx); cx.notify(); return; }
     if (shift && this.anchor !== null && this.anchor !== undefined && this.anchorPath === this.selected) this.selectRows(this.anchor, item.i, cx);
     else { this.anchor = item.i; this.anchorPath = this.selected; this.selectRows(item.i, item.i, cx); }
   }
@@ -312,34 +402,7 @@ export default class Review {
     const side = fresh.length ? "new" : "old";
     const lines = fresh.length ? fresh.map((x) => x.b) : rows.map((x) => x.a);
     const code = rows.map((x) => `${x.kind === " " ? " " : x.kind} ${x.text}`);
-    const keep = this.composer && !this.composer.id ? this.box.value() : "";
-    this.composer = { path: this.selected, side, start: Math.min(...lines), end: Math.max(...lines), code, rows: [lo, hi] };
-    this.box.set_value(keep);
-    this.box.focus();
-    cx.notify();
-  }
-
-  editComment(c, cx) {
-    this.composer = { ...c };
-    this.box.set_value(c.body);
-    this.box.focus();
-    cx.notify();
-  }
-
-  saveComment(cx) {
-    const c = this.composer;
-    if (!c) return;
-    const body = this.box.value().trim();
-    let list = this.comments().filter((x) => x.id !== c.id);
-    if (body) list = [...list, { ...c, id: c.id ?? `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, body, at: Date.now() }];
-    this.save({ comments: list });
-    this.composer = null; this.anchor = null; this.box.set_value("");
-    cx.notify();
-  }
-
-  deleteComment(id, cx) {
-    this.save({ comments: this.comments().filter((x) => x.id !== id) });
-    if (this.composer?.id === id) { this.composer = null; this.box.set_value(""); }
+    this.comment.open({ path: this.selected, side, start: Math.min(...lines), end: Math.max(...lines), code, rows: [lo, hi] });
     cx.notify();
   }
 
@@ -494,17 +557,17 @@ export default class Review {
             .child(div().flex_none().text_size(11).text_color(t.ansi1).child(f.del ? `−${f.del}` : ""));
         })))
       .child(v_flex().flex_none().max_h(260).border_t(1).border_color(t.border)
-        .child(sectionHeader(T("Comments ({n})", { n: comments.length }), comments.length ? [iconButton("rv-clear", "trash", T("Delete all comments"), (_e, cx) => { this.save({ comments: [] }); this.composer = null; cx.notify(); })] : []))
+        .child(sectionHeader(T("Comments ({n})", { n: comments.length }), comments.length ? [iconButton("rv-clear", "trash", T("Delete all comments"), (_e, cx) => { this.save({ comments: [] }); this.comment.close(); cx.notify(); })] : []))
         .child(div().id("rv-comments").flex_1().min_h(0).overflow_y_scrollbar()
           .when(!comments.length, (e) => e.child(div().px(12).pb(8).text_size(11.5).text_color(t.dim).child(T("Click a line number in the diff to comment; Shift+click another for a range."))))
           .children([...comments].sort((a, b) => a.path.localeCompare(b.path) || a.start - b.start).map((c, i) =>
             h_flex().id(`rv-c-${i}`).px(12).py(4).gap(6).items_start().text_size(12).cursor_pointer().hover((e) => e.bg(t.hover))
               // On press: the delete button stops its press, so deleting doesn't open the comment.
-              .on_mouse_down("left", (_e, cx) => { this.select(c.path, cx); if (this.part === "side") this.save({ editing: c.id }); else this.editComment(c, cx); })
+              .on_mouse_down("left", (_e, cx) => { this.select(c.path, cx); if (this.part === "side") this.save({ editing: c.id }); else { this.comment.edit(c); cx.notify(); } })
               .child(v_flex().flex_1().min_w(0)
                 .child(div().truncate().text_size(11).text_color(t.muted).child(`${basename(c.path)}:${c.start}${c.end !== c.start ? `-${c.end}` : ""}`))
                 .child(div().truncate().child(c.body.split("\n")[0])))
-              .child(iconButton(`rv-cdel-${i}`, "x", T("Delete"), (_e, cx) => this.deleteComment(c.id, cx), { size: 18, icon: 12 }))))))
+              .child(iconButton(`rv-cdel-${i}`, "x", T("Delete"), (_e, cx) => { this.comment.remove(this.rkey(), c.id); cx.notify(); }, { size: 18, icon: 12 }))))))
       .child(v_flex().flex_none().p(10).gap(8).border_t(1).border_color(t.border)
         .child(h_flex().id("rv-target").h(26).px(8).gap(6).items_center().rounded(5).border_1().border_color(t.border).text_size(12).cursor_pointer()
           .hover((e) => e.bg(t.hover)).tooltip(T("Where the review goes: click for the next terminal in this space"))
@@ -527,8 +590,8 @@ export default class Review {
   diff(t) {
     const font = settings().font_family ?? "JetBrains Mono";
     const items = this.view();
-    const sizes = items.map((it) => it.type === "comment" ? 34 + Math.min(12, it.c.body.split("\n").reduce((n, l) => n + Math.max(1, Math.ceil(l.length / 110)), 0)) * 18 : it.r.kind === "@" ? 26 : 20);
-    const c = this.composer;
+    const sizes = items.map((it) => it.type === "comment" ? commentHeight(it.c) : it.r.kind === "@" ? 26 : 20);
+    const c = this.comment.draft;
     const inRange = (it) => {
       const r = it.r;
       if (r.kind === "@") return false;
@@ -546,14 +609,15 @@ export default class Review {
         button("rv-comment", T("Comment"), (_e, cx) => this.selectRows(this.cur, this.cur, cx), { tip: T("Comment on the selected line (or click its line number)") })))
       .child(iconButton("rv-full", "eye", this.full ? T("Show changes only") : T("Show the whole file"), (_e, cx) => { this.full = !this.full; cx.spawn(async (cx) => { await this.loadDiff(cx); cx.notify(); }); }, { color: this.full ? t.accent : undefined }))
       .when(Boolean(file) && file.status !== "D", (e) => e.child(iconButton("rv-open", "external", T("Open the file"), () => this.openFile(this.selected, c?.start ?? lineOf(this.rows.find((r) => r.kind === "+") ?? {}) ?? 1))));
+    const measure = measureFont(this, font, FONT);
     let body;
     if (this.error) body = div().p(16).text_color(t.dim).child(this.error);
     else if (!this.selected) body = div().p(16).text_color(t.dim).child(this.loading ? T("Loading…") : T("No changes against {base}.", { base: this.base ?? "" }));
     else if (this.binary) body = div().p(16).text_color(t.dim).child(T("No text diff (binary, empty, or only a mode change)."));
-    else body = div().flex_1().min_h(0).relative().font_family(font).text_size(12.5)
+    else body = div().flex_1().min_h(0).relative().font_family(font).text_size(FONT)
       .child(div().id("rv-x").size_full().overflow_x_scrollbar()
         .child(div().id("rv-wide").min_w(this.width ?? 400).w_full().h_full()
-          .on_mouse_down("left", (e) => { this.shift = Boolean(e.modifiers?.shift); this.pressX = e.local_position?.x ?? 0; })
+          .on_mouse_down("left", (e) => { this.shift = Boolean(e.modifiers?.shift); this.pressX = e.local_position?.x ?? 0; this.pressMods = e.modifiers ?? {}; })
           .child(v_virtual_list("rv-diff", items.length, sizes, (i) => items[i].type === "comment" ? `c:${items[i].c.id}` : `r:${items[i].i}`, (range) => {
             const out = [];
             for (let i = range.start; i < range.end; i++) out.push(this.item(items[i], t, inRange));
@@ -561,27 +625,26 @@ export default class Review {
           }).size_full().track_scroll(this.scroll)
             .on_item_click((k, cx) => {
               const it = k.startsWith("c:") ? items.find((x) => x.type === "comment" && x.c.id === k.slice(2)) : items.find((x) => x.type === "row" && x.i === +k.slice(2));
-              if (it) this.clickRow(it, cx, this.shift, this.pressX ?? 0);
+              if (it) this.clickRow(it, cx, this.shift, this.pressX ?? 0, this.pressMods);
             }))))
       .child(Scrollbar.vertical("rv-diff").absolute().inset_0());
     return v_flex().flex_1().min_w(0).h_full().bg(t.background)
       .child(header)
+      .child(measure)
       .child(body)
-      .child(this.composerPanel(t) ?? div());
+      .child(this.comment.panel(t, this.rkey(), (cx) => { this.anchor = null; cx.notify(); }) ?? this.lspPanel(t) ?? div());
   }
 
   item(it, t, inRange) {
     if (it.type === "comment") {
-      const c = it.c;
-      return v_flex().w_full().px(16).py(5).flex_none()
-        .child(v_flex().px(10).py(6).gap(2).rounded(6).border_1().border_color(t.accent + "66").bg(t.accent + "12").font_family(settings().ui_font ?? "Geist").text_size(12.5)
-          .child(div().text_size(11).text_color(it.stale && c.kind !== "file" ? t.ansi3 : t.muted).child(`${it.stale ? (c.kind === "file" ? T("File comment · ") : T("Outdated · ")) : ""}${c.side === "old" ? T("removed ") : ""}${c.end !== c.start ? T("lines {start}-{end} · click to edit", c) : T("line {start} · click to edit", c)}`))
-          .child(div().whitespace_normal().child(c.body)));
+      const file = it.c.kind === "file";
+      return commentCard(t, it.c, { prefix: it.stale ? (file ? T("File comment · ") : T("Outdated · ")) : "", warn: it.stale && !file });
     }
     const r = it.r;
     if (r.kind === "@") return h_flex().w_full().h(26).px(12).gap(8).flex_none().items_center().bg(t.raised).text_color(t.dim)
       .child(div().flex_none().child(r.text.replace(/@@(.*)@@.*/, "@@$1@@"))).child(div().text_color(t.muted).child(r.ctx ?? ""));
     const num = (n) => div().w(44).flex_none().text_right().text_color(t.dim).cursor_pointer().child(n === undefined ? "" : String(n));
+    const colors = syntaxColors(t);
     const picked = inRange(it);
     return h_flex().w_full().h(20).flex_none().gap(8).whitespace_nowrap()
       .when(r.kind === "+", (e) => e.bg(t.ansi2 + "1f")).when(r.kind === "-", (e) => e.bg(t.ansi1 + "1f"))
@@ -590,28 +653,13 @@ export default class Review {
       .child(div().w(3).h_full().flex_none().when(picked, (e) => e.bg(t.accent)))
       .child(num(r.a)).child(num(r.b))
       .child(div().w(12).flex_none().text_color(r.kind === "+" ? t.ansi2 : r.kind === "-" ? t.ansi1 : t.dim).child(r.kind === " " ? "" : r.kind))
-      .child(div().flex_none().child(expandTabs(r.text) || " "));
-  }
-
-  composerPanel(t) {
-    const c = this.composer;
-    if (!c) return null;
-    return v_flex().flex_none().p(10).gap(8).border_t(1).border_color(t.border).bg(t.chrome)
-      .child(h_flex().gap(8).items_center().text_size(12)
-        .child(icon("message", 13).text_color(t.accent))
-        .child(div().flex_1().min_w(0).truncate().text_color(t.muted)
-          .child(`${T(c.id ? "Edit comment on {where}" : "Comment on {where}", { where: `${c.path}:${c.start}${c.end !== c.start ? `-${c.end}` : ""}` })}${c.side === "old" ? T(" (removed)") : ""}${T("  ·  Shift+click a line number for a range")}`)))
-      .child(Textarea.new(this.box))
-      .child(h_flex().gap(6).justify_end()
-        .when(Boolean(c.id), (e) => e.child(button("rv-c-del", T("Delete"), (_e, cx) => this.deleteComment(c.id, cx))))
-        .child(button("rv-c-cancel", T("Cancel"), (_e, cx) => { this.composer = null; this.anchor = null; this.box.set_value(""); cx.notify(); }))
-        .child(button("rv-c-save", c.id ? T("Update") : T("Add comment"), (_e, cx) => this.saveComment(cx), { solid: true, tip: "Cmd+Enter" })));
+      .child(h_flex().flex_none().children(colorize(r.text, r.b !== undefined ? this.newToks?.[r.b - 1] : this.oldToks?.[r.a - 1], colors)));
   }
 
   render(cx) {
     const t = theme();
     const { cwd, on } = location();
-    if (`${on ?? ""}:${cwd}` !== this.context && !this.loading) cx.timer.after(0, (cx) => this.refresh(cx));
+    if (`${on ?? ""}:${cwd}` !== this.context && !this.loading) cx.timer.after(0, (cx) => this.refresh(cx, Boolean(this.root)));
     else this.syncStore(cx);
     // The diff half tells the tab strip which file it shows (a tab per reviewed file).
     const space = spaces().find((s) => s.active)?.id ?? null;
@@ -623,8 +671,10 @@ export default class Review {
     }
     return h_flex().id("codenav-review").size_full().min_h(0).bg(t.background).text_color(t.foreground).text_size(13)
       .on_key_down((e, cx) => {
-        if (e.keystroke === "cmd-enter" || e.keystroke === "ctrl-enter") { this.saveComment(cx); cx.stop_propagation(); }
-        else if (e.keystroke === "escape" && this.composer) { this.composer = null; this.anchor = null; cx.notify(); cx.stop_propagation(); }
+        if (this.comment.key(e, this.rkey())) this.anchor = null;
+        else if (e.keystroke === "escape" && this.lspSel) this.lspSel = null;
+        else return;
+        cx.notify(); cx.stop_propagation();
       })
       .when(this.part !== "main", (e) => e.child(this.sidebar(t)))
       .when(this.part !== "side", (e) => e.child(this.diff(t)));

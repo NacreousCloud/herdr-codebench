@@ -3,12 +3,12 @@
 // keeps the editor stack on the right child: the code view for source files,
 // the activity editor for pictures, PDFs and edits, or the review.
 // Right-click a tab for Close / Close Others / Close All; Cmd+W in the code
-// view closes the shown tab.
+// view closes the shown tab (the status item takes the command).
 import { div } from "gpui-kit";
 import { T } from "./i18n.js";
 import { h_flex, v_flex } from "gpui-base";
-import { theme, shared, setShared, layout, run, nextCommand, spaces, openOverlay, closeOverlay, props } from "herdr";
-import { icon, iconButton, find, STACK, AREA, editorSpec, editorKey, setEditorSpec, wantedChild, showReview, basename } from "./common.js";
+import { theme, shared, setShared, layout, run, spaces, openOverlay, closeOverlay, props } from "herdr";
+import { icon, iconButton, find, STACK, AREA, editorSpec, editorKey, setEditorSpec, wantedChild, showReview, basename, location } from "./common.js";
 
 const KEY = "codenav.tabs";
 const MAX = 20;
@@ -61,20 +61,11 @@ function closeTabs(ids) {
   run("layout.hide", { id: AREA });
 }
 export const closeTab = (id) => closeTabs([id ?? activeId()].filter(Boolean));
-export const closeOthers = (id) => { const keep = tabsNow().find((x) => x.id === id); closeTabs(tabsNow().filter((x) => x.id !== id).map((x) => x.id)); if (keep) openTab(keep); };
-export const closeAll = () => closeTabs(tabsNow().map((x) => x.id));
+const closeOthers = (id) => { const keep = tabsNow().find((x) => x.id === id); closeTabs(tabsNow().filter((x) => x.id !== id).map((x) => x.id)); if (keep) openTab(keep); };
+const closeAll = () => closeTabs(tabsNow().map((x) => x.id));
 
 export default class Tabs {
-  init(_p, cx) {
-    cx.spawn(async (cx) => {
-      for (;;) {
-        const c = await nextCommand();
-        if (c === "review") showReview();
-        else if (c === "close-tab") closeTab();
-        cx.notify();
-      }
-    });
-  }
+  init() {}
 
   // What the sidebar opened becomes a tab; opening a file while the review
   // shows goes back to the editor; the stack follows.
@@ -126,7 +117,14 @@ export default class Tabs {
         .when(count > 0, (e) => e.child(div().px(5).h(15).flex().items_center().rounded(8).bg(t.accent).text_color(t.accent_foreground).text_size(10).font_bold().child(String(count))))
         .child(iconButton(`cn-tab-x-${i}`, "x", T("Close (Cmd+W)"), () => closeTab(x.id), { size: 16, icon: 11 }));
     };
-    const list = tabsNow();
+    // A review tab shows only where its repository is (the focused folder inside it).
+    const { cwd, on } = location();
+    const here = (x) => {
+      if (x.type !== "review") return true;
+      const at = x.rkey.indexOf(":"), host = x.rkey.slice(0, at), root = x.rkey.slice(at + 1);
+      return host === (on ?? "") && Boolean(cwd) && (cwd + "/").startsWith(root + "/");
+    };
+    const list = tabsNow().filter(here);
     return h_flex().id("codenav-tabs").size_full().pr(6).items_center().bg(t.chrome).border_b(1).border_color(t.border)
       .child(h_flex().id("cn-tabs-scroll").flex_1().min_w(0).h_full().overflow_x_scrollbar()
         .children(list.length ? list.map(tab) : [div().px(12).text_size(12).text_color(t.dim).child(T("Editor"))]))

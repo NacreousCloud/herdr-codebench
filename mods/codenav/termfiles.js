@@ -10,7 +10,7 @@ import { openPath, tilde, basename } from "./common.js";
 // "src/a.kt:42:5", "src/a.kt(42,5)", "src/a.kt#L42", "file:///x/a.kt", "~/a.kt", "./a.kt".
 const PATH = /(?:file:\/\/)?(?:~|\.{1,2})?\/?(?:[\w.@+-]+\/)*[\w.@+-]+\.[A-Za-z][\w]{0,9}(?:(?::\d+(?::\d+)?)|(?:\(\d+(?:,\d+)?\))|(?:#L\d+))?/g;
 
-export function parsePath(raw) {
+function parsePath(raw) {
   let s = raw.trim().replace(/^[`'"(<\[]+|[`'">\],.;:]+$/g, "").replace(/^file:\/\//, "");
   // A closing parenthesis stays only as "(line,col)".
   if (s.endsWith(")") && !/\(\d+(?:,\d+)?\)$/.test(s)) s = s.slice(0, -1);
@@ -21,7 +21,7 @@ export function parsePath(raw) {
 }
 
 // Every path-looking word in some text, last ones first, without repeats.
-export function pathsIn(text) {
+function pathsIn(text) {
   const seen = new Set(), out = [];
   // Web addresses aren't files.
   const found = [...text.replace(/\b[a-z][\w+.-]*:\/\/(?!\/)\S+/gi, " ").matchAll(PATH)].map((m) => m[0]).reverse();
@@ -35,19 +35,20 @@ export function pathsIn(text) {
   return out;
 }
 
-// Where a terminal is: its live folder, its machine and its repository.
+// Where a terminal is: its live folder, its machine, its repository and that machine's home.
 async function placeOf(terminal) {
   const pane = panes().find((p) => p.terminal === terminal);
   const on = terminal?.includes("/") ? terminal.split("/")[0] : null;
   const cwd = pane?.cwd ?? terminals().find((t) => t.address === terminal)?.cwd ?? null;
   const top = cwd ? await exec("git", ["rev-parse", "--show-toplevel"], { cwd, on }).catch(() => null) : null;
-  return { cwd, on, repo: top?.code === 0 ? top.stdout.trim() : null };
+  const home = await exec("sh", ["-c", 'printf %s "$HOME"'], { on }).catch(() => null);
+  return { cwd, on, repo: top?.code === 0 ? top.stdout.trim() : null, home: home?.stdout ?? "" };
 }
 
 // The candidates that are files there, as absolute paths (one round trip).
 const EXISTING = 'for p in "$@"; do [ -f "$p" ] && printf "%s\\n" "$p"; done; true';
 async function resolve(list, place) {
-  const home = place.home ?? "";
+  const home = place.home;
   const tries = list.map((p) => {
     if (p.path.startsWith("/")) return [p.path];
     if (p.path.startsWith("~/")) return [`${home}${p.path.slice(1)}`];
@@ -97,7 +98,6 @@ async function openSelection(target, sleep) {
   const after = await exec("pbpaste").catch(() => null);
   const text = (after?.stdout ?? "").trim();
   const place = await placeOf(target.terminal);
-  place.home = (await exec("sh", ["-c", "printf %s \"$HOME\""], { on: place.on }).catch(() => null))?.stdout ?? "";
   const found = text && text.length < 2000 ? await resolve(pathsIn(text).slice(0, 5).concat(parsePath(text) ? [parsePath(text)] : []), place) : [];
   if (!found.length) {
     notify({ title: T("Select a file path first"), body: before?.stdout === after?.stdout ? T("Nothing new was selected in the terminal") : text.slice(0, 80), level: "warning", timeout: 3000 });
@@ -182,7 +182,6 @@ export class TermFiles {
       try {
         const place = await placeOf(terminal);
         this.place = place;
-        place.home = (await exec("sh", ["-c", "printf %s \"$HOME\""], { on: place.on }).catch(() => null))?.stdout ?? "";
         const r = await hc(["read", terminal, "--lines", "800"]);
         this.files = await resolve(pathsIn(r.stdout ?? "").slice(0, 400), place);
       } catch (e) { this.error = String(e.message ?? e); this.files = []; }
