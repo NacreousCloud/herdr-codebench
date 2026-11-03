@@ -22,6 +22,7 @@ import hmac
 import json
 import secrets
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -521,8 +522,73 @@ def flatten_symbols(items, depth=0, out=None):
     return out
 
 
+HTTP_METHOD = re.compile(r"^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS|TRACE|CONNECT|WEBSOCKET|GRPC|GRAPHQL)(\s+)(.*)$")
+HTTP_PIECES = {
+    "url": re.compile(r"(\{\{[^}]*\}\})|(\sHTTP/[\d.]+)"),
+    "json": re.compile(r'(\{\{[^}]*\}\})|("(?:[^"\\]|\\.)*")(\s*:)?|(-?\b\d+(?:\.\d+)?\b)|\b(true|false|null)\b'),
+    "js": re.compile(r'("(?:[^"\\]|\\.)*"|\'(?:[^\'\\]|\\.)*\'|`[^`]*`)|\b(const|let|var|function|return|if|else|for|while|new|true|false|null|undefined|import|from|await|async)\b|\b(client|response|request|crypto)\b|(//.*$)'),
+}
+HTTP_CATS = {"url": [None, "constant", "keyword"], "json": [None, "constant", "string", "punctuation", "number", "keyword"],
+             "js": [None, "string", "keyword", "builtin", "comment"]}
+
+
+def http_spans(line, kind):
+    """A line cut into [utf16_length, category] by one of HTTP_PIECES."""
+    out, at = [], 0
+    for m in HTTP_PIECES[kind].finditer(line):
+        if m.start() > at:
+            out.append([utf16_len(line[at:m.start()]), ""])
+        for g in range(1, (m.lastindex or 0) + 1):
+            if m.group(g) is None:
+                continue
+            cat = HTTP_CATS[kind][g]
+            # a JSON string followed by ":" is a key
+            if kind == "json" and g == 2 and m.group(3):
+                cat = "property"
+            out.append([utf16_len(m.group(g)), "punctuation" if (kind == "json" and g == 3) else cat])
+        at = m.end()
+    if at < len(line):
+        out.append([utf16_len(line[at:]), ""])
+    return out
+
+
+def http_tokens(text):
+    """IntelliJ-like colors for .http files: ### names, comments, the request line,
+    headers, {{variables}}, JSON bodies and {% %} scripts."""
+    lines, state, script = [], "head", False
+    for line in text.split("\n"):
+        stripped = line.strip()
+        if script:
+            lines.append(http_spans(line, "js") if "%}" not in line else [[utf16_len(line), "punctuation"]])
+            script = "%}" not in line
+            continue
+        if stripped.startswith("###"):
+            lines.append([[utf16_len(line), "decorator"]]); state = "head"; continue
+        if stripped.startswith("#") or stripped.startswith("//"):
+            lines.append([[utf16_len(line), "comment"]]); continue
+        if re.match(r"^[<>]\s*\{%", stripped):
+            lines.append([[utf16_len(line), "punctuation"]]); script = "%}" not in stripped[3:]; continue
+        if re.match(r"^<\s+\S", stripped) or re.match(r"^>>!?\s", stripped):
+            lines.append([[utf16_len(line), "string"]]); continue
+        m = HTTP_METHOD.match(line)
+        if state == "head" and m:
+            lines.append([[utf16_len(m.group(1)), "keyword"], [utf16_len(m.group(2)), ""]] + http_spans(m.group(3), "url"))
+            state = "headers"; continue
+        if state == "headers":
+            if not stripped:
+                lines.append([]); state = "body"; continue
+            h = re.match(r"^([A-Za-z0-9-]+)(\s*:)(.*)$", line)
+            if h:
+                lines.append([[utf16_len(h.group(1)), "property"], [utf16_len(h.group(2)), "punctuation"]] + http_spans(h.group(3), "url"))
+                continue
+        lines.append(http_spans(line, "json") if state == "body" else http_spans(line, "url"))
+    return lines
+
+
 def tokens(text, path):
     """Syntax colors per line: [[utf16_length, category], ...] with pygments, or None."""
+    if path.lower().endswith((".http", ".rest")):
+        return http_tokens(text)
     try:
         from pygments.lexers import get_lexer_for_filename
         from pygments.util import ClassNotFound

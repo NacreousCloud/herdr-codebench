@@ -82,7 +82,7 @@ export function httpBar(t, view, cx) {
   const btn = (id, children, tip, action) => h_flex().id(id).h(26).px(7).gap(6).flex_none().items_center().rounded(5).cursor_pointer()
     .hover((s) => s.bg(t.hover)).tooltip(tip).on_mouse_down("left", (_e, cx) => cx.stop_propagation()).on_click(() => action()).children(children);
   return h_flex().h(34).flex_none().px(10).gap(6).items_center().border_b(1).border_color(t.border).bg(t.chrome).text_size(12.5)
-    .child(btn("http-all", [toolImage("runAction", 15), toolImage("runAction", 15).ml(-9)], T("Run All Requests in File"),
+    .child(btn("http-all", [toolImage("runAll", 16)], T("Run All Requests in File"),
       () => runHttp(view.shown.path, view.lines, h.envs, null, () => view.showTerminal())))
     .child(div().w(1).h(16).mx(4).bg(t.input))
     .child(div().text_color(t.muted).child(T("Run with:")))
