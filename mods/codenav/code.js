@@ -2,7 +2,7 @@
 // server help. Click a name for its type and docs, Cmd+click (F12) to go to its
 // definition, Shift+F12 for references, an outline of the file's symbols,
 // diagnostics in the gutter and under the code (hover for the message), Cmd+F
-// to find, Cmd+- / Cmd+Shift+- (and the header arrows) for the tabs shown
+// to find, Ctrl+- / Ctrl+Shift+- (and the header arrows) for the tabs shown
 // before, Alt+Left / Alt+Right for the jumps inside the file. "Edit" hands the file to the activity editor. Clicking a line
 // number starts a comment (Shift+click for a range); comments join the
 // repository's review comments (comments.js) and show inline. The gutter marks
@@ -405,8 +405,8 @@ export default class CodeView {
     else if (k === "cmd-f" || k === "ctrl-f") { this.finding = true; this.find.focus(); }
     else if (k === "cmd-shift-o") this.outline = !this.outline;
     else if (k === "cmd-c" || k === "ctrl-c") this.copy();
-    else if (k === "cmd--") tabBack();
-    else if (k === "cmd-shift--" || k === "cmd-_") tabForward();
+    else if (k === "ctrl--") tabBack();
+    else if (k === "ctrl-shift--" || k === "ctrl-_") tabForward();
     else if (k === "alt-left") this.goBack(cx);
     else if (k === "alt-right") this.goForward(cx);
     else if (k === "escape") { this.refs = null; this.hover = null; this.selection = null; this.finding = false; this.focus.focus(); }
@@ -524,8 +524,8 @@ export default class CodeView {
         info.state === "ready" ? t.ansi2 : t.ansi3, `${info.lang} · ${tilde(info.root)}${info.busy?.length ? ` · ${info.busy.join(", ")}` : ""}`);
     const errors = this.diags.filter((d) => d.severity === 1).length, warnings = this.diags.filter((d) => d.severity === 2).length;
     return h_flex().h(34).flex_none().pl(8).pr(6).gap(4).items_center().border_b(1).border_color(t.border).bg(t.chrome)
-      .child(iconButton("cn-back", "chevron-left", T("Previous tab (Cmd+-)"), () => tabBack(), { color: canStep(-1) ? t.muted : t.dim }))
-      .child(iconButton("cn-fwd", "chevron-right", T("Next tab (Cmd+Shift+-)"), () => tabForward(), { color: canStep(1) ? t.muted : t.dim }))
+      .child(iconButton("cn-back", "chevron-left", T("Previous tab (Ctrl+-)"), () => tabBack(), { color: canStep(-1) ? t.muted : t.dim }))
+      .child(iconButton("cn-fwd", "chevron-right", T("Next tab (Ctrl+Shift+-)"), () => tabForward(), { color: canStep(1) ? t.muted : t.dim }))
       .child(h_flex().flex_1().min_w(0).gap(5).items_center().overflow_hidden().text_size(12).text_color(t.muted)
         .children(crumbs.flatMap((c, i) => [i ? sep() : null, div().flex_none().when(i === crumbs.length - 1, (e) => e.text_color(t.foreground).font_semibold()).child(c)]).filter(Boolean))
         .children(scope.flatMap((sym, i) => [sep(), div().id(`cn-crumb-${i}`).flex_none().cursor_pointer().hover((e) => e.text_color(t.foreground))
