@@ -1,10 +1,10 @@
 // IntelliJ's HTTP Client for .http files in the code view: a green ▶ beside each
 // request, and above the file "Run All" and "Run with: <environment ▾>". Requests
-// run with the ijhttp CLI in their own terminal tab ("▶ HTTP"): one request is
-// written to a hidden file beside the .http file (its scripts' relative paths
-// keep working) and removed after. Environments come from http-client.env.json
-// and http-client.private.env.json, looked for from the file's folder up to the
-// repository; the chosen one is kept per folder in shared "codenav.httpEnv".
+// run with the ijhttp CLI in their own terminal tab ("▶ HTTP"), from a hidden
+// copy beside the .http file (its scripts' relative paths keep working) that
+// carries client.global over from earlier runs; the copy is removed after.
+// Environments come from http-client.env.json and http-client.private.env.json,
+// looked for from the file's folder up to the repository; the chosen one is kept per folder in shared "codenav.httpEnv".
 import { div } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
 import { theme, shared, setShared, props, closeOverlay, openOverlay, readTextFile, writeTextFile, exec } from "herdr";
@@ -57,21 +57,68 @@ export const chosenEnv = (path, envs) => { const e = store()[dirOf(path)]; retur
 const CONTROL = /[\u0000-\u001f\u007f]/;
 const sq = (x) => `'${String(x).replace(/'/g, `'\\''`)}'`;
 
+// client.global, kept between runs as IntelliJ keeps it (shared "codenav.httpGlobals",
+// by folder): each run starts by setting the values saved before, and its response
+// handlers name a passing test after the globals the file's scripts set (ijhttp
+// shows no client.log), read back from the run's JUnit report.
+const MARK = "@@CODENAV-GLOBALS ";
+const globalsStore = () => shared("codenav.httpGlobals") ?? {};
+const globalNames = (lines) => [...new Set([...lines.join("\n").matchAll(/client\.global\.set\(\s*["'`]([^"'`]+)["'`]/g)].map((m) => m[1]))];
+
+// One request's block with the saved globals set first and the named ones logged after.
+function withGlobals(block, saved, names, first) {
+  const out = [...block], method = out.findIndex((l) => METHOD.test(l));
+  if (method === -1) return out;
+  const sets = first ? Object.entries(saved).map(([k, v]) => `client.global.set(${JSON.stringify(k)}, ${JSON.stringify(v)});`) : [];
+  let at = method;
+  if (sets.length) {
+    const pre = out.findIndex((l, i) => i < method && /^<\s*\{%/.test(l));
+    if (pre === -1) { out.splice(method, 0, "< {%", ...sets, "%}"); at = method + sets.length + 2; }
+    else out.splice(pre + 1, 0, ...sets), at = method + sets.length;
+  }
+  if (names.length) {
+    const log = `client.test(${JSON.stringify(MARK)} + JSON.stringify({ ${names.map((n) => `${JSON.stringify(n)}: client.global.get(${JSON.stringify(n)})`).join(", ")} }), function () {});`;
+    const post = out.findIndex((l, i) => i > at && /^>\s*\{%/.test(l));
+    const close = post === -1 ? -1 : out.findIndex((l, i) => i >= post && /%\}\s*$/.test(l));
+    if (close === -1) out.push("", "> {%", log, "%}");
+    else if (close === post) out[close] = out[close].replace(/%\}\s*$/, `; ${log} %}`);
+    else out.splice(close, 0, log);
+  }
+  return out;
+}
+
+// A file nobody can guess the name of, with nothing (not even a link) there already.
+async function freshPath(dir, ext) {
+  const path = `${dir}/.codenav-${Math.random().toString(36).slice(2)}${Date.now().toString(36)}${ext}`;
+  const taken = await exec("sh", ["-c", '[ -e "$1" ] || [ -L "$1" ]', "sh", path]).catch(() => null);
+  return taken && taken.code !== 0 ? path : null;
+}
+
 // Runs one request (req) or the whole file.
 export async function runHttp(path, lines, envs, req, after) {
   const dir = dirOf(path), env = chosenEnv(path, envs);
   if ([path, envs.pub, envs.priv, env].some((x) => x && CONTROL.test(x))) return;
   const opts = ["ijhttp", "-L", "VERBOSE", "--no-progress", ...(env ? ["-e", sq(env)] : []), ...(envs.pub ? ["-v", sq(envs.pub)] : []), ...(envs.priv ? ["-p", sq(envs.priv)] : [])].join(" ");
-  let command = `${opts} ${sq(path)}`;
-  if (req) {
-    // A name nobody can guess, and nothing (not even a link) there already.
-    const tmp = `${dir}/.codenav-${Math.random().toString(36).slice(2)}${Date.now().toString(36)}.http`;
-    const taken = await exec("sh", ["-c", '[ -e "$1" ] || [ -L "$1" ]', "sh", tmp]).catch(() => null);
-    if (!taken || taken.code === 0) return;
-    await writeTextFile(tmp, lines.slice(req.start, req.end).join("\n") + "\n", null);
-    command = `${opts} ${sq(tmp)}; rm -f ${sq(tmp)}`;
+  const saved = globalsStore()[dir] ?? {}, names = globalNames(lines);
+  const reqs = req ? [req] : httpRequests(lines);
+  const text = [...(req ? [] : lines.slice(0, reqs[0]?.start ?? 0)), ...reqs.flatMap((r, i) => withGlobals(lines.slice(r.start, r.end), saved, names, i === 0))].join("\n") + "\n";
+  const tmp = await freshPath(dir, ".http"), report = tmp && await freshPath(dir, "");
+  if (!tmp || !report) return;
+  await writeTextFile(tmp, text, null);
+  runConfig({ name: "HTTP", command: `${opts} -r ${sq(report)} ${sq(tmp)}; rm -f ${sq(tmp)}`, folder: dir }, after);
+  // The run's report, once written: the globals it ended with.
+  const unxml = (x) => x.replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+  for (let i = 0; i < 900; i++) {
+    await exec("sleep", ["1"]).catch(() => {});
+    const out = await readTextFile(`${report}/report.xml`).catch(() => null);
+    if (out === null) continue;
+    const found = {};
+    for (const m of out.matchAll(/name="@@CODENAV-GLOBALS ([^"]*)"/g)) { try { Object.assign(found, JSON.parse(unxml(m[1]))); } catch {} }
+    for (const [k, v] of Object.entries(found)) if (v === null || v === undefined) delete found[k];
+    if (Object.keys(found).length) setShared("codenav.httpGlobals", { ...globalsStore(), [dir]: { ...saved, ...found } });
+    break;
   }
-  runConfig({ name: "HTTP", command, folder: dir }, after);
+  await exec("rm", ["-rf", report]).catch(() => {});
 }
 
 // Above the file: Run All, and the environment.
