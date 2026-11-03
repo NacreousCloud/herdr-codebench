@@ -68,7 +68,6 @@
               "size": {
                 "px": 32
               },
-              "hidden": true,
               "content": {
                 "mod": "codenav",
                 "props": {
@@ -306,7 +305,6 @@
               "size": {
                 "px": 32
               },
-              "hidden": true,
               "content": {
                 "mod": "codenav",
                 "props": {

@@ -13,6 +13,7 @@ import { showTerminalFiles } from "./termfiles.js";
 import { closeTab, tabBack, tabForward } from "./tabs.js";
 import { toggleTool, toggleAllTools, hideActiveTool, moveTool, arrange, savedSides, openToolSettings, TOOLS } from "./tools.js";
 import { openEverywhere } from "./everywhere.js";
+import { restartPending } from "./run.js";
 import { showReview, openPath } from "./common.js";
 import { followSpace } from "./memory.js";
 import { peek } from "./lsp.js";
@@ -66,6 +67,7 @@ export default class Status {
         else if (c.startsWith("tool-") && TOOLS[c.slice(5)]) toggleTool(c.slice(5));
         else if (c === "hide-tools") toggleAllTools();
         else if (c === "hide-active") hideActiveTool();
+        else if (c === "run-restart") restartPending(() => toggleTool("terminal", true));
         else if (c.startsWith("key:")) termKey(c.slice(4));
         else if (c.startsWith("move-")) { const [name, side] = c.slice(5).split(":"); if (TOOLS[name]) moveTool(name, side); }
         else if (c === "tool-settings") openToolSettings();

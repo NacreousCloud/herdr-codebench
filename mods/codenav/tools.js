@@ -12,6 +12,7 @@ import { T } from "./i18n.js";
 import { find, icon, iconButton, location, openPath, editorSpec, basename, tilde, sectionHeader } from "./common.js";
 import { KIND, kindColor } from "./code.js";
 import { openEverywhere } from "./everywhere.js";
+import { runStore, isRunning, runConfig, stopConfig, openRunConfigs } from "./run.js";
 import { ideaImage, symbolImage, toolImage } from "./ideaicons.js";
 
 export const TOOLS = {
@@ -122,17 +123,14 @@ export class Stripe {
       }))
       .child(toolImage(tool.idea, 20));
   }
-  // The terminal's tab strip goes with it: a left or right side shows its header
-  // only while the terminal shows there (the bottom one always shows).
+  // Every side shows its header (the same one, wherever the side is).
   syncBars(cx) {
     const l = layout();
-    for (const k of ["left", "right"]) {
+    for (const k of Object.keys(SIDES)) {
       const bar = find(l, SIDES[k].bar);
-      if (!bar) continue;
-      const want = find(l, SIDES[k].stack)?.active === TOOLS.terminal.child;
-      if (Boolean(bar.hidden) === !want || this.syncing?.[k] === want) continue;
-      this.syncing = { ...this.syncing, [k]: want };
-      cx.timer.after(0, () => { this.syncing = { ...this.syncing, [k]: undefined }; run(want ? "layout.show" : "layout.hide", { id: SIDES[k].bar }); });
+      if (!bar?.hidden || this.syncing?.[k]) continue;
+      this.syncing = { ...this.syncing, [k]: true };
+      cx.timer.after(0, () => { this.syncing = { ...this.syncing, [k]: false }; run("layout.show", { id: SIDES[k].bar }); });
     }
   }
   // Tool windows added after the layout was arranged join their default side once.
@@ -245,6 +243,19 @@ function ideaButton(id, name, tip, action) {
     .hover((s) => s.bg(t.hover)).tooltip(tip).on_click(() => action())).child(toolImage(name, 16));
 }
 
+// IntelliJ's run widget: the configuration (▾ picks or edits), run (rerun while it runs), stop, more.
+function runWidget(t) {
+  const st = runStore(), c = st.configs[st.selected] ?? st.configs[0], running = isRunning(c);
+  const showTerminal = () => toggleTool("terminal", true);
+  const menu = () => openOverlay({ mod: "codenav", props: { view: "runmenu" }, kind: "popup", width: 320, height: Math.min(360, 60 + st.configs.length * 32) });
+  if (!c) return widget("tb-run-add", t, [toolImage("runAction", 16), div().text_color(t.muted).child(T("Add Configuration…"))], () => openRunConfigs());
+  return h_flex().gap(2).items_center()
+    .child(widget("tb-run-config", t, [toolImage("run", 15), div().text_color(t.foreground).max_w(200).truncate().child(c.name), icon("chevron-down", 12).text_color(t.muted)], menu))
+    .child(ideaButton("tb-run", running ? "rerunAction" : "runAction", running ? T("Rerun '{name}'", { name: c.name }) : T("Run '{name}'", { name: c.name }), () => runConfig(c, showTerminal)))
+    .when(running, (e) => e.child(ideaButton("tb-stop", "stopAction", T("Stop '{name}'", { name: c.name }), () => stopConfig(c))))
+    .child(ideaButton("tb-run-more", "moreVertical", T("More"), menu));
+}
+
 export class Toolbar {
   init() {}
   render() {
@@ -258,13 +269,16 @@ export class Toolbar {
         div().text_color(t.foreground).max_w(220).truncate().child(space.branch), icon("chevron-down", 12).text_color(t.muted)],
         () => openOverlay({ mod: "codenav", props: { view: "branches" }, kind: "popup", width: 320, height: 420 }))))
       .child(div().flex_1())
+      .child(runWidget(t))
+      .child(div().w(8))
       .child(ideaButton("tb-everywhere", "search", T("Search Everywhere (Double Shift)"), () => openEverywhere("all")))
       .child(ideaButton("tb-tools", "layout", T("Tool Window Settings…"), () => openToolSettings()))
       .child(ideaButton("tb-settings", "settings", T("Settings"), () => run("app.settings")));
   }
 }
 
-// -- a side's header: the terminal's tabs when it shows, then hide (left and right show it only for the terminal).
+// -- a side's header, the same on every side: the tool window's name, what it adds (the
+// terminal's tabs, Problems' and Notifications' summaries), then hide.
 export class ToolHeader {
   init(p) { this.side = SIDES[p?.side] ? p.side : "bottom"; }
   tab(c, t) {
@@ -283,7 +297,10 @@ export class ToolHeader {
     const t = theme(), side = SIDES[this.side];
     const active = toolsOn(this.side).find((n) => find(layout(), side.stack)?.active === TOOLS[n].child);
     const tabs = spaces().find((s) => s.active)?.tabs ?? [];
-    return h_flex().size_full().min_w(0).pl(6).pr(6).gap(2).items_center().bg(t.chrome).border_b(1).border_color(t.border)
+    return h_flex().size_full().min_w(0).pl(10).pr(6).gap(6).items_center().bg(t.chrome).border_b(1).border_color(t.border)
+      .when(Boolean(active), (e) => e.child(stopPress(div().id(`th-title-${this.side}`).flex_none().text_size(12.5).font_semibold().text_color(t.foreground)
+        .on_mouse_down("right", (_e, cx) => { cx.stop_propagation(); openOverlay({ mod: "codenav", props: { view: "toolmenu", name: active }, kind: "popup", width: 220, height: 214 }); })
+        .child(T(TOOLS[active].label)))))
       .child(h_flex().id(`th-tabs-${this.side}`).flex_1().min_w(0).h_full().gap(2).items_center().overflow_x_scrollbar()
         .when(active === "terminal", (e) => e.children(tabs.map((c) => this.tab(c, t)))
           .child(iconButton(`th-new-${this.side}`, "plus", T("New Terminal or Agent"), () => openOverlay({ mod: "new-menu", kind: "popup", width: 250, height: 512 }))))
@@ -304,7 +321,6 @@ export class Structure {
     const items = (syms?.items ?? []).filter((s) => s.kind !== "variable" || s.depth === 0);
     const current = caret ? [...items].reverse().find((s) => s.start <= caret.line && caret.line <= s.end && s.kind !== "variable") : null;
     return v_flex().size_full().bg(t.chrome).text_color(t.foreground)
-      .child(sectionHeader(T("Structure")))
       .child(!syms || !items.length ? div().px(12).text_size(12).text_color(t.dim)
         .child(!editorSpec() ? T("Open a file to see its structure.") : !syms ? T("Waiting for the language server…") : T("No structure for this file."))
         : div().id("tw-structure").flex_1().min_h(0).overflow_y_scrollbar().pb(8)

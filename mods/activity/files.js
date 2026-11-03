@@ -404,7 +404,7 @@ export default class Files {
     const openPath = editorSpec()?.path;
     const root = this.context?.root ?? this.context?.cwd;
     return v_flex().id("activity-files").size_full().min_h(0).bg(t.chrome).text_color(t.foreground).text_size(13)
-      .child(viewHeader(shared("layout") === "idea" ? "Project" : "Explorer", [
+      .child(viewHeader(shared("layout") === "idea" ? "" : "Explorer", [
         iconButton("files-new", "file-plus", T("New File…"), () => { const t = this.target(); if (t) openDialog("new-file", t); }),
         iconButton("files-newdir", "folder-plus", T("New Folder…"), () => { const t = this.target(); if (t) openDialog("new-folder", t); }),
         iconButton("files-refresh", "refresh", T("Refresh"), (_e, cx) => this.refresh(cx)),

@@ -122,7 +122,7 @@ export function iconButton(id, name, tip, action, opts = {}) {
 export function viewHeader(title, actions = []) {
   const t = theme();
   return h_flex().h(34).flex_none().pl(14).pr(8).gap(2).items_center()
-    .child(div().flex_1().min_w(0).truncate().text_size(11).font_semibold().text_color(t.muted).child(T(title).toUpperCase()))
+    .child(div().flex_1().min_w(0).truncate().text_size(11).font_semibold().text_color(t.muted).child(title ? T(title).toUpperCase() : ""))
     .children(actions);
 }
 
