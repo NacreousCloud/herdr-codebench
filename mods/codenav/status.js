@@ -68,6 +68,7 @@ export default class Status {
         else if (c === "hide-tools") toggleAllTools();
         else if (c === "hide-active") hideActiveTool();
         else if (c === "run-configs") openRunConfigs();
+        else if (c === "show-terminal") toggleTool("terminal", true);
         else if (c === "run-restart") restartPending(() => toggleTool("terminal", true));
         else if (c.startsWith("key:")) termKey(c.slice(4));
         else if (c.startsWith("move-")) { const [name, side] = c.slice(5).split(":"); if (TOOLS[name]) moveTool(name, side); }

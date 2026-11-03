@@ -22,10 +22,11 @@ import PaneHead from "./panehead.js";
 import { Stripe, ToolMenu, ToolSettings, ToolEmpty, ToolHeader, Notifications, Toolbar, Structure, Problems, Crumbs, Projects } from "./tools.js";
 import { Everywhere } from "./everywhere.js";
 import { RunMenu, RunConfigs } from "./run.js";
+import { HttpEnvMenu } from "./http.js";
 
 const VIEWS = { code: CodeView, review: Review, tabs: Tabs, status: Status, tabmenu: TabMenu, termfiles: TermFiles, termmenu: TermMenu, panehead: PaneHead,
   stripe: Stripe, notifications: Notifications, toolmenu: ToolMenu, toolsettings: ToolSettings, toolempty: ToolEmpty, toolheader: ToolHeader, toolbar: Toolbar, structure: Structure, problems: Problems, crumbs: Crumbs,
-  projects: Projects, everywhere: Everywhere, runmenu: RunMenu, runconfigs: RunConfigs };
+  projects: Projects, everywhere: Everywhere, runmenu: RunMenu, runconfigs: RunConfigs, httpenv: HttpEnvMenu };
 
 export default class CodeNav extends View {
   init(initProps, cx) {

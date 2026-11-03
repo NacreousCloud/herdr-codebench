@@ -20,6 +20,8 @@ import { CommentBox, commentCard, commentHeight, commentsOf, repoKey } from "./c
 import { Scroller } from "./scroller.js";
 import { tabBack, tabForward } from "./tabs.js";
 import { openEverywhere } from "./everywhere.js";
+import { toolImage } from "./ideaicons.js";
+import { isHttp, httpRequests, httpEnvs, runHttp, httpBar } from "./http.js";
 import {
   iconButton, button, editorKey, editorSpec, setEditorSpec, CHILD, STACK, hasArea, measureFont,
   syntaxColors, expandTabs, displayWidth, offsetAt, wordAt, tilde, sectionHeader, copyText, find, emptyEditor, doubleShift, codeFont,
@@ -92,6 +94,8 @@ export default class CodeView {
         const top = await exec("git", ["rev-parse", "--show-toplevel"], { cwd: dir, on: spec.on }).catch(() => null);
         if (!alive()) return;
         this.repo = top?.code === 0 ? top.stdout.trim() : null;
+        this.http = isHttp(spec.path) && !spec.on ? { envs: await httpEnvs(spec.path, this.repo) } : null;
+        if (!alive()) return;
         await this.loadChanges(spec, alive);
         cx.notify();
         // Colors first (fast), then the language server.
@@ -431,6 +435,17 @@ export default class CodeView {
     }
   }
 
+  // .http files: their requests, and running one.
+  httpLines() {
+    if (!this.http || !isHttp(this.shown?.path)) { this.httpLine = null; return; }
+    if (this.httpFor !== this.lines) { this.httpFor = this.lines; this.httpReqs = httpRequests(this.lines); this.httpLine = new Set(this.httpReqs.map((r) => r.line)); }
+  }
+  showTerminal() { run("codenav.show-terminal"); }
+  runRequest(line) {
+    const req = this.httpReqs?.find((r) => r.line === line);
+    if (req) runHttp(this.shown.path, this.lines, this.http.envs, req, () => this.showTerminal());
+  }
+
   // Markdown: the rendered page (rich view) or the source with comments, per file.
   isMarkdown() { return /\.(md|markdown|mdx)$/i.test(this.shown?.path ?? ""); }
   richView() { return this.isMarkdown() && Boolean(this.rich?.has(this.shown.path)); }
@@ -558,7 +573,9 @@ export default class CodeView {
       .child(h_flex().w(this.gutter()).h_full().flex_none().items_center().pr(12).cursor_pointer()
         .child(this.changeMark(i, t))
         .child(div().w(3).h_full().flex_none().when(Boolean(picked) || this.commented?.has(i + 1), (e) => e.bg(picked ? t.accent : t.accent + "88")))
-        .child(div().w(18).flex_none().flex().justify_center()
+        .child(this.httpLine?.has(i) ? div().id(`cn-http-${i}`).w(18).flex_none().flex().justify_center().cursor_pointer()
+          .tooltip(T("Run request")).on_mouse_down("left", (_e, cx) => { cx.stop_propagation(); this.runRequest(i); })
+          .child(toolImage("runAction", 14)) : div().w(18).flex_none().flex().justify_center()
           .when(worst > 0, (e) => e.id(`cn-dg-${i}`).tooltip(problemText(diags)).child(div().size(7).rounded_full().bg(worst === 1 ? t.ansi1 : worst === 2 ? t.ansi3 : t.ansi4))))
         .child(div().flex_1().text_right().text_color(current ? t.foreground : t.dim).child(String(i + 1))))
       .child(h_flex().pl(PAD).h_full().items_center().flex_none().children(children.length ? children : [div().child(" ")]));
@@ -687,6 +704,7 @@ export default class CodeView {
 
   render(cx) {
     this.sync(cx);
+    this.httpLines();
     this.publish(cx);
     const t = theme(), s = this.shown, font = codeFont().family;
     const colors = syntaxColors(t);
@@ -711,6 +729,7 @@ export default class CodeView {
       .track_focus(this.focus).on_key_down((e, cx) => this.keyDown(e, cx)).on_modifiers_changed((e) => this.modifiers(e))
       .child(measure)
       .child(this.header(t))
+      .child((this.http && httpBar(t, this, cx)) ?? div())
       .child(this.findBar(t) ?? div())
       .child(body);
   }
