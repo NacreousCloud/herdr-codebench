@@ -1,0 +1,3628 @@
+{
+  "formatVersion": 1,
+  "method": "Python zipfile + ElementTree; static observation; not REA Evidence; no target class execution",
+  "target": {
+    "app": "/Applications/IntelliJ IDEA.app",
+    "name": "IntelliJ IDEA",
+    "version": "2026.2.4",
+    "build": "262.11879.100",
+    "productInfoSha256": "b971e964344c0fcfbd2729e6c90ab016d00f596fba80ef0057758b206eab9d6a",
+    "jar": "/Applications/IntelliJ IDEA.app/Contents/lib/intellij.platform.ide.impl.jar",
+    "jarSha256Before": "5a19d56e6ff99866f413af64200954a2e61c6dc8258014de0811a08e4312e026",
+    "jarSha256After": "5a19d56e6ff99866f413af64200954a2e61c6dc8258014de0811a08e4312e026"
+  },
+  "resources": [
+    {
+      "member": "idea/PlatformActions.xml",
+      "sha256": "99dfa19ef636a5107c90b3a3f75106d183ecae8660f61256e12daf286cd902bc"
+    },
+    {
+      "member": "idea/LangActions.xml",
+      "sha256": "fd605e31f1a4cf51979fa24d02b591c9debba7add955e84abed4fc0429bd8c28"
+    },
+    {
+      "member": "idea/ExecutionActions.xml",
+      "sha256": "479278436a14e29c8358639d61bda1d20e12fea1719ee33de5cfa5b4db3436ac"
+    }
+  ],
+  "groups": [
+    {
+      "id": "MainMenu",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "MainMenu"
+      },
+      "children": [
+        {
+          "kind": "group",
+          "id": "FileMenu",
+          "popup": "true"
+        },
+        {
+          "kind": "group",
+          "id": "EditMenu",
+          "popup": "true"
+        },
+        {
+          "kind": "group",
+          "id": "ViewMenu",
+          "popup": "true",
+          "compact": "true"
+        },
+        {
+          "kind": "group",
+          "id": "GoToMenu",
+          "popup": "true"
+        },
+        {
+          "kind": "group",
+          "id": "ToolsMenu",
+          "popup": "true",
+          "compact": "true",
+          "class": "com.intellij.ide.IdeDependentActionGroup"
+        },
+        {
+          "kind": "group",
+          "id": "WindowMenu",
+          "popup": "true"
+        },
+        {
+          "kind": "group",
+          "id": "HelpMenu",
+          "popup": "true"
+        }
+      ]
+    },
+    {
+      "id": "FileMenu",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "FileMenu",
+        "popup": "true"
+      },
+      "children": [
+        {
+          "kind": "group",
+          "id": "FileOpenGroup"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "group",
+          "id": "FileMenu.RemoteDevelopmentActions"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "group",
+          "id": "FileMainSettingsGroup"
+        },
+        {
+          "kind": "group",
+          "id": "FilePropertiesGroup",
+          "popup": "true"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "action",
+          "id": "SaveAll",
+          "class": "com.intellij.ide.actions.SaveAllAction",
+          "icon": "AllIcons.Actions.MenuSaveall"
+        },
+        {
+          "kind": "action",
+          "id": "Synchronize",
+          "class": "com.intellij.ide.actions.SynchronizeAction",
+          "icon": "AllIcons.Actions.Refresh"
+        },
+        {
+          "kind": "group",
+          "id": "CacheRecovery",
+          "class": "com.intellij.ide.actions.cache.CacheRecoveryActionGroup"
+        },
+        {
+          "kind": "action",
+          "id": "InvalidateCaches",
+          "class": "com.intellij.ide.actions.InvalidateCachesAction"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "group",
+          "id": "ExportImportGroup",
+          "popup": "true"
+        },
+        {
+          "kind": "group",
+          "id": "FileOtherSettingsGroup",
+          "class": "com.intellij.ide.actions.SmartPopupActionGroup"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "group",
+          "id": "PrintExportGroup"
+        },
+        {
+          "kind": "group",
+          "id": "PowerSaveGroup"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "action",
+          "id": "Exit",
+          "class": "com.intellij.ide.actions.ExitAction"
+        }
+      ]
+    },
+    {
+      "id": "FileOpenGroup",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "FileOpenGroup"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "OpenFile",
+          "class": "com.intellij.ide.actions.OpenFileAction",
+          "icon": "AllIcons.Actions.MenuOpen"
+        },
+        {
+          "kind": "action",
+          "id": "AttachProject",
+          "class": "com.intellij.platform.AttachProjectAction"
+        },
+        {
+          "kind": "group",
+          "id": "$LRU",
+          "popup": "true"
+        },
+        {
+          "kind": "action",
+          "id": "CloseProject",
+          "class": "com.intellij.ide.actions.CloseProjectAction"
+        },
+        {
+          "kind": "action",
+          "id": "CloseAllProjects",
+          "class": "com.intellij.ide.actions.CloseAllProjectsAction"
+        },
+        {
+          "kind": "action",
+          "id": "CloseOtherProjects",
+          "class": "com.intellij.ide.actions.CloseOtherProjectsAction"
+        }
+      ]
+    },
+    {
+      "id": "$LRU",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "$LRU",
+        "popup": "true"
+      },
+      "children": [
+        {
+          "kind": "group",
+          "id": "RecentProjectListGroup",
+          "class": "com.intellij.ide.actions.RecentProjectsGroup",
+          "popup": "false"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "action",
+          "class": "com.intellij.ide.ManageRecentProjectsAction",
+          "id": "ManageRecentProjects"
+        }
+      ]
+    },
+    {
+      "id": "RecentProjectListGroup",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "RecentProjectListGroup",
+        "class": "com.intellij.ide.actions.RecentProjectsGroup",
+        "popup": "false"
+      },
+      "children": []
+    },
+    {
+      "id": "FileMenu.RemoteDevelopmentActions",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "FileMenu.RemoteDevelopmentActions"
+      },
+      "children": []
+    },
+    {
+      "id": "FileMainSettingsGroup",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "FileMainSettingsGroup"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "ShowSettings",
+          "class": "com.intellij.ide.actions.ShowSettingsAction"
+        },
+        {
+          "kind": "action",
+          "id": "ShowPlugins",
+          "class": "com.intellij.ide.actions.ShowPluginManagerAction"
+        }
+      ]
+    },
+    {
+      "id": "FilePropertiesGroup",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "FilePropertiesGroup",
+        "popup": "true"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "ChangeFileEncodingAction",
+          "class": "com.intellij.openapi.vfs.encoding.ChangeFileEncodingAction"
+        },
+        {
+          "kind": "action",
+          "id": "AssociateWithFileType",
+          "class": "com.intellij.ide.actions.AssociateFileTypeAction"
+        },
+        {
+          "kind": "action",
+          "id": "ToggleReadOnlyAttribute",
+          "class": "com.intellij.ide.actions.ToggleReadOnlyAttributeAction"
+        },
+        {
+          "kind": "group",
+          "id": "ChangeLineSeparators",
+          "popup": "true",
+          "class": "com.intellij.ide.actions.NonTrivialActionGroup"
+        }
+      ]
+    },
+    {
+      "id": "ChangeLineSeparators",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "ChangeLineSeparators",
+        "popup": "true",
+        "class": "com.intellij.ide.actions.NonTrivialActionGroup"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "ConvertToWindowsLineSeparators",
+          "class": "com.intellij.codeStyle.ConvertToWindowsLineSeparatorsAction"
+        },
+        {
+          "kind": "action",
+          "id": "ConvertToUnixLineSeparators",
+          "class": "com.intellij.codeStyle.ConvertToUnixLineSeparatorsAction"
+        },
+        {
+          "kind": "action",
+          "id": "ConvertToMacLineSeparators",
+          "class": "com.intellij.codeStyle.ConvertToMacLineSeparatorsAction"
+        }
+      ]
+    },
+    {
+      "id": "CacheRecovery",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "CacheRecovery",
+        "class": "com.intellij.ide.actions.cache.CacheRecoveryActionGroup"
+      },
+      "children": []
+    },
+    {
+      "id": "ExportImportGroup",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "ExportImportGroup",
+        "popup": "true"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "ImportSettings",
+          "class": "com.intellij.configurationStore.ImportSettingsAction"
+        },
+        {
+          "kind": "action",
+          "id": "ExportSettings",
+          "class": "com.intellij.configurationStore.ExportSettingsAction"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "action",
+          "id": "RestoreDefaultSettings",
+          "class": "com.intellij.configurationStore.defaults.RestoreDefaultSettingsAction"
+        }
+      ]
+    },
+    {
+      "id": "FileOtherSettingsGroup",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "FileOtherSettingsGroup",
+        "class": "com.intellij.ide.actions.SmartPopupActionGroup"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "TemplateProjectProperties",
+          "class": "com.intellij.ide.actions.TemplateProjectPropertiesAction"
+        },
+        {
+          "kind": "group",
+          "id": "FileSettingsGroup"
+        }
+      ]
+    },
+    {
+      "id": "FileSettingsGroup",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "FileSettingsGroup"
+      },
+      "children": []
+    },
+    {
+      "id": "PrintExportGroup",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "PrintExportGroup"
+      },
+      "children": [
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "group",
+          "id": "FileExportGroup",
+          "popup": "true"
+        },
+        {
+          "kind": "action",
+          "id": "Print",
+          "class": "com.intellij.codeEditor.printing.PrintAction",
+          "icon": "AllIcons.General.Print"
+        }
+      ]
+    },
+    {
+      "id": "FileExportGroup",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "FileExportGroup",
+        "popup": "true"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "ExportToHTML",
+          "class": "com.intellij.codeEditor.printing.ExportToHTMLAction"
+        }
+      ]
+    },
+    {
+      "id": "PowerSaveGroup",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "PowerSaveGroup"
+      },
+      "children": [
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "action",
+          "id": "TogglePowerSave",
+          "class": "com.intellij.ide.actions.TogglePowerSaveAction"
+        },
+        {
+          "kind": "action",
+          "id": "ToggleEssentialHighlighting",
+          "class": "com.intellij.ide.actions.ToggleEssentialHighlightingAction",
+          "internal": "true"
+        }
+      ]
+    },
+    {
+      "id": "EditMenu",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "EditMenu",
+        "popup": "true"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "$Undo",
+          "class": "com.intellij.ide.actions.UndoAction",
+          "icon": "AllIcons.Actions.Undo"
+        },
+        {
+          "kind": "action",
+          "id": "$Redo",
+          "class": "com.intellij.ide.actions.RedoAction",
+          "icon": "AllIcons.Actions.Redo"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "group",
+          "id": "CutCopyPasteGroup"
+        },
+        {
+          "kind": "group",
+          "id": "EditCreateDeleteGroup"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "action",
+          "id": "ToggleFindInSelection",
+          "class": "com.intellij.find.editorHeaderActions.ToggleFindInSelectionAction"
+        },
+        {
+          "kind": "group",
+          "id": "FindMenuGroup",
+          "popup": "true"
+        },
+        {
+          "kind": "group",
+          "id": "Editor.Search.Filter.Results"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "reference",
+          "ref": "EditorToggleColumnMode"
+        },
+        {
+          "kind": "group",
+          "id": "EditSelectGroup"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "group",
+          "id": "EditSmartGroup"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "group",
+          "id": "Macros",
+          "popup": "true"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "action",
+          "id": "EmojiAndSymbols",
+          "class": "com.intellij.ide.actions.MacEmojiAndSymbolsInputAction"
+        }
+      ]
+    },
+    {
+      "id": "CutCopyPasteGroup",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "CutCopyPasteGroup"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "$Cut",
+          "class": "com.intellij.ide.actions.CutAction",
+          "icon": "AllIcons.Actions.MenuCut"
+        },
+        {
+          "kind": "action",
+          "id": "$Copy",
+          "class": "com.intellij.ide.actions.CopyAction",
+          "icon": "AllIcons.Actions.Copy"
+        },
+        {
+          "kind": "action",
+          "id": "CopyPaths",
+          "class": "com.intellij.ide.actions.CopyPathsAction"
+        },
+        {
+          "kind": "group",
+          "id": "PasteGroup",
+          "popup": "true",
+          "class": "com.intellij.ide.actions.PopupInMainMenuActionGroup"
+        }
+      ]
+    },
+    {
+      "id": "PasteGroup",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "PasteGroup",
+        "popup": "true",
+        "class": "com.intellij.ide.actions.PopupInMainMenuActionGroup"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "$Paste",
+          "class": "com.intellij.ide.actions.PasteAction",
+          "icon": "AllIcons.Actions.MenuPaste"
+        },
+        {
+          "kind": "action",
+          "id": "PasteMultiple",
+          "class": "com.intellij.openapi.editor.actions.PasteFromHistoryAction"
+        },
+        {
+          "kind": "reference",
+          "ref": "EditorPasteSimple"
+        }
+      ]
+    },
+    {
+      "id": "EditCreateDeleteGroup",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "EditCreateDeleteGroup"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "$Delete",
+          "class": "com.intellij.ide.actions.DeleteAction"
+        }
+      ]
+    },
+    {
+      "id": "FindMenuGroup",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "FindMenuGroup",
+        "popup": "true"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "Find",
+          "class": "com.intellij.openapi.editor.actions.IncrementalFindAction",
+          "icon": "AllIcons.Actions.Find"
+        },
+        {
+          "kind": "action",
+          "id": "Replace",
+          "class": "com.intellij.openapi.editor.actions.ReplaceAction",
+          "icon": "AllIcons.Actions.Replace"
+        },
+        {
+          "kind": "action",
+          "id": "FindNext",
+          "class": "com.intellij.ide.actions.SearchAgainAction"
+        },
+        {
+          "kind": "action",
+          "id": "FindPrevious",
+          "class": "com.intellij.ide.actions.SearchBackAction"
+        },
+        {
+          "kind": "action",
+          "id": "SelectAllOccurrences",
+          "class": "com.intellij.openapi.editor.actions.SelectAllOccurrencesAction"
+        },
+        {
+          "kind": "reference",
+          "ref": "SelectNextOccurrence"
+        },
+        {
+          "kind": "action",
+          "id": "UnselectPreviousOccurrence",
+          "class": "com.intellij.openapi.editor.actions.UnselectPreviousOccurrenceAction"
+        },
+        {
+          "kind": "reference",
+          "ref": "ToggleFindInSelection"
+        },
+        {
+          "kind": "action",
+          "id": "ToggleScrollToResultsDuringTypingAction",
+          "class": "com.intellij.find.editorHeaderActions.ToggleScrollToResultsDuringTypingAction"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "action",
+          "id": "FindWordAtCaret",
+          "class": "com.intellij.openapi.editor.actions.FindWordAtCaretAction"
+        },
+        {
+          "kind": "action",
+          "id": "FindPrevWordAtCaret",
+          "class": "com.intellij.openapi.editor.actions.FindPrevWordAtCaretAction"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "action",
+          "id": "FindInPath",
+          "class": "com.intellij.find.actions.FindInPathAction"
+        },
+        {
+          "kind": "action",
+          "id": "ReplaceInPath",
+          "class": "com.intellij.find.actions.ReplaceInPathAction"
+        }
+      ]
+    },
+    {
+      "id": "Editor.Search.Filter.Results",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "Editor.Search.Filter.Results"
+      },
+      "children": []
+    },
+    {
+      "id": "EditSelectGroup",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "EditSelectGroup"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "$SelectAll",
+          "class": "com.intellij.ide.actions.SelectAllAction"
+        },
+        {
+          "kind": "action",
+          "id": "EditorAddCaretPerSelectedLine",
+          "class": "com.intellij.openapi.editor.actions.AddCaretPerSelectedLineAction"
+        }
+      ]
+    },
+    {
+      "id": "EditSmartGroup",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "EditSmartGroup"
+      },
+      "children": [
+        {
+          "kind": "reference",
+          "ref": "EditorToggleCase"
+        },
+        {
+          "kind": "reference",
+          "ref": "EditorJoinLines"
+        },
+        {
+          "kind": "reference",
+          "ref": "EditorDuplicate"
+        },
+        {
+          "kind": "reference",
+          "ref": "FillParagraph"
+        },
+        {
+          "kind": "reference",
+          "ref": "EditorSortLines"
+        },
+        {
+          "kind": "reference",
+          "ref": "EditorReverseLines"
+        },
+        {
+          "kind": "reference",
+          "ref": "EditorTranspose"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "reference",
+          "ref": "EditorUnindentSelection"
+        },
+        {
+          "kind": "group",
+          "id": "ConvertIndentsGroup",
+          "popup": "true"
+        }
+      ]
+    },
+    {
+      "id": "ConvertIndentsGroup",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "ConvertIndentsGroup",
+        "popup": "true"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "ConvertIndentsToSpaces",
+          "class": "com.intellij.openapi.editor.actions.ConvertIndentsToSpacesAction"
+        },
+        {
+          "kind": "action",
+          "id": "ConvertIndentsToTabs",
+          "class": "com.intellij.openapi.editor.actions.ConvertIndentsToTabsAction"
+        }
+      ]
+    },
+    {
+      "id": "Macros",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "Macros",
+        "popup": "true"
+      },
+      "children": [
+        {
+          "kind": "group",
+          "id": "StandardMacroActions"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "group",
+          "id": "MacrosGroup",
+          "class": "com.intellij.ide.actionMacro.actions.MacrosGroup"
+        }
+      ]
+    },
+    {
+      "id": "StandardMacroActions",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "StandardMacroActions"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "PlaybackLastMacro",
+          "class": "com.intellij.ide.actionMacro.actions.PlaybackLastMacroAction"
+        },
+        {
+          "kind": "action",
+          "id": "StartStopMacroRecording",
+          "class": "com.intellij.ide.actionMacro.actions.StartStopMacroRecordingAction"
+        },
+        {
+          "kind": "action",
+          "id": "EditMacros",
+          "class": "com.intellij.ide.actionMacro.actions.EditMacrosAction"
+        },
+        {
+          "kind": "action",
+          "id": "PlaySavedMacrosAction",
+          "class": "com.intellij.ide.actionMacro.actions.PlaySavedMacros"
+        }
+      ]
+    },
+    {
+      "id": "MacrosGroup",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "MacrosGroup",
+        "class": "com.intellij.ide.actionMacro.actions.MacrosGroup"
+      },
+      "children": []
+    },
+    {
+      "id": "ViewMenu",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "ViewMenu",
+        "popup": "true",
+        "compact": "true"
+      },
+      "children": [
+        {
+          "kind": "group",
+          "id": "ToolWindowsGroup",
+          "class": "com.intellij.ide.actions.ToolWindowsGroup",
+          "popup": "true"
+        },
+        {
+          "kind": "group",
+          "id": "ViewAppearanceGroup",
+          "popup": "true"
+        },
+        {
+          "kind": "action",
+          "id": "EditSource",
+          "class": "com.intellij.ide.actions.EditSourceAction",
+          "icon": "AllIcons.Actions.EditSource"
+        },
+        {
+          "kind": "action",
+          "id": "OpenInRightSplit",
+          "class": "com.intellij.ide.actions.OpenInRightSplitAction",
+          "icon": "AllIcons.Actions.SplitVertically"
+        },
+        {
+          "kind": "action",
+          "id": "ViewSource",
+          "class": "com.intellij.ide.actions.ViewSourceAction"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "group",
+          "id": "ViewRecentActions"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "group",
+          "id": "CompareActions"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "action",
+          "id": "QuickChangeScheme",
+          "class": "com.intellij.ide.actions.QuickChangeSchemesAction"
+        },
+        {
+          "kind": "group",
+          "id": "EditorToggleActions",
+          "popup": "true"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "reference",
+          "ref": "EditorIncreaseFontSizeGlobal"
+        },
+        {
+          "kind": "reference",
+          "ref": "EditorDecreaseFontSizeGlobal"
+        },
+        {
+          "kind": "action",
+          "id": "EditorResetFontSizeGlobal",
+          "class": "com.intellij.openapi.editor.actions.ResetFontSizeGlobalAction"
+        },
+        {
+          "kind": "action",
+          "id": "ToggleFocusMode",
+          "class": "com.intellij.ide.actions.ToggleFocusViewModeAction",
+          "internal": "true"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "group",
+          "id": "EditorBidiTextDirection",
+          "popup": "true"
+        },
+        {
+          "kind": "separator"
+        }
+      ]
+    },
+    {
+      "id": "ToolWindowsGroup",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "ToolWindowsGroup",
+        "class": "com.intellij.ide.actions.ToolWindowsGroup",
+        "popup": "true"
+      },
+      "children": []
+    },
+    {
+      "id": "ViewAppearanceGroup",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "ViewAppearanceGroup",
+        "popup": "true"
+      },
+      "children": [
+        {
+          "kind": "group",
+          "id": "ToggleFullScreenGroup"
+        },
+        {
+          "kind": "action",
+          "id": "SwitchIdeScaleAction",
+          "class": "com.intellij.ide.actions.SwitchIdeScaleAction"
+        },
+        {
+          "kind": "group",
+          "id": "UIToggleActions"
+        }
+      ]
+    },
+    {
+      "id": "ToggleFullScreenGroup",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "ToggleFullScreenGroup"
+      },
+      "children": [
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "action",
+          "id": "TogglePresentationMode",
+          "class": "com.intellij.ide.actions.TogglePresentationModeAction"
+        },
+        {
+          "kind": "action",
+          "id": "ToggleDistractionFreeMode",
+          "class": "com.intellij.ide.actions.ToggleDistractionFreeModeAction"
+        },
+        {
+          "kind": "action",
+          "id": "ToggleFullScreen",
+          "class": "com.intellij.ide.actions.ToggleFullScreenAction"
+        },
+        {
+          "kind": "action",
+          "id": "ToggleZenMode",
+          "class": "com.intellij.ide.actions.ToggleZenModeAction"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "action",
+          "id": "ToggleCompactMode",
+          "class": "com.intellij.ide.actions.ToggleCompactModeAction"
+        }
+      ]
+    },
+    {
+      "id": "UIToggleActions",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "UIToggleActions"
+      },
+      "children": [
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "action",
+          "id": "TogglePresentationAssistantAction",
+          "class": "com.intellij.platform.ide.impl.presentationAssistant.TogglePresentationAssistantAction"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "action",
+          "id": "ViewMainMenu",
+          "class": "com.intellij.ide.actions.ViewMainMenuAction"
+        },
+        {
+          "kind": "group",
+          "id": "ChangeMainMenuModeActionGroup",
+          "class": "com.intellij.ide.actions.ChangeMainMenuModeActionGroup",
+          "searchable": "false",
+          "popup": "true"
+        },
+        {
+          "kind": "action",
+          "id": "ViewNewToolbarAction",
+          "class": "com.intellij.ide.actions.toolbar.experimental.ViewNewToolbarAction"
+        },
+        {
+          "kind": "action",
+          "id": "ViewObsoleteToolbarAction",
+          "class": "com.intellij.ide.actions.toolbar.experimental.ViewObsoleteToolbarAction"
+        },
+        {
+          "kind": "action",
+          "id": "ViewObsoleteNavBarAction",
+          "class": "com.intellij.ide.actions.toolbar.experimental.ViewObsoleteNavBarAction"
+        },
+        {
+          "kind": "group",
+          "id": "ViewToolbarActionsGroup",
+          "class": "com.intellij.ide.actions.toolbar.experimental.ViewToolbarActionsGroup"
+        },
+        {
+          "kind": "action",
+          "id": "ViewToolButtons",
+          "class": "com.intellij.ide.actions.ViewToolWindowButtonsAction"
+        },
+        {
+          "kind": "action",
+          "id": "ViewStatusBar",
+          "class": "com.intellij.ide.actions.ViewStatusBarAction"
+        },
+        {
+          "kind": "group",
+          "id": "ViewStatusBarWidgetsGroup",
+          "class": "com.intellij.openapi.wm.impl.status.widget.StatusBarWidgetsActionGroup",
+          "popup": "true"
+        }
+      ]
+    },
+    {
+      "id": "ChangeMainMenuModeActionGroup",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "ChangeMainMenuModeActionGroup",
+        "class": "com.intellij.ide.actions.ChangeMainMenuModeActionGroup",
+        "searchable": "false",
+        "popup": "true"
+      },
+      "children": []
+    },
+    {
+      "id": "ViewToolbarActionsGroup",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "ViewToolbarActionsGroup",
+        "class": "com.intellij.ide.actions.toolbar.experimental.ViewToolbarActionsGroup"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "ViewToolBar",
+          "class": "com.intellij.ide.actions.ViewToolbarAction"
+        }
+      ]
+    },
+    {
+      "id": "ViewStatusBarWidgetsGroup",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "ViewStatusBarWidgetsGroup",
+        "class": "com.intellij.openapi.wm.impl.status.widget.StatusBarWidgetsActionGroup",
+        "popup": "true"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "StatusTextModeAction",
+          "class": "com.intellij.openapi.wm.impl.status.StatusTextModeAction"
+        }
+      ]
+    },
+    {
+      "id": "ViewRecentActions",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "ViewRecentActions"
+      },
+      "children": [
+        {
+          "kind": "reference",
+          "ref": "RecentFilesFallback"
+        },
+        {
+          "kind": "reference",
+          "ref": "SwitcherRecentEditedChangedToggleCheckBoxFallback"
+        },
+        {
+          "kind": "reference",
+          "ref": "SwitcherIterateItemsFallback"
+        },
+        {
+          "kind": "reference",
+          "ref": "RecentChangedFilesFallback"
+        },
+        {
+          "kind": "action",
+          "id": "RecentLocations",
+          "class": "com.intellij.ide.actions.RecentLocationsAction"
+        }
+      ]
+    },
+    {
+      "id": "CompareActions",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "CompareActions"
+      },
+      "children": [
+        {
+          "kind": "group",
+          "id": "PairFileActions"
+        },
+        {
+          "kind": "reference",
+          "ref": "CompareClipboardWithSelection"
+        }
+      ]
+    },
+    {
+      "id": "PairFileActions",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "PairFileActions"
+      },
+      "children": [
+        {
+          "kind": "reference",
+          "ref": "CompareTwoFiles"
+        },
+        {
+          "kind": "reference",
+          "ref": "CompareFileWithEditor"
+        }
+      ]
+    },
+    {
+      "id": "EditorToggleActions",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "EditorToggleActions",
+        "popup": "true"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "EditorToggleUseSoftWraps",
+          "class": "com.intellij.openapi.editor.actions.ToggleUseSoftWrapsMenuAction",
+          "icon": "AllIcons.Actions.ToggleSoftWrap"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "action",
+          "id": "EditorToggleShowWhitespaces",
+          "class": "com.intellij.openapi.editor.actions.ToggleShowWhitespacesAction"
+        },
+        {
+          "kind": "action",
+          "id": "EditorToggleShowLineNumbers",
+          "class": "com.intellij.openapi.editor.actions.ToggleShowLineNumbersAction"
+        },
+        {
+          "kind": "action",
+          "id": "EditorToggleShowGutterIcons",
+          "class": "com.intellij.openapi.editor.actions.ToggleShowGutterIconsAction"
+        },
+        {
+          "kind": "action",
+          "id": "EditorToggleShowIndentLines",
+          "class": "com.intellij.openapi.editor.actions.ToggleShowIndentLinesAction"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "reference",
+          "ref": "EditorIncreaseFontSize"
+        },
+        {
+          "kind": "reference",
+          "ref": "EditorDecreaseFontSize"
+        }
+      ]
+    },
+    {
+      "id": "EditorBidiTextDirection",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "EditorBidiTextDirection",
+        "popup": "true"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "EditorSetContentBasedBidiTextDirection",
+          "class": "com.intellij.openapi.editor.actions.SetEditorBidiTextDirectionAction$ContentBased"
+        },
+        {
+          "kind": "action",
+          "id": "EditorSetLtrBidiTextDirection",
+          "class": "com.intellij.openapi.editor.actions.SetEditorBidiTextDirectionAction$Ltr"
+        },
+        {
+          "kind": "action",
+          "id": "EditorSetRtlBidiTextDirection",
+          "class": "com.intellij.openapi.editor.actions.SetEditorBidiTextDirectionAction$Rtl"
+        }
+      ]
+    },
+    {
+      "id": "GoToMenu",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "GoToMenu",
+        "popup": "true"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "Back",
+          "class": "com.intellij.ide.actions.BackAction",
+          "icon": "AllIcons.Actions.Back"
+        },
+        {
+          "kind": "action",
+          "id": "Forward",
+          "class": "com.intellij.ide.actions.ForwardAction",
+          "icon": "AllIcons.Actions.Forward"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "reference",
+          "ref": "SearchEverywhere"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "group",
+          "id": "GoToTargetEx"
+        },
+        {
+          "kind": "action",
+          "id": "GotoLine",
+          "class": "com.intellij.ide.actions.GotoLineAction"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "group",
+          "id": "GoToErrorGroup"
+        },
+        {
+          "kind": "action",
+          "id": "JumpToLastChange",
+          "class": "com.intellij.ide.actions.JumpToLastEditAction"
+        },
+        {
+          "kind": "action",
+          "id": "JumpToNextChange",
+          "class": "com.intellij.ide.actions.JumpToNextEditAction"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "group",
+          "id": "NavigateInFileGroup",
+          "popup": "true"
+        },
+        {
+          "kind": "action",
+          "id": "PreviousOccurence",
+          "class": "com.intellij.ide.actions.PreviousOccurenceAction",
+          "icon": "AllIcons.Actions.PreviousOccurence"
+        },
+        {
+          "kind": "action",
+          "id": "NextOccurence",
+          "class": "com.intellij.ide.actions.NextOccurenceAction",
+          "icon": "AllIcons.Actions.NextOccurence"
+        },
+        {
+          "kind": "separator"
+        }
+      ]
+    },
+    {
+      "id": "GoToTargetEx",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "GoToTargetEx"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "GotoFile",
+          "class": "com.intellij.ide.actions.GotoFileAction"
+        }
+      ]
+    },
+    {
+      "id": "GoToErrorGroup",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "GoToErrorGroup"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "GotoNextError",
+          "class": "com.intellij.codeInsight.daemon.impl.actions.GotoNextErrorAction"
+        },
+        {
+          "kind": "action",
+          "id": "GotoPreviousError",
+          "class": "com.intellij.codeInsight.daemon.impl.actions.GotoPreviousErrorAction"
+        }
+      ]
+    },
+    {
+      "id": "NavigateInFileGroup",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "NavigateInFileGroup",
+        "popup": "true"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "MethodDown",
+          "class": "com.intellij.codeInsight.navigation.actions.MethodDownAction"
+        },
+        {
+          "kind": "action",
+          "id": "MethodUp",
+          "class": "com.intellij.codeInsight.navigation.actions.MethodUpAction"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "group",
+          "id": "TemplateParametersNavigation"
+        },
+        {
+          "kind": "action",
+          "id": "GotoCustomRegion",
+          "class": "com.intellij.lang.customFolding.GotoCustomRegionAction"
+        }
+      ]
+    },
+    {
+      "id": "TemplateParametersNavigation",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "TemplateParametersNavigation"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "NextTemplateParameter",
+          "class": "com.intellij.codeInsight.completion.NextPrevParameterAction$Next"
+        },
+        {
+          "kind": "action",
+          "id": "PrevTemplateParameter",
+          "class": "com.intellij.codeInsight.completion.NextPrevParameterAction$Prev"
+        }
+      ]
+    },
+    {
+      "id": "ToolsMenu",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "ToolsMenu",
+        "popup": "true",
+        "compact": "true",
+        "class": "com.intellij.ide.IdeDependentActionGroup"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "CreateLauncherScript",
+          "class": "com.intellij.ide.actions.CreateLauncherScriptAction"
+        },
+        {
+          "kind": "action",
+          "id": "CreateDesktopEntry",
+          "class": "com.intellij.ide.actions.CreateDesktopEntryAction"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "group",
+          "id": "OtherMenu"
+        },
+        {
+          "kind": "group",
+          "id": "ToolsMenu.Services",
+          "popup": "true"
+        }
+      ]
+    },
+    {
+      "id": "OtherMenu",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "OtherMenu"
+      },
+      "children": []
+    },
+    {
+      "id": "ToolsMenu.Services",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "ToolsMenu.Services",
+        "popup": "true"
+      },
+      "children": []
+    },
+    {
+      "id": "WindowMenu",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "WindowMenu",
+        "popup": "true"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "MinimizeCurrentWindow",
+          "class": "com.intellij.ide.actions.MinimizeCurrentWindowAction"
+        },
+        {
+          "kind": "action",
+          "id": "ZoomCurrentWindow",
+          "class": "com.intellij.ide.actions.ZoomCurrentWindowAction"
+        },
+        {
+          "kind": "action",
+          "id": "MoveWindowBuiltinDisplayAction",
+          "class": "com.intellij.ide.actions.MoveWindowBuiltinDisplayAction"
+        },
+        {
+          "kind": "group",
+          "id": "LayoutsGroup",
+          "popup": "true"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "group",
+          "id": "ActiveToolwindowGroup",
+          "popup": "true"
+        },
+        {
+          "kind": "group",
+          "id": "EditorTabsGroup",
+          "popup": "true"
+        },
+        {
+          "kind": "group",
+          "id": "Notifications",
+          "popup": "true"
+        },
+        {
+          "kind": "group",
+          "id": "BackgroundTasks",
+          "popup": "true"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "group",
+          "id": "OpenProjectWindows",
+          "class": "com.intellij.openapi.wm.impl.ProjectWindowActionGroup"
+        }
+      ]
+    },
+    {
+      "id": "LayoutsGroup",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "LayoutsGroup",
+        "popup": "true"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "RestoreFactoryDefaultLayout",
+          "class": "com.intellij.ide.actions.RestoreFactoryDefaultLayoutAction"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "group",
+          "id": "CustomLayoutsGroup",
+          "class": "com.intellij.ide.actions.CustomLayoutsActionGroup"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "action",
+          "id": "RestoreDefaultLayout",
+          "class": "com.intellij.ide.actions.RestoreDefaultLayoutAction"
+        },
+        {
+          "kind": "action",
+          "id": "StoreDefaultLayout",
+          "class": "com.intellij.ide.actions.StoreDefaultLayoutAction"
+        },
+        {
+          "kind": "action",
+          "id": "StoreNewLayout",
+          "class": "com.intellij.ide.actions.StoreNewLayoutAction"
+        }
+      ]
+    },
+    {
+      "id": "CustomLayoutsGroup",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "CustomLayoutsGroup",
+        "class": "com.intellij.ide.actions.CustomLayoutsActionGroup"
+      },
+      "children": []
+    },
+    {
+      "id": "ActiveToolwindowGroup",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "ActiveToolwindowGroup",
+        "popup": "true"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "HideActiveWindow",
+          "class": "com.intellij.ide.actions.HideToolWindowAction"
+        },
+        {
+          "kind": "action",
+          "id": "HideSideWindows",
+          "class": "com.intellij.ide.actions.HideSideWindowsAction"
+        },
+        {
+          "kind": "action",
+          "id": "HideBottomWindows",
+          "class": "com.intellij.ide.actions.HideBottomToolWindowsAction"
+        },
+        {
+          "kind": "action",
+          "id": "HideAllWindows",
+          "class": "com.intellij.ide.actions.HideAllToolWindowsAction"
+        },
+        {
+          "kind": "action",
+          "id": "MoveToolWindowTabToEditorAction",
+          "class": "com.intellij.openapi.wm.impl.tabInEditor.ToolWindowTabInEditorAction",
+          "icon": "AllIcons.Actions.OpenNewTab"
+        },
+        {
+          "kind": "action",
+          "id": "PinToolwindowTab",
+          "class": "com.intellij.ui.content.tabs.PinToolwindowTabAction",
+          "use-shortcut-of": "PinActiveTab"
+        },
+        {
+          "kind": "action",
+          "id": "JumpToLastWindow",
+          "class": "com.intellij.ide.actions.JumpToLastWindowAction"
+        },
+        {
+          "kind": "action",
+          "id": "MaximizeToolWindow",
+          "class": "com.intellij.openapi.wm.impl.MaximizeToolWindowAction"
+        },
+        {
+          "kind": "action",
+          "id": "DockToolWindow",
+          "class": "com.intellij.openapi.wm.impl.DockToolWindowAction"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "reference",
+          "ref": "NextTab"
+        },
+        {
+          "kind": "reference",
+          "ref": "PreviousTab"
+        },
+        {
+          "kind": "action",
+          "id": "CloseActiveTab",
+          "class": "com.intellij.ide.actions.CloseActiveTabAction"
+        },
+        {
+          "kind": "action",
+          "id": "TW.CloseOtherTabs",
+          "class": "com.intellij.ide.actions.ToolWindowCloseOtherTabsAction",
+          "use-shortcut-of": "CloseAllEditorsButActive"
+        },
+        {
+          "kind": "action",
+          "id": "TW.CloseAllTabs",
+          "class": "com.intellij.ide.actions.ToolWindowCloseAllTabsAction",
+          "use-shortcut-of": "CloseAllEditors"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "action",
+          "id": "TW.SplitRight",
+          "class": "com.intellij.ide.actions.ToolWindowSplitRightAction",
+          "use-shortcut-of": "SplitVertically",
+          "icon": "AllIcons.Actions.SplitVertically"
+        },
+        {
+          "kind": "action",
+          "id": "TW.SplitAndMoveRight",
+          "class": "com.intellij.ide.actions.ToolWindowSplitAndMoveRightAction",
+          "use-shortcut-of": "MoveTabRight"
+        },
+        {
+          "kind": "action",
+          "id": "TW.SplitDown",
+          "class": "com.intellij.ide.actions.ToolWindowSplitDownAction",
+          "use-shortcut-of": "SplitHorizontally",
+          "icon": "AllIcons.Actions.SplitHorizontally"
+        },
+        {
+          "kind": "action",
+          "id": "TW.SplitAndMoveDown",
+          "class": "com.intellij.ide.actions.ToolWindowSplitAndMoveDownAction",
+          "use-shortcut-of": "MoveTabDown"
+        },
+        {
+          "kind": "action",
+          "id": "TW.Unsplit",
+          "class": "com.intellij.ide.actions.ToolWindowUnsplitAction",
+          "use-shortcut-of": "Unsplit"
+        },
+        {
+          "kind": "action",
+          "id": "TW.MoveToNextSplitter",
+          "class": "com.intellij.ide.actions.ToolWindowMoveToNextSplitterAction",
+          "use-shortcut-of": "NextSplitter"
+        },
+        {
+          "kind": "action",
+          "id": "TW.MoveToPreviousSplitter",
+          "class": "com.intellij.ide.actions.ToolWindowMoveToPreviousSplitterAction",
+          "use-shortcut-of": "PrevSplitter"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "group",
+          "id": "TW.ViewModeGroup",
+          "class": "com.intellij.ide.actions.ToolWindowViewModeAction$Group",
+          "popup": "true"
+        },
+        {
+          "kind": "group",
+          "id": "TW.MoveToGroup",
+          "class": "com.intellij.ide.actions.ToolWindowMoveAction$Group"
+        },
+        {
+          "kind": "action",
+          "id": "ToggleContentUiTypeMode",
+          "class": "com.intellij.ide.actions.ToggleContentUiTypeAction"
+        },
+        {
+          "kind": "action",
+          "id": "ShowContent",
+          "class": "com.intellij.ide.actions.ShowContentAction"
+        },
+        {
+          "kind": "group",
+          "id": "ResizeToolWindowGroup",
+          "popup": "true"
+        }
+      ]
+    },
+    {
+      "id": "TW.ViewModeGroup",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "TW.ViewModeGroup",
+        "class": "com.intellij.ide.actions.ToolWindowViewModeAction$Group",
+        "popup": "true"
+      },
+      "children": []
+    },
+    {
+      "id": "TW.MoveToGroup",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "TW.MoveToGroup",
+        "class": "com.intellij.ide.actions.ToolWindowMoveAction$Group"
+      },
+      "children": []
+    },
+    {
+      "id": "ResizeToolWindowGroup",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "ResizeToolWindowGroup",
+        "popup": "true"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "ResizeToolWindowLeft",
+          "class": "com.intellij.ide.actions.ResizeToolWindowAction$Left"
+        },
+        {
+          "kind": "action",
+          "id": "ResizeToolWindowRight",
+          "class": "com.intellij.ide.actions.ResizeToolWindowAction$Right"
+        },
+        {
+          "kind": "action",
+          "id": "ResizeToolWindowUp",
+          "class": "com.intellij.ide.actions.ResizeToolWindowAction$Up"
+        },
+        {
+          "kind": "action",
+          "id": "ResizeToolWindowDown",
+          "class": "com.intellij.ide.actions.ResizeToolWindowAction$Down"
+        }
+      ]
+    },
+    {
+      "id": "EditorTabsGroup",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "EditorTabsGroup",
+        "popup": "true"
+      },
+      "children": [
+        {
+          "kind": "reference",
+          "ref": "NextTab"
+        },
+        {
+          "kind": "reference",
+          "ref": "PreviousTab"
+        },
+        {
+          "kind": "action",
+          "id": "PinActiveEditorTab",
+          "class": "com.intellij.ide.actions.PinActiveTabAction$EW",
+          "use-shortcut-of": "PinActiveTab"
+        },
+        {
+          "kind": "action",
+          "id": "KeepTabOpen",
+          "class": "com.intellij.ide.actions.KeepTabOpenAction"
+        },
+        {
+          "kind": "action",
+          "id": "TabList",
+          "class": "com.intellij.ide.actions.TabListAction"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "group",
+          "id": "CloseEditorsGroup"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "action",
+          "id": "ReopenClosedTab",
+          "class": "com.intellij.openapi.fileEditor.impl.ReopenClosedTabAction"
+        },
+        {
+          "kind": "action",
+          "id": "SplitVertically",
+          "class": "com.intellij.ide.actions.SplitVerticallyAction",
+          "icon": "AllIcons.Actions.SplitVertically"
+        },
+        {
+          "kind": "action",
+          "id": "MoveTabRight",
+          "class": "com.intellij.ide.actions.MoveTabRightAction"
+        },
+        {
+          "kind": "action",
+          "id": "SplitHorizontally",
+          "class": "com.intellij.ide.actions.SplitHorizontallyAction",
+          "icon": "AllIcons.Actions.SplitHorizontally"
+        },
+        {
+          "kind": "action",
+          "id": "MoveTabDown",
+          "class": "com.intellij.ide.actions.MoveTabDownAction"
+        },
+        {
+          "kind": "action",
+          "id": "SplitChooser",
+          "class": "com.intellij.ide.actions.InteractiveSplitAction"
+        },
+        {
+          "kind": "group",
+          "id": "SplitChooser.Actions",
+          "searchable": "false",
+          "compact": "true",
+          "popup": "true"
+        },
+        {
+          "kind": "action",
+          "id": "StretchSplitToTop",
+          "class": "com.intellij.ide.actions.StretchSplitAction$StretchToTop"
+        },
+        {
+          "kind": "action",
+          "id": "StretchSplitToLeft",
+          "class": "com.intellij.ide.actions.StretchSplitAction$StretchToLeft"
+        },
+        {
+          "kind": "action",
+          "id": "StretchSplitToBottom",
+          "class": "com.intellij.ide.actions.StretchSplitAction$StretchToBottom"
+        },
+        {
+          "kind": "action",
+          "id": "StretchSplitToRight",
+          "class": "com.intellij.ide.actions.StretchSplitAction$StretchToRight"
+        },
+        {
+          "kind": "action",
+          "id": "ChangeSplitOrientation",
+          "class": "com.intellij.ide.actions.SplitterAction$ChangeOrientation"
+        },
+        {
+          "kind": "action",
+          "id": "MaximizeEditorInSplit",
+          "class": "com.intellij.ide.actions.MaximizeEditorInSplitAction"
+        },
+        {
+          "kind": "action",
+          "id": "Unsplit",
+          "class": "com.intellij.ide.actions.SplitterAction$Unsplit"
+        },
+        {
+          "kind": "action",
+          "id": "UnsplitAll",
+          "class": "com.intellij.ide.actions.SplitterAction$UnsplitAll"
+        },
+        {
+          "kind": "action",
+          "id": "NextSplitter",
+          "class": "com.intellij.ide.actions.SplitterAction$Goto$Next"
+        },
+        {
+          "kind": "action",
+          "id": "PrevSplitter",
+          "class": "com.intellij.ide.actions.SplitterAction$Goto$Previous"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "action",
+          "id": "ConfigureEditorTabs",
+          "class": "com.intellij.ide.actions.ConfigureEditorTabsAction"
+        }
+      ]
+    },
+    {
+      "id": "CloseEditorsGroup",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "CloseEditorsGroup"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "CloseContent",
+          "class": "com.intellij.ide.actions.CloseAction"
+        },
+        {
+          "kind": "action",
+          "id": "CloseAllEditorsButActive",
+          "class": "com.intellij.ide.actions.CloseAllEditorsButActiveAction"
+        },
+        {
+          "kind": "action",
+          "id": "CloseAllEditors",
+          "class": "com.intellij.ide.actions.CloseAllEditorsAction"
+        },
+        {
+          "kind": "action",
+          "id": "CloseAllUnpinnedEditors",
+          "class": "com.intellij.ide.actions.CloseAllUnpinnedEditorsAction"
+        },
+        {
+          "kind": "action",
+          "id": "CloseAllToTheLeft",
+          "class": "com.intellij.ide.actions.CloseAllEditorsToTheLeftAction"
+        },
+        {
+          "kind": "action",
+          "id": "CloseAllToTheRight",
+          "class": "com.intellij.ide.actions.CloseAllEditorsToTheRightAction"
+        },
+        {
+          "kind": "action",
+          "id": "CloseAllReadonly",
+          "class": "com.intellij.ide.actions.CloseAllReadonlyEditorsAction"
+        },
+        {
+          "kind": "reference",
+          "ref": "MoveToolWindowTabToEditorAction"
+        }
+      ]
+    },
+    {
+      "id": "SplitChooser.Actions",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "SplitChooser.Actions",
+        "searchable": "false",
+        "compact": "true",
+        "popup": "true"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "SplitChooser.NextWindow",
+          "class": "com.intellij.ide.actions.InteractiveSplitAction$Key$NextWindow"
+        },
+        {
+          "kind": "action",
+          "id": "SplitChooser.PreviousWindow",
+          "class": "com.intellij.ide.actions.InteractiveSplitAction$Key$PreviousWindow"
+        },
+        {
+          "kind": "action",
+          "id": "SplitChooser.Exit",
+          "class": "com.intellij.ide.actions.InteractiveSplitAction$Key$Exit",
+          "use-shortcut-of": "EditorEscape"
+        },
+        {
+          "kind": "action",
+          "id": "SplitChooser.Split",
+          "class": "com.intellij.ide.actions.InteractiveSplitAction$Key$Split"
+        },
+        {
+          "kind": "action",
+          "id": "SplitChooser.Duplicate",
+          "class": "com.intellij.ide.actions.InteractiveSplitAction$Key$Duplicate"
+        },
+        {
+          "kind": "action",
+          "id": "SplitChooser.SplitCenter",
+          "class": "com.intellij.ide.actions.InteractiveSplitAction$Key$SplitCenter"
+        },
+        {
+          "kind": "action",
+          "id": "SplitChooser.SplitTop",
+          "class": "com.intellij.ide.actions.InteractiveSplitAction$Key$SplitTop",
+          "use-shortcut-of": "EditorUp"
+        },
+        {
+          "kind": "action",
+          "id": "SplitChooser.SplitLeft",
+          "class": "com.intellij.ide.actions.InteractiveSplitAction$Key$SplitLeft",
+          "use-shortcut-of": "EditorLeft"
+        },
+        {
+          "kind": "action",
+          "id": "SplitChooser.SplitDown",
+          "class": "com.intellij.ide.actions.InteractiveSplitAction$Key$SplitDown",
+          "use-shortcut-of": "EditorDown"
+        },
+        {
+          "kind": "action",
+          "id": "SplitChooser.SplitRight",
+          "class": "com.intellij.ide.actions.InteractiveSplitAction$Key$SplitRight",
+          "use-shortcut-of": "EditorRight"
+        }
+      ]
+    },
+    {
+      "id": "Notifications",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "Notifications",
+        "popup": "true"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "class": "com.intellij.ui.CloseFirstNotificationAction",
+          "id": "CloseFirstNotification"
+        },
+        {
+          "kind": "action",
+          "class": "com.intellij.ui.CloseAllNotificationsAction",
+          "id": "CloseAllNotifications"
+        }
+      ]
+    },
+    {
+      "id": "BackgroundTasks",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "BackgroundTasks",
+        "popup": "true"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "ShowProcessWindow",
+          "class": "com.intellij.openapi.wm.impl.status.ShowProcessWindowAction"
+        },
+        {
+          "kind": "action",
+          "id": "AutoShowProcessWindow",
+          "class": "com.intellij.openapi.wm.impl.status.AutoShowProcessPopupAction"
+        }
+      ]
+    },
+    {
+      "id": "OpenProjectWindows",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "OpenProjectWindows",
+        "class": "com.intellij.openapi.wm.impl.ProjectWindowActionGroup"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "NextProjectWindow",
+          "class": "com.intellij.openapi.wm.impl.NextProjectWindow"
+        },
+        {
+          "kind": "action",
+          "id": "PreviousProjectWindow",
+          "class": "com.intellij.openapi.wm.impl.PreviousProjectWindow"
+        },
+        {
+          "kind": "action",
+          "id": "MergeAllWindowsAction",
+          "class": "com.intellij.ui.mac.MergeAllWindowsAction"
+        },
+        {
+          "kind": "separator"
+        }
+      ]
+    },
+    {
+      "id": "HelpMenu",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "HelpMenu",
+        "popup": "true"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "GotoAction",
+          "class": "com.intellij.ide.actions.GotoActionAction"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "action",
+          "id": "HelpTopics",
+          "class": "com.intellij.ide.actions.HelpTopicsAction",
+          "icon": "AllIcons.Actions.Help"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "group",
+          "id": "LearnGroup"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "action",
+          "id": "OnlineDocAction",
+          "class": "com.intellij.ide.actions.OnlineDocAction"
+        },
+        {
+          "kind": "action",
+          "id": "Help.JetBrainsTV",
+          "class": "com.intellij.ide.actions.JetBrainsTvAction"
+        },
+        {
+          "kind": "action",
+          "id": "Help.KeymapReference",
+          "class": "com.intellij.ide.actions.RefCardAction"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "action",
+          "id": "TechnicalSupport",
+          "class": "com.intellij.ide.actions.TechnicalSupportAction"
+        },
+        {
+          "kind": "action",
+          "id": "ReportProblem",
+          "class": "com.intellij.ide.actions.ReportProblemAction"
+        },
+        {
+          "kind": "action",
+          "id": "SendFeedback",
+          "class": "com.intellij.ide.actions.SendFeedbackAction"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "action",
+          "id": "OpenLog",
+          "internal": "true",
+          "class": "com.intellij.internal.OpenLogAction"
+        },
+        {
+          "kind": "action",
+          "id": "ShowLog",
+          "class": "com.intellij.ide.actions.ShowLogAction"
+        },
+        {
+          "kind": "action",
+          "id": "CollectZippedLogs",
+          "class": "com.intellij.ide.actions.CollectZippedLogsAction"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "group",
+          "id": "HelpDiagnosticTools",
+          "popup": "true"
+        },
+        {
+          "kind": "action",
+          "id": "performancePlugin.ShowMemoryDialogAction",
+          "class": "com.intellij.diagnostic.ShowMemoryDialogAction"
+        },
+        {
+          "kind": "action",
+          "id": "EditCustomProperties",
+          "class": "com.intellij.ide.actions.EditCustomPropertiesAction"
+        },
+        {
+          "kind": "action",
+          "id": "EditCustomVmOptions",
+          "class": "com.intellij.ide.actions.EditCustomVmOptionsAction"
+        },
+        {
+          "kind": "action",
+          "id": "DeleteOldAppDirs",
+          "class": "com.intellij.ide.actions.DeleteOldAppDirectoriesAction"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "action",
+          "id": "CheckForUpdate",
+          "class": "com.intellij.openapi.updateSettings.impl.CheckForUpdateAction"
+        },
+        {
+          "kind": "action",
+          "id": "About",
+          "class": "com.intellij.ide.actions.AboutAction"
+        },
+        {
+          "kind": "separator"
+        }
+      ]
+    },
+    {
+      "id": "LearnGroup",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "LearnGroup"
+      },
+      "children": []
+    },
+    {
+      "id": "HelpDiagnosticTools",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "HelpDiagnosticTools",
+        "popup": "true"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "Performance.ActivityMonitor",
+          "class": "com.intellij.ide.actions.ActivityMonitorAction"
+        },
+        {
+          "kind": "action",
+          "id": "Performance.DumpThreads",
+          "class": "com.intellij.ide.actions.DumpThreadsAction"
+        },
+        {
+          "kind": "action",
+          "id": "Performance.MemTester",
+          "class": "com.intellij.ide.actions.MemTestAction"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "action",
+          "id": "LogDebugConfigure",
+          "class": "com.intellij.ide.actions.DebugLogConfigureAction"
+        },
+        {
+          "kind": "action",
+          "id": "BrowseSpecialPaths",
+          "class": "com.intellij.diagnostic.specialPaths.BrowseSpecialPathsAction"
+        },
+        {
+          "kind": "action",
+          "id": "CollectTroubleshootingInformation",
+          "class": "com.intellij.troubleshooting.ui.CollectTroubleshootingInformationAction",
+          "internal": "true"
+        },
+        {
+          "kind": "action",
+          "class": "com.intellij.diagnostic.ResetWindowsDefenderNotification",
+          "id": "ResetWindowsDefenderNotification"
+        }
+      ]
+    },
+    {
+      "id": "MainToolbarPopupActions",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "MainToolbarPopupActions",
+        "searchable": "false"
+      },
+      "children": [
+        {
+          "kind": "reference",
+          "ref": "ViewToolBar"
+        },
+        {
+          "kind": "action",
+          "id": "CustomizeUI",
+          "class": "com.intellij.ide.actions.CustomizeUIAction"
+        }
+      ]
+    },
+    {
+      "id": "EditorTabsEntryPoint",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "EditorTabsEntryPoint",
+        "popup": "true",
+        "icon": "AllIcons.Actions.More"
+      },
+      "children": [
+        {
+          "kind": "reference",
+          "ref": "RecentFilesFallback"
+        },
+        {
+          "kind": "reference",
+          "ref": "RecentLocations"
+        },
+        {
+          "kind": "reference",
+          "ref": "GotoFile"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "reference",
+          "ref": "CloseAllEditors"
+        },
+        {
+          "kind": "reference",
+          "ref": "ReopenClosedTab"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "reference",
+          "ref": "Unsplit"
+        },
+        {
+          "kind": "reference",
+          "ref": "UnsplitAll"
+        },
+        {
+          "kind": "reference",
+          "ref": "ChangeSplitOrientation"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "reference",
+          "ref": "ConfigureEditorTabs"
+        }
+      ]
+    },
+    {
+      "id": "MainToolbarNewUI",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "MainToolbarNewUI"
+      },
+      "children": [
+        {
+          "kind": "group",
+          "id": "MainToolbarLeft",
+          "searchable": "false"
+        },
+        {
+          "kind": "group",
+          "id": "MainToolbarCenter",
+          "searchable": "false"
+        },
+        {
+          "kind": "group",
+          "id": "MainToolbarRight",
+          "searchable": "false"
+        }
+      ]
+    },
+    {
+      "id": "MainToolbarLeft",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "MainToolbarLeft",
+        "searchable": "false"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "main.toolbar.Project",
+          "class": "com.intellij.openapi.wm.impl.headertoolbar.ProjectToolbarWidgetAction"
+        },
+        {
+          "kind": "group",
+          "id": "MainToolbarGeneralActionsGroup",
+          "searchable": "false"
+        }
+      ]
+    },
+    {
+      "id": "MainToolbarGeneralActionsGroup",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "MainToolbarGeneralActionsGroup",
+        "searchable": "false"
+      },
+      "children": [
+        {
+          "kind": "separator"
+        }
+      ]
+    },
+    {
+      "id": "MainToolbarCenter",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "MainToolbarCenter",
+        "searchable": "false"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "main.toolbar.Filename",
+          "class": "com.intellij.openapi.wm.impl.headertoolbar.FilenameToolbarWidgetAction"
+        }
+      ]
+    },
+    {
+      "id": "MainToolbarRight",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "MainToolbarRight",
+        "searchable": "false"
+      },
+      "children": [
+        {
+          "kind": "reference",
+          "ref": "SearchEverywhere"
+        },
+        {
+          "kind": "reference",
+          "ref": "SettingsEntryPoint"
+        }
+      ]
+    },
+    {
+      "id": "EditorPopupMenu",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "EditorPopupMenu"
+      },
+      "children": [
+        {
+          "kind": "reference",
+          "ref": "$Cut"
+        },
+        {
+          "kind": "reference",
+          "ref": "$Copy"
+        },
+        {
+          "kind": "reference",
+          "ref": "$Paste"
+        },
+        {
+          "kind": "group",
+          "id": "Copy.Paste.Special",
+          "popup": "true"
+        },
+        {
+          "kind": "reference",
+          "ref": "EditorToggleColumnMode"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "group",
+          "id": "EditorPopupMenu1",
+          "searchable": "false"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "group",
+          "id": "EditorPopupMenu2",
+          "searchable": "false"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "group",
+          "id": "EditorPopupMenu3",
+          "searchable": "false"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "action",
+          "id": "$SearchWeb",
+          "class": "com.intellij.ide.actions.SearchWebAction"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "reference",
+          "ref": "CompareClipboardWithSelection"
+        }
+      ]
+    },
+    {
+      "id": "Copy.Paste.Special",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "Copy.Paste.Special",
+        "popup": "true"
+      },
+      "children": [
+        {
+          "kind": "reference",
+          "ref": "EditorPasteSimple"
+        },
+        {
+          "kind": "reference",
+          "ref": "PasteMultiple"
+        }
+      ]
+    },
+    {
+      "id": "EditorPopupMenu1",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "EditorPopupMenu1",
+        "searchable": "false"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "FindSelectionInPath",
+          "class": "com.intellij.find.actions.FindSelectionInPathAction",
+          "use-shortcut-of": "FindInPath"
+        }
+      ]
+    },
+    {
+      "id": "EditorPopupMenu2",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "EditorPopupMenu2",
+        "searchable": "false"
+      },
+      "children": []
+    },
+    {
+      "id": "EditorPopupMenu3",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "EditorPopupMenu3",
+        "searchable": "false"
+      },
+      "children": []
+    },
+    {
+      "id": "EditorTabPopupMenu",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "EditorTabPopupMenu"
+      },
+      "children": [
+        {
+          "kind": "reference",
+          "ref": "CloseEditorsGroup"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "reference",
+          "ref": "CopyPaths"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "reference",
+          "ref": "SplitVertically"
+        },
+        {
+          "kind": "reference",
+          "ref": "MoveTabRight"
+        },
+        {
+          "kind": "reference",
+          "ref": "SplitHorizontally"
+        },
+        {
+          "kind": "reference",
+          "ref": "MoveTabDown"
+        },
+        {
+          "kind": "action",
+          "id": "MoveEditorToOppositeTabGroup",
+          "class": "com.intellij.openapi.fileEditor.impl.MoveEditorToOppositeTabGroupAction"
+        },
+        {
+          "kind": "action",
+          "id": "OpenEditorInOppositeTabGroup",
+          "class": "com.intellij.openapi.fileEditor.impl.OpenEditorInOppositeTabGroupAction"
+        },
+        {
+          "kind": "reference",
+          "ref": "ChangeSplitOrientation"
+        },
+        {
+          "kind": "reference",
+          "ref": "Unsplit"
+        },
+        {
+          "kind": "reference",
+          "ref": "UnsplitAll"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "reference",
+          "ref": "PinActiveEditorTab"
+        },
+        {
+          "kind": "reference",
+          "ref": "KeepTabOpen"
+        },
+        {
+          "kind": "reference",
+          "ref": "EditSourceInNewWindow"
+        },
+        {
+          "kind": "reference",
+          "ref": "ConfigureEditorTabs"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "reference",
+          "ref": "ReopenClosedTab"
+        }
+      ]
+    },
+    {
+      "id": "ProjectViewToolbar",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "ProjectViewToolbar"
+      },
+      "children": [
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "reference",
+          "ref": "SelectInProjectView"
+        },
+        {
+          "kind": "reference",
+          "ref": "ExpandRecursively"
+        },
+        {
+          "kind": "reference",
+          "ref": "ExpandAll"
+        },
+        {
+          "kind": "reference",
+          "ref": "CollapseAll"
+        }
+      ]
+    },
+    {
+      "id": "ProjectViewTabToolbar",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "ProjectViewTabToolbar"
+      },
+      "children": []
+    },
+    {
+      "id": "ToolWindowContextMenu",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "ToolWindowContextMenu"
+      },
+      "children": []
+    },
+    {
+      "id": "MainToolbarQuickActionsRaw",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "MainToolbarQuickActionsRaw",
+        "searchable": "false",
+        "popup": "false"
+      },
+      "children": [
+        {
+          "kind": "group",
+          "id": "MainToolbarQuickActions.General",
+          "class": "com.intellij.ide.ui.customization.ToolbarQuickActionsGroup",
+          "searchable": "false",
+          "popup": "false"
+        },
+        {
+          "kind": "group",
+          "id": "MainToolbarQuickActions.Run",
+          "class": "com.intellij.ide.ui.customization.ToolbarQuickActionsGroup",
+          "searchable": "false",
+          "popup": "false"
+        },
+        {
+          "kind": "group",
+          "id": "MainToolbarQuickActions.GeneralLast",
+          "class": "com.intellij.ide.ui.customization.ToolbarQuickActionsGroup",
+          "searchable": "false",
+          "popup": "false"
+        }
+      ]
+    },
+    {
+      "id": "MainToolbarQuickActions.General",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "MainToolbarQuickActions.General",
+        "class": "com.intellij.ide.ui.customization.ToolbarQuickActionsGroup",
+        "searchable": "false",
+        "popup": "false"
+      },
+      "children": []
+    },
+    {
+      "id": "MainToolbarQuickActions.Run",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "MainToolbarQuickActions.Run",
+        "class": "com.intellij.ide.ui.customization.ToolbarQuickActionsGroup",
+        "searchable": "false",
+        "popup": "false"
+      },
+      "children": []
+    },
+    {
+      "id": "MainToolbarQuickActions.GeneralLast",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "MainToolbarQuickActions.GeneralLast",
+        "class": "com.intellij.ide.ui.customization.ToolbarQuickActionsGroup",
+        "searchable": "false",
+        "popup": "false"
+      },
+      "children": []
+    },
+    {
+      "id": "ToolbarPopupActions.MainToolbarNewUI",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "ToolbarPopupActions.MainToolbarNewUI"
+      },
+      "children": [
+        {
+          "kind": "reference",
+          "ref": "MainToolbarQuickActions"
+        },
+        {
+          "kind": "reference",
+          "ref": "ChangeMainMenuModeActionGroup"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "reference",
+          "ref": "ChangeProjectColorActionGroup"
+        },
+        {
+          "kind": "reference",
+          "ref": "WelcomeScreen.ChangeProjectIcon"
+        },
+        {
+          "kind": "action",
+          "id": "ColoredHeaderAction",
+          "class": "com.intellij.ide.ui.customization.UseProjectColorsCheckboxAction"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "action",
+          "id": "MergeMenuWithWindowTitleAction",
+          "class": "com.intellij.ide.actions.MergeMenuWithWindowTitleAction"
+        }
+      ]
+    },
+    {
+      "id": "CustomizeMainToolbarGroup",
+      "source": "idea/PlatformActions.xml",
+      "attributes": {
+        "id": "CustomizeMainToolbarGroup",
+        "popup": "true",
+        "searchable": "false"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "CustomizeMainToolbarAction",
+          "class": "com.intellij.ide.actions.CustomizeMainToolbarAction"
+        },
+        {
+          "kind": "separator",
+          "key": "group.MainToolbarQuickActions.text"
+        },
+        {
+          "kind": "reference",
+          "ref": "MainToolbarQuickActionsRaw"
+        }
+      ]
+    },
+    {
+      "id": "ProjectViewPopupMenu",
+      "source": "idea/LangActions.xml",
+      "attributes": {
+        "id": "ProjectViewPopupMenu"
+      },
+      "children": [
+        {
+          "kind": "reference",
+          "ref": "WeighingNewGroup"
+        },
+        {
+          "kind": "reference",
+          "ref": "AssociateWithFileType"
+        },
+        {
+          "kind": "action",
+          "id": "RestoreDefaultExtensionScripts",
+          "class": "com.intellij.ide.extensionResources.RestoreBundledExtensionsAction"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "reference",
+          "ref": "CutCopyPasteGroup"
+        },
+        {
+          "kind": "action",
+          "id": "ProjectViewEditSource",
+          "use-shortcut-of": "EditSource",
+          "class": "com.intellij.ide.actions.ProjectViewEditSourceAction"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "reference",
+          "ref": "FindUsages"
+        },
+        {
+          "kind": "reference",
+          "ref": "FindInPath"
+        },
+        {
+          "kind": "reference",
+          "ref": "ReplaceInPath"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "reference",
+          "ref": "RenameElement"
+        },
+        {
+          "kind": "reference",
+          "ref": "ProjectViewPopupMenuRefactoringGroup"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "reference",
+          "ref": "ProjectViewPopupMenuModifyGroup"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "reference",
+          "ref": "ProjectViewPopupMenuRunGroup"
+        },
+        {
+          "kind": "reference",
+          "ref": "SplitRevealGroup"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "reference",
+          "ref": "VersionControlsGroup"
+        },
+        {
+          "kind": "reference",
+          "ref": "CacheRecovery"
+        },
+        {
+          "kind": "action",
+          "id": "SynchronizeCurrentFile",
+          "class": "com.intellij.ide.actions.SynchronizeCurrentFileAction",
+          "icon": "AllIcons.Actions.Refresh"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "action",
+          "id": "GoToLinkTarget",
+          "class": "com.intellij.ide.actions.GoToLinkTargetAction"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "reference",
+          "ref": "CompareTwoFiles"
+        },
+        {
+          "kind": "reference",
+          "ref": "CompareFileWithEditor"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "reference",
+          "ref": "ExternalToolsGroup"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "reference",
+          "ref": "ProjectViewPopupMenuSettingsGroup"
+        }
+      ]
+    },
+    {
+      "id": "ProjectView.ToolWindow.SecondaryActions",
+      "source": "idea/LangActions.xml",
+      "attributes": {
+        "id": "ProjectView.ToolWindow.SecondaryActions"
+      },
+      "children": [
+        {
+          "kind": "group",
+          "id": "ProjectView.ToolWindow.Behavior.Actions",
+          "popup": "true"
+        },
+        {
+          "kind": "group",
+          "id": "ProjectView.ToolWindow.Appearance.Actions",
+          "popup": "true"
+        },
+        {
+          "kind": "group",
+          "id": "ProjectView.ToolWindow.Sort.Actions",
+          "popup": "true"
+        },
+        {
+          "kind": "action",
+          "id": "ScopeView.EditScopes",
+          "class": "com.intellij.ide.scopeView.EditScopesAction",
+          "icon": "AllIcons.Ide.LocalScope"
+        }
+      ]
+    },
+    {
+      "id": "ProjectView.ToolWindow.Behavior.Actions",
+      "source": "idea/LangActions.xml",
+      "attributes": {
+        "id": "ProjectView.ToolWindow.Behavior.Actions",
+        "popup": "true"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "ProjectView.OpenInPreviewTab",
+          "class": "com.intellij.ide.projectView.impl.ProjectViewImpl$Action$OpenInPreviewTab"
+        },
+        {
+          "kind": "action",
+          "id": "ProjectView.AutoscrollToSource",
+          "class": "com.intellij.ide.projectView.impl.ProjectViewImpl$Action$AutoscrollToSource",
+          "icon": "AllIcons.General.AutoscrollToSource"
+        },
+        {
+          "kind": "action",
+          "id": "ProjectView.OpenDirectoriesWithSingleClick",
+          "class": "com.intellij.ide.projectView.impl.ProjectViewImpl$Action$OpenDirectoriesWithSingleClick"
+        },
+        {
+          "kind": "action",
+          "id": "ProjectView.AutoscrollFromSource",
+          "class": "com.intellij.ide.projectView.impl.ProjectViewImpl$Action$AutoscrollFromSource",
+          "icon": "AllIcons.General.AutoscrollFromSource"
+        }
+      ]
+    },
+    {
+      "id": "ProjectView.ToolWindow.Appearance.Actions",
+      "source": "idea/LangActions.xml",
+      "attributes": {
+        "id": "ProjectView.ToolWindow.Appearance.Actions",
+        "popup": "true"
+      },
+      "children": [
+        {
+          "kind": "separator",
+          "key": "group.ProjectView.ToolWindow.Appearance.Show.text"
+        },
+        {
+          "kind": "action",
+          "id": "ProjectView.ShowModules",
+          "class": "com.intellij.ide.projectView.impl.ProjectViewImpl$Action$ShowModules",
+          "icon": "AllIcons.Actions.GroupByModule"
+        },
+        {
+          "kind": "action",
+          "id": "ProjectView.ShowMembers",
+          "class": "com.intellij.ide.projectView.impl.ProjectViewImpl$Action$ShowMembers",
+          "icon": "AllIcons.ObjectBrowser.ShowMembers"
+        },
+        {
+          "kind": "action",
+          "id": "ProjectView.ShowExcludedFiles",
+          "class": "com.intellij.ide.projectView.impl.ProjectViewImpl$Action$ShowExcludedFiles"
+        },
+        {
+          "kind": "action",
+          "id": "ProjectView.ShowVisibilityIcons",
+          "class": "com.intellij.ide.projectView.impl.ProjectViewImpl$Action$ShowVisibilityIcons"
+        },
+        {
+          "kind": "action",
+          "id": "ProjectView.ShowLibraryContents",
+          "class": "com.intellij.ide.projectView.impl.ProjectViewImpl$Action$ShowLibraryContents",
+          "icon": "AllIcons.ObjectBrowser.ShowLibraryContents"
+        },
+        {
+          "kind": "action",
+          "id": "ProjectView.ShowScratchesAndConsoles",
+          "class": "com.intellij.ide.projectView.impl.ProjectViewImpl$Action$ShowScratchesAndConsoles"
+        },
+        {
+          "kind": "action",
+          "id": "ViewInplaceComments",
+          "class": "com.intellij.ide.actions.ViewInplaceCommentsAction"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "action",
+          "id": "ProjectView.FlattenModules",
+          "class": "com.intellij.ide.projectView.impl.ProjectViewImpl$Action$FlattenModules",
+          "icon": "AllIcons.ObjectBrowser.FlattenModules"
+        },
+        {
+          "kind": "action",
+          "id": "ProjectView.FlattenPackages",
+          "class": "com.intellij.ide.projectView.impl.ProjectViewImpl$Action$FlattenPackages",
+          "icon": "AllIcons.ObjectBrowser.FlattenPackages"
+        },
+        {
+          "kind": "action",
+          "id": "ProjectView.AbbreviatePackageNames",
+          "class": "com.intellij.ide.projectView.impl.ProjectViewImpl$Action$AbbreviatePackageNames",
+          "icon": "AllIcons.ObjectBrowser.AbbreviatePackageNames"
+        },
+        {
+          "kind": "action",
+          "id": "ProjectView.HideEmptyMiddlePackages",
+          "class": "com.intellij.ide.projectView.impl.ProjectViewImpl$Action$HideEmptyMiddlePackages"
+        },
+        {
+          "kind": "action",
+          "id": "ProjectView.CompactDirectories",
+          "class": "com.intellij.ide.projectView.impl.ProjectViewImpl$Action$CompactDirectories"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "action",
+          "id": "ProjectView.FileNesting",
+          "class": "com.intellij.ide.projectView.impl.ConfigureFilesNestingAction"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "action",
+          "id": "ProjectView.CustomizeTrees",
+          "class": "com.intellij.ide.projectView.impl.CustomizeTreesAction"
+        }
+      ]
+    },
+    {
+      "id": "ProjectView.ToolWindow.Sort.Actions",
+      "source": "idea/LangActions.xml",
+      "attributes": {
+        "id": "ProjectView.ToolWindow.Sort.Actions",
+        "popup": "true"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "id": "ProjectView.ManualOrder",
+          "class": "com.intellij.ide.projectView.impl.ProjectViewImpl$Action$ManualOrder",
+          "icon": "AllIcons.ObjectBrowser.Sorted"
+        },
+        {
+          "kind": "action",
+          "id": "ProjectView.SortByName",
+          "class": "com.intellij.ide.projectView.impl.ProjectViewImpl$Action$SortByName"
+        },
+        {
+          "kind": "action",
+          "id": "ProjectView.SortByType",
+          "class": "com.intellij.ide.projectView.impl.ProjectViewImpl$Action$SortByType",
+          "icon": "AllIcons.ObjectBrowser.SortByType"
+        },
+        {
+          "kind": "action",
+          "id": "ProjectView.SortByTimeDescending",
+          "class": "com.intellij.ide.projectView.impl.ProjectViewImpl$Action$SortByTimeDescending"
+        },
+        {
+          "kind": "action",
+          "id": "ProjectView.SortByTimeAscending",
+          "class": "com.intellij.ide.projectView.impl.ProjectViewImpl$Action$SortByTimeAscending"
+        },
+        {
+          "kind": "separator"
+        },
+        {
+          "kind": "action",
+          "id": "ProjectView.FoldersAlwaysOnTop",
+          "class": "com.intellij.ide.projectView.impl.ProjectViewImpl$Action$FoldersAlwaysOnTop"
+        }
+      ]
+    },
+    {
+      "id": "StructureViewToolbar",
+      "source": "idea/LangActions.xml",
+      "attributes": {
+        "id": "StructureViewToolbar"
+      },
+      "children": []
+    },
+    {
+      "id": "EditorPopupMenu.GoTo",
+      "source": "idea/LangActions.xml",
+      "attributes": {
+        "id": "EditorPopupMenu.GoTo",
+        "popup": "true"
+      },
+      "children": [
+        {
+          "kind": "reference",
+          "ref": "GotoDeclaration"
+        },
+        {
+          "kind": "reference",
+          "ref": "GotoImplementation"
+        },
+        {
+          "kind": "reference",
+          "ref": "GotoTypeDeclaration"
+        },
+        {
+          "kind": "reference",
+          "ref": "GotoSuperMethod"
+        },
+        {
+          "kind": "reference",
+          "ref": "GotoRelated"
+        },
+        {
+          "kind": "reference",
+          "ref": "GotoTest"
+        }
+      ]
+    },
+    {
+      "id": "RunToolbarMainActionGroup",
+      "source": "idea/ExecutionActions.xml",
+      "attributes": {
+        "id": "RunToolbarMainActionGroup"
+      },
+      "children": [
+        {
+          "kind": "action",
+          "class": "com.intellij.execution.ui.RedesignedRunConfigurationSelector",
+          "id": "RedesignedRunConfigurationSelector"
+        },
+        {
+          "kind": "group",
+          "id": "compositeResumeGroup",
+          "searchable": "false",
+          "popup": "false"
+        },
+        {
+          "kind": "group",
+          "id": "RunToolbarTopLevelExecutorActionGroup",
+          "class": "com.intellij.execution.ui.RunToolbarTopLevelExecutorActionGroup",
+          "popup": "false"
+        },
+        {
+          "kind": "reference",
+          "ref": "Stop"
+        },
+        {
+          "kind": "action",
+          "id": "MoreRunToolbarActions",
+          "class": "com.intellij.execution.ui.MoreRunToolbarActions"
+        },
+        {
+          "kind": "action",
+          "id": "InactiveStopActionPlaceholder",
+          "class": "com.intellij.execution.ui.InactiveStopActionPlaceholder"
+        }
+      ]
+    },
+    {
+      "id": "compositeResumeGroup",
+      "source": "idea/ExecutionActions.xml",
+      "attributes": {
+        "id": "compositeResumeGroup",
+        "searchable": "false",
+        "popup": "false"
+      },
+      "children": []
+    },
+    {
+      "id": "RunToolbarTopLevelExecutorActionGroup",
+      "source": "idea/ExecutionActions.xml",
+      "attributes": {
+        "id": "RunToolbarTopLevelExecutorActionGroup",
+        "class": "com.intellij.execution.ui.RunToolbarTopLevelExecutorActionGroup",
+        "popup": "false"
+      },
+      "children": []
+    },
+    {
+      "id": "ExecutionTargetsToolbarGroup",
+      "source": "idea/ExecutionActions.xml",
+      "attributes": {
+        "id": "ExecutionTargetsToolbarGroup",
+        "searchable": "false",
+        "popup": "false"
+      },
+      "children": [
+        {
+          "kind": "reference",
+          "ref": "ExecutionTargets"
+        }
+      ]
+    }
+  ],
+  "contributions": [
+    {
+      "source": "idea/PlatformActions.xml",
+      "kind": "action",
+      "component": {
+        "id": "IdeUpdateToolbarWidget",
+        "class": "com.intellij.openapi.updateSettings.impl.IdeUpdateToolbarWidget"
+      },
+      "placement": {
+        "group-id": "MainToolbarRight",
+        "anchor": "last"
+      }
+    },
+    {
+      "source": "idea/PlatformActions.xml",
+      "kind": "action",
+      "component": {
+        "id": "WhatsNewAction",
+        "class": "com.intellij.ide.actions.WhatsNewAction"
+      },
+      "placement": {
+        "group-id": "HelpMenu",
+        "anchor": "after",
+        "relative-to-action": "LearnGroup"
+      }
+    },
+    {
+      "source": "idea/PlatformActions.xml",
+      "kind": "group",
+      "component": {
+        "id": "Internal",
+        "internal": "true",
+        "popup": "true",
+        "compact": "true"
+      },
+      "placement": {
+        "group-id": "ToolsMenu",
+        "anchor": "last"
+      }
+    },
+    {
+      "source": "idea/PlatformActions.xml",
+      "kind": "group",
+      "component": {
+        "id": "CopyReferencePopupGroup",
+        "class": "com.intellij.ide.actions.CopyReferencePopup",
+        "popup": "true"
+      },
+      "placement": {
+        "group-id": "CutCopyPasteGroup",
+        "anchor": "after",
+        "relative-to-action": "CopyPaths"
+      }
+    },
+    {
+      "source": "idea/PlatformActions.xml",
+      "kind": "group",
+      "component": {
+        "id": "CopyReferencePopupGroup",
+        "class": "com.intellij.ide.actions.CopyReferencePopup",
+        "popup": "true"
+      },
+      "placement": {
+        "group-id": "EditorTabPopupMenu",
+        "anchor": "after",
+        "relative-to-action": "CopyPaths"
+      }
+    },
+    {
+      "source": "idea/PlatformActions.xml",
+      "kind": "action",
+      "component": {
+        "id": "EditorToggleShowBreadcrumbs",
+        "class": "com.intellij.xml.breadcrumbs.ToggleBreadcrumbsAction$ShowHide"
+      },
+      "placement": {
+        "group-id": "EditorToggleActions",
+        "relative-to-action": "EditorToggleShowIndentLines",
+        "anchor": "after"
+      }
+    },
+    {
+      "source": "idea/PlatformActions.xml",
+      "kind": "group",
+      "component": {
+        "id": "OpenInBrowserGroup",
+        "class": "com.intellij.ide.browsers.actions.OpenInBrowserBaseGroupAction$OpenInBrowserGroupAction"
+      },
+      "placement": {
+        "group-id": "ViewMenu",
+        "anchor": "after",
+        "relative-to-action": "ViewSource"
+      }
+    },
+    {
+      "source": "idea/PlatformActions.xml",
+      "kind": "action",
+      "component": {
+        "id": "ToggleMinimap",
+        "class": "com.intellij.ide.minimap.actions.ToggleMinimapAction",
+        "icon": "AllIcons.Actions.Minimap"
+      },
+      "placement": {
+        "group-id": "EditorTabsEntryPoint"
+      }
+    },
+    {
+      "source": "idea/LangActions.xml",
+      "kind": "group",
+      "component": {
+        "id": "ShowIntentionsGroup",
+        "compact": "true"
+      },
+      "placement": {
+        "group-id": "EditorPopupMenu",
+        "anchor": "first"
+      }
+    },
+    {
+      "source": "idea/LangActions.xml",
+      "kind": "action",
+      "component": {
+        "id": "ChangeTemplateDataLanguage",
+        "class": "com.intellij.psi.templateLanguages.ChangeTemplateDataLanguageAction"
+      },
+      "placement": {
+        "group-id": "EditorPopupMenu",
+        "anchor": "before",
+        "relative-to-action": "ToggleReadOnlyAttribute"
+      }
+    },
+    {
+      "source": "idea/LangActions.xml",
+      "kind": "action",
+      "component": {
+        "id": "ChangeTemplateDataLanguage",
+        "class": "com.intellij.psi.templateLanguages.ChangeTemplateDataLanguageAction"
+      },
+      "placement": {
+        "group-id": "EditorTabPopupMenu",
+        "anchor": "after",
+        "relative-to-action": "CopyReference"
+      }
+    },
+    {
+      "source": "idea/LangActions.xml",
+      "kind": "group",
+      "component": {
+        "id": "LightEditModePopup"
+      },
+      "placement": {
+        "group-id": "EditorPopupMenu",
+        "anchor": "after",
+        "relative-to-action": "ShowIntentionsGroup"
+      }
+    },
+    {
+      "source": "idea/LangActions.xml",
+      "kind": "action",
+      "component": {
+        "id": "CopyReference",
+        "class": "com.intellij.ide.actions.CopyReferenceAction"
+      },
+      "placement": {
+        "group-id": "EditorTabPopupMenu",
+        "anchor": "after",
+        "relative-to-action": "CopyPaths"
+      }
+    },
+    {
+      "source": "idea/LangActions.xml",
+      "kind": "action",
+      "component": {
+        "id": "CopyAsRichText",
+        "class": "com.intellij.openapi.editor.richcopy.CopyAsRichTextAction"
+      },
+      "placement": {
+        "group-id": "EditorPopupMenu",
+        "anchor": "after",
+        "relative-to-action": "$Copy"
+      }
+    },
+    {
+      "source": "idea/LangActions.xml",
+      "kind": "action",
+      "component": {
+        "id": "Documentation.KeepTab",
+        "class": "com.intellij.lang.documentation.ide.actions.KeepTabAction"
+      },
+      "placement": {
+        "group-id": "ToolWindowContextMenu",
+        "anchor": "last"
+      }
+    },
+    {
+      "source": "idea/LangActions.xml",
+      "kind": "group",
+      "component": {
+        "id": "CodeMenu",
+        "popup": "true"
+      },
+      "placement": {
+        "group-id": "MainMenu",
+        "anchor": "after",
+        "relative-to-action": "GoToMenu"
+      }
+    },
+    {
+      "source": "idea/LangActions.xml",
+      "kind": "group",
+      "component": {
+        "id": "RefactoringMenu",
+        "popup": "true"
+      },
+      "placement": {
+        "group-id": "MainMenu",
+        "anchor": "after",
+        "relative-to-action": "CodeMenu"
+      }
+    },
+    {
+      "source": "idea/LangActions.xml",
+      "kind": "group",
+      "component": {
+        "id": "InspectCodeActionInPopupMenus"
+      },
+      "placement": {
+        "group-id": "ProjectViewPopupMenu",
+        "anchor": "after",
+        "relative-to-action": "ReplaceInPath"
+      }
+    },
+    {
+      "source": "idea/LangActions.xml",
+      "kind": "group",
+      "component": {
+        "id": "EditorLangPopupMenu"
+      },
+      "placement": {
+        "group-id": "EditorPopupMenu",
+        "relative-to-action": "CompareClipboardWithSelection",
+        "anchor": "before"
+      }
+    },
+    {
+      "source": "idea/LangActions.xml",
+      "kind": "group",
+      "component": {
+        "id": "EditorTabPopupMenuEx",
+        "searchable": "false"
+      },
+      "placement": {
+        "group-id": "EditorTabPopupMenu",
+        "anchor": "last"
+      }
+    },
+    {
+      "source": "idea/ExecutionActions.xml",
+      "kind": "group",
+      "component": {
+        "id": "RunMenu",
+        "popup": "true"
+      },
+      "placement": {
+        "group-id": "MainMenu",
+        "anchor": "after",
+        "relative-to-action": "RefactoringMenu"
+      }
+    },
+    {
+      "source": "idea/ExecutionActions.xml",
+      "kind": "group",
+      "component": {
+        "id": "BuildMenu",
+        "popup": "true",
+        "class": "com.intellij.ide.actions.NonEmptyActionGroup"
+      },
+      "placement": {
+        "group-id": "MainMenu",
+        "anchor": "before",
+        "relative-to-action": "RunMenu"
+      }
+    },
+    {
+      "source": "idea/ExecutionActions.xml",
+      "kind": "action",
+      "component": {
+        "id": "NewUiRunWidget",
+        "class": "com.intellij.execution.ui.RedesignedRunToolbarWrapper"
+      },
+      "placement": {
+        "group-id": "MainToolbarRight",
+        "anchor": "first"
+      }
+    },
+    {
+      "source": "idea/ExecutionActions.xml",
+      "kind": "group",
+      "component": {
+        "id": "ExecutionTargetsToolbarGroup",
+        "searchable": "false",
+        "popup": "false"
+      },
+      "placement": {
+        "group-id": "MainToolbarRight",
+        "anchor": "before",
+        "relative-to-action": "NewUiRunWidget"
+      }
+    }
+  ],
+  "unmatchedSeeds": [],
+  "limitations": [
+    "Only three selected resources in one exact JAR were parsed; this is not the complete product/plugin action registry.",
+    "References and programmatic groups are not expanded; missing declarations do not prove actions are unavailable.",
+    "Resource text is not localized, user customizations are not applied, and visible/enabled state was not executed.",
+    "IDEA identifiers are evidence and mapping candidates, not executable Herdr commands or implementation code."
+  ]
+}

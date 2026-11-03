@@ -1,0 +1,75 @@
+{
+  "method": "Python zipfile + javap -constants -p -c; no target execution; not REA Evidence",
+  "jar": "/Applications/IntelliJ IDEA.app/Contents/lib/intellij.platform.ide.impl.jar",
+  "sha256": "5a19d56e6ff99866f413af64200954a2e61c6dc8258014de0811a08e4312e026",
+  "classes": [
+    {
+      "class": "com.intellij.openapi.actionSystem.impl.ActionManagerImpl",
+      "member": "com/intellij/openapi/actionSystem/impl/ActionManagerImpl.class",
+      "sha256": "db2e7999a57b039f7f3ef643609fc446ae475f51033ce951c36ebdea1773b549",
+      "excerpt": "ActionManagerImpl.excerpt.txt"
+    },
+    {
+      "class": "com.intellij.openapi.actionSystem.impl.ActionToolbarImpl",
+      "member": "com/intellij/openapi/actionSystem/impl/ActionToolbarImpl.class",
+      "sha256": "b18bdde473e7148ec9bd17b19430585cd4ce832fe8610cd240751eb3ccb6db16",
+      "excerpt": "ActionToolbarImpl.excerpt.txt"
+    },
+    {
+      "class": "com.intellij.ide.ui.customization.CustomActionsSchema",
+      "member": "com/intellij/ide/ui/customization/CustomActionsSchema.class",
+      "sha256": "eb301916e463009e3529539022601dc8d70532a695b00f7a05c2dd712b6193a3",
+      "excerpt": "CustomActionsSchema.excerpt.txt"
+    },
+    {
+      "class": "com.intellij.ide.ui.customization.ActionUrl",
+      "member": "com/intellij/ide/ui/customization/ActionUrl.class",
+      "sha256": "3b87d3fa63036aced4e834e93a22e89f3828334304529ebea5f4a2ec618e1d80",
+      "excerpt": "ActionUrl.excerpt.txt"
+    },
+    {
+      "class": "com.intellij.ide.ui.customization.CustomizationUtil",
+      "member": "com/intellij/ide/ui/customization/CustomizationUtil.class",
+      "sha256": "b3d496a6c4424043d338c233330fa4bae7bc8e210925b3c5543b2ba9fa0b9518",
+      "excerpt": "CustomizationUtil.excerpt.txt"
+    },
+    {
+      "class": "com.intellij.ide.ui.customization.CustomisedActionGroup",
+      "member": "com/intellij/ide/ui/customization/CustomisedActionGroup.class",
+      "sha256": "922f22722ec677f0d708ed56d505819b7bc0d8ec96946ae197d5ac65ef4f4d9c",
+      "excerpt": "CustomisedActionGroup.excerpt.txt"
+    },
+    {
+      "class": "com.intellij.ide.ui.customization.CustomizableActionGroupProvider",
+      "member": "com/intellij/ide/ui/customization/CustomizableActionGroupProvider.class",
+      "sha256": "3e0617ebe755ae931212c46e06b4e191d73c76e514323344254c77107523c2ec",
+      "excerpt": "CustomizableActionGroupProvider.excerpt.txt"
+    },
+    {
+      "class": "com.intellij.openapi.wm.impl.WindowInfoImpl",
+      "member": "com/intellij/openapi/wm/impl/WindowInfoImpl.class",
+      "sha256": "e668969a6fe294f472e0c548fc52cb98cb43222283c33405fd2d2642fa41ad2a",
+      "excerpt": "WindowInfoImpl.excerpt.txt"
+    },
+    {
+      "class": "com.intellij.openapi.wm.impl.DesktopLayout",
+      "member": "com/intellij/openapi/wm/impl/DesktopLayout.class",
+      "sha256": "e4ba72a2dc89650b44b657947cdec049f72721589b559096d74af31856249241",
+      "excerpt": "DesktopLayout.excerpt.txt"
+    }
+  ],
+  "resources": [
+    {
+      "member": "idea/PlatformActions.xml",
+      "sha256": "99dfa19ef636a5107c90b3a3f75106d183ecae8660f61256e12daf286cd902bc"
+    },
+    {
+      "member": "idea/LangActions.xml",
+      "sha256": "fd605e31f1a4cf51979fa24d02b591c9debba7add955e84abed4fc0429bd8c28"
+    },
+    {
+      "member": "idea/ExecutionActions.xml",
+      "sha256": "479278436a14e29c8358639d61bda1d20e12fea1719ee33de5cfa5b4db3436ac"
+    }
+  ]
+}

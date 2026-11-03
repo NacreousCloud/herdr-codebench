@@ -1,0 +1,113 @@
+# Focused javap excerpts. [...] = omitted original lines. Numbers are original dump lines.
+1: Compiled from "CustomActionsSchema.kt"
+2: public final class com.intellij.ide.ui.customization.CustomActionsSchema implements com.intellij.openapi.components.PersistentStateComponent<org.jdom.Element> {
+3:   public static final com.intellij.ide.ui.customization.CustomActionsSchema$Companion Companion;
+[...]
+5:   private final kotlinx.coroutines.CoroutineScope coroutineScope;
+[...]
+7:   private volatile java.util.Map<java.lang.String, java.lang.String> iconCustomizations;
+[...]
+9:   private final java.lang.Object lock;
+[...]
+11:   private volatile java.util.LinkedHashMap<java.lang.String, java.lang.String> idToName;
+[...]
+13:   private volatile java.util.Map<java.lang.String, ? extends com.intellij.openapi.actionSystem.ActionGroup> idToActionGroup;
+[...]
+15:   private final java.util.HashSet<java.lang.String> extGroupIds;
+[...]
+17:   private final java.util.concurrent.CopyOnWriteArrayList<com.intellij.ide.ui.customization.ActionUrl> actions;
+[...]
+19:   private boolean isFirstLoadState;
+[...]
+21:   private int modificationStamp;
+[...]
+23:   public static final com.intellij.openapi.util.Key<javax.swing.Icon> PROP_ORIGINAL_ICON;
+[...]
+551:   public void loadState(org.jdom.Element);
+[...]
+572:       33: invokestatic  #31                 // Method kotlin/jvm/internal/Intrinsics.checkNotNullExpressionValue:(Ljava/lang/Object;Ljava/lang/String;)V
+573:       36: putfield      #49                 // Field idToActionGroup:Ljava/util/Map;
+574:       39: aload_0
+575:       40: getfield      #63                 // Field actions:Ljava/util/concurrent/CopyOnWriteArrayList;
+576:       43: invokevirtual #305                // Method java/util/concurrent/CopyOnWriteArrayList.clear:()V
+577:       46: aload_1
+578:       47: astore        5
+[...]
+624:      176: astore        5
+625:      178: goto          77
+626:      181: aload         5
+627:      183: ldc_w         #478                // String group
+628:      186: invokevirtual #468                // Method org/jdom/Element.getChildren:(Ljava/lang/String;)Ljava/util/List;
+629:      189: invokeinterface #365,  1          // InterfaceMethod java/util/List.iterator:()Ljava/util/Iterator;
+630:      194: astore        7
+[...]
+641:      225: astore        9
+642:      227: aload         9
+643:      229: aload         8
+644:      231: invokevirtual #482                // Method com/intellij/ide/ui/customization/ActionUrl.readExternal:(Lorg/jdom/Element;)V
+645:      234: aload_0
+646:      235: aload         9
+647:      237: invokevirtual #363                // Method addAction:(Lcom/intellij/ide/ui/customization/ActionUrl;)V
+648:      240: goto          196
+649:      243: invokestatic  #391                // Method com/intellij/openapi/application/ApplicationManager.getApplication:()Lcom/intellij/openapi/application/Application;
+650:      246: invokeinterface #396,  1          // InterfaceMethod com/intellij/openapi/application/Application.isUnitTestMode:()Z
+[...]
+657:      266: aload         7
+658:      268: iconst_0
+659:      269: aload_0
+660:      270: getfield      #63                 // Field actions:Ljava/util/concurrent/CopyOnWriteArrayList;
+661:      273: invokevirtual #487                // Method java/util/concurrent/CopyOnWriteArrayList.toString:()Ljava/lang/String;
+662:      276: aastore
+663:      277: aload         7
+[...]
+781:   public org.jdom.Element getState();
+782:     Code:
+783:        0: new           #459                // class org/jdom/Element
+784:        3: dup
+785:        4: ldc_w         #529                // String state
+786:        7: invokespecial #523                // Method org/jdom/Element."<init>":(Ljava/lang/String;)V
+787:       10: astore_1
+788:       11: aload_0
+789:       12: getfield      #63                 // Field actions:Ljava/util/concurrent/CopyOnWriteArrayList;
+790:       15: invokevirtual #345                // Method java/util/concurrent/CopyOnWriteArrayList.iterator:()Ljava/util/Iterator;
+791:       18: dup
+792:       19: ldc_w         #347                // String iterator(...)
+[...]
+801:       44: astore_3
+802:       45: new           #459                // class org/jdom/Element
+803:       48: dup
+804:       49: ldc_w         #478                // String group
+805:       52: invokespecial #523                // Method org/jdom/Element."<init>":(Ljava/lang/String;)V
+806:       55: astore        4
+807:       57: aload_3
+808:       58: aload         4
+809:       60: invokevirtual #532                // Method com/intellij/ide/ui/customization/ActionUrl.writeExternal:(Lorg/jdom/Element;)V
+810:       63: aload_1
+811:       64: aload         4
+812:       66: invokevirtual #536                // Method org/jdom/Element.addContent:(Lorg/jdom/Element;)Lorg/jdom/Element;
+[...]
+821:   public final com.intellij.openapi.actionSystem.AnAction getCorrectedAction(java.lang.String);
+[...]
+833:       22: pop
+834:       23: invokestatic  #549                // Method com/intellij/openapi/actionSystem/ActionManager.getInstance:()Lcom/intellij/openapi/actionSystem/ActionManager;
+835:       26: aload_1
+836:       27: invokevirtual #552                // Method com/intellij/openapi/actionSystem/ActionManager.getAction:(Ljava/lang/String;)Lcom/intellij/openapi/actionSystem/AnAction;
+837:       30: areturn
+838:       31: astore_2
+839:       32: aload_0
+[...]
+1130:   public final com.intellij.openapi.actionSystem.ActionGroup getCorrectedAction(java.lang.String, java.lang.String);
+[...]
+1151:       40: areturn
+1152:       41: invokestatic  #549                // Method com/intellij/openapi/actionSystem/ActionManager.getInstance:()Lcom/intellij/openapi/actionSystem/ActionManager;
+1153:       44: aload_1
+1154:       45: invokevirtual #552                // Method com/intellij/openapi/actionSystem/ActionManager.getAction:(Ljava/lang/String;)Lcom/intellij/openapi/actionSystem/AnAction;
+1155:       48: astore        4
+1156:       50: aload         4
+1157:       52: instanceof    #604                // class com/intellij/openapi/actionSystem/ActionGroup
+[...]
+1885:   public void loadState(java.lang.Object);
+[...]
+1893:   public java.lang.Object getState();
+[...]
+1925:   static {};

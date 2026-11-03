@@ -1,0 +1,217 @@
+# Focused javap excerpts. [...] = omitted original lines. Numbers are original dump lines.
+1: Compiled from "ActionUrl.java"
+2: public final class com.intellij.ide.ui.customization.ActionUrl implements com.intellij.openapi.util.JDOMExternalizable {
+3:   public static final int ADDED = 1;
+[...]
+5:   public static final int DELETED = -1;
+[...]
+7:   public static final int MOVE = 2;
+[...]
+9:   private static final java.lang.String IS_GROUP = "is_group";
+[...]
+11:   private static final java.lang.String SEPARATOR = "seperator";
+[...]
+13:   private static final java.lang.String IS_ACTION = "is_action";
+[...]
+15:   private static final java.lang.String VALUE = "value";
+[...]
+17:   private static final java.lang.String PATH = "path";
+[...]
+19:   private static final java.lang.String ACTION_TYPE = "action_type";
+[...]
+21:   private static final java.lang.String POSITION = "position";
+[...]
+23:   private static final java.lang.String FORCE_POPUP = "forse_popup";
+[...]
+25:   private static final int TYPE_NONE = 0;
+[...]
+27:   private static final int TYPE_SEPARATOR = 1;
+[...]
+29:   private static final int TYPE_ACTION = 2;
+[...]
+31:   private static final int TYPE_GROUP = 3;
+[...]
+33:   private static final int TYPE_POPUP_GROUP = 4;
+[...]
+35:   private java.util.ArrayList<java.lang.String> myGroupPath;
+[...]
+37:   private java.lang.String myComponentId;
+[...]
+39:   private int myComponentType;
+[...]
+41:   private java.lang.Object myComponent;
+[...]
+43:   private int myActionType;
+[...]
+45:   private int myAbsolutePosition;
+[...]
+47:   private int myInitialPosition;
+[...]
+411:   public void readExternal(org.jdom.Element) throws com.intellij.openapi.util.InvalidDataException;
+[...]
+414:        1: new           #13                 // class java/util/ArrayList
+415:        4: dup
+416:        5: invokespecial #15                 // Method java/util/ArrayList."<init>":()V
+417:        8: putfield      #16                 // Field myGroupPath:Ljava/util/ArrayList;
+418:       11: aload_1
+419:       12: ldc           #129                // String path
+420:       14: invokevirtual #131                // Method org/jdom/Element.getChildren:(Ljava/lang/String;)Ljava/util/List;
+421:       17: invokeinterface #137,  1          // InterfaceMethod java/util/List.iterator:()Ljava/util/Iterator;
+422:       22: astore_2
+[...]
+428:       38: checkcast     #132                // class org/jdom/Element
+429:       41: astore_3
+430:       42: aload_0
+431:       43: getfield      #16                 // Field myGroupPath:Ljava/util/ArrayList;
+432:       46: aload_3
+433:       47: ldc           #151                // String value
+434:       49: invokevirtual #153                // Method org/jdom/Element.getAttributeValue:(Ljava/lang/String;)Ljava/lang/String;
+435:       52: invokevirtual #157                // Method java/util/ArrayList.add:(Ljava/lang/Object;)Z
+436:       55: pop
+437:       56: goto          23
+438:       59: aload_0
+439:       60: aload_1
+440:       61: ldc           #151                // String value
+441:       63: invokevirtual #153                // Method org/jdom/Element.getAttributeValue:(Ljava/lang/String;)Ljava/lang/String;
+442:       66: putfield      #30                 // Field myComponentId:Ljava/lang/String;
+443:       69: aload_0
+444:       70: aload_1
+445:       71: ldc           #161                // String is_action
+446:       73: invokevirtual #153                // Method org/jdom/Element.getAttributeValue:(Ljava/lang/String;)Ljava/lang/String;
+447:       76: ifnull        83
+448:       79: iconst_2
+449:       80: goto          110
+450:       83: aload_1
+451:       84: ldc           #163                // String seperator
+452:       86: invokevirtual #153                // Method org/jdom/Element.getAttributeValue:(Ljava/lang/String;)Ljava/lang/String;
+453:       89: ifnull        96
+454:       92: iconst_1
+455:       93: goto          110
+456:       96: aload_1
+457:       97: ldc           #165                // String is_group
+458:       99: invokevirtual #153                // Method org/jdom/Element.getAttributeValue:(Ljava/lang/String;)Ljava/lang/String;
+459:      102: ifnull        109
+460:      105: iconst_3
+461:      106: goto          110
+462:      109: iconst_0
+463:      110: putfield      #34                 // Field myComponentType:I
+464:      113: aload_0
+465:      114: getfield      #34                 // Field myComponentType:I
+466:      117: iconst_3
+467:      118: if_icmpne     138
+468:      121: aload_1
+469:      122: ldc           #167                // String forse_popup
+470:      124: invokevirtual #153                // Method org/jdom/Element.getAttributeValue:(Ljava/lang/String;)Ljava/lang/String;
+471:      127: invokestatic  #169                // Method java/lang/Boolean.parseBoolean:(Ljava/lang/String;)Z
+472:      130: ifeq          138
+473:      133: aload_0
+474:      134: iconst_4
+475:      135: putfield      #34                 // Field myComponentType:I
+476:      138: aload_1
+477:      139: ldc           #174                // String action_type
+478:      141: invokevirtual #153                // Method org/jdom/Element.getAttributeValue:(Ljava/lang/String;)Ljava/lang/String;
+479:      144: astore_2
+480:      145: aload_0
+[...]
+484:      151: goto          158
+485:      154: aload_2
+486:      155: invokestatic  #176                // Method java/lang/Integer.parseInt:(Ljava/lang/String;)I
+487:      158: putfield      #24                 // Field myActionType:I
+488:      161: aload_0
+489:      162: aload_1
+490:      163: ldc           #182                // String position
+491:      165: invokevirtual #153                // Method org/jdom/Element.getAttributeValue:(Ljava/lang/String;)Ljava/lang/String;
+492:      168: invokestatic  #176                // Method java/lang/Integer.parseInt:(Ljava/lang/String;)I
+493:      171: putfield      #27                 // Field myAbsolutePosition:I
+494:      174: aload_0
+495:      175: aload_1
+496:      176: invokestatic  #184                // Method com/intellij/openapi/util/DefaultJDOMExternalizer.readExternal:(Ljava/lang/Object;Lorg/jdom/Element;)V
+[...]
+499:   public void writeExternal(org.jdom.Element) throws com.intellij.openapi.util.WriteExternalException;
+500:     Code:
+501:        0: aload_0
+502:        1: getfield      #16                 // Field myGroupPath:Ljava/util/ArrayList;
+503:        4: invokevirtual #190                // Method java/util/ArrayList.iterator:()Ljava/util/Iterator;
+504:        7: astore_2
+505:        8: aload_2
+[...]
+511:       26: astore_3
+512:       27: new           #132                // class org/jdom/Element
+513:       30: dup
+514:       31: ldc           #129                // String path
+515:       33: invokespecial #191                // Method org/jdom/Element."<init>":(Ljava/lang/String;)V
+516:       36: astore        4
+517:       38: aload         4
+518:       40: ldc           #151                // String value
+519:       42: aload_3
+520:       43: invokevirtual #194                // Method org/jdom/Element.setAttribute:(Ljava/lang/String;Ljava/lang/String;)Lorg/jdom/Element;
+521:       46: pop
+[...]
+525:       53: pop
+526:       54: goto          8
+527:       57: aload_0
+528:       58: getfield      #34                 // Field myComponentType:I
+529:       61: tableswitch   { // 1 to 4
+530:                      1: 92
+531:                      2: 108
+[...]
+534:                default: 188
+535:           }
+536:       92: aload_1
+537:       93: ldc           #163                // String seperator
+538:       95: getstatic     #202                // Field java/lang/Boolean.TRUE:Ljava/lang/Boolean;
+539:       98: invokevirtual #206                // Method java/lang/Boolean.toString:()Ljava/lang/String;
+540:      101: invokevirtual #194                // Method org/jdom/Element.setAttribute:(Ljava/lang/String;Ljava/lang/String;)Lorg/jdom/Element;
+541:      104: pop
+542:      105: goto          188
+543:      108: aload_1
+544:      109: ldc           #151                // String value
+545:      111: aload_0
+546:      112: getfield      #30                 // Field myComponentId:Ljava/lang/String;
+547:      115: invokestatic  #209                // Method com/intellij/openapi/util/text/StringUtil.notNullize:(Ljava/lang/String;)Ljava/lang/String;
+548:      118: invokevirtual #194                // Method org/jdom/Element.setAttribute:(Ljava/lang/String;Ljava/lang/String;)Lorg/jdom/Element;
+549:      121: pop
+550:      122: aload_1
+551:      123: ldc           #161                // String is_action
+552:      125: getstatic     #202                // Field java/lang/Boolean.TRUE:Ljava/lang/Boolean;
+553:      128: invokevirtual #206                // Method java/lang/Boolean.toString:()Ljava/lang/String;
+554:      131: invokevirtual #194                // Method org/jdom/Element.setAttribute:(Ljava/lang/String;Ljava/lang/String;)Lorg/jdom/Element;
+555:      134: pop
+556:      135: goto          188
+557:      138: aload_1
+558:      139: ldc           #151                // String value
+559:      141: aload_0
+560:      142: getfield      #30                 // Field myComponentId:Ljava/lang/String;
+561:      145: invokestatic  #209                // Method com/intellij/openapi/util/text/StringUtil.notNullize:(Ljava/lang/String;)Ljava/lang/String;
+562:      148: invokevirtual #194                // Method org/jdom/Element.setAttribute:(Ljava/lang/String;Ljava/lang/String;)Lorg/jdom/Element;
+563:      151: pop
+564:      152: aload_1
+565:      153: ldc           #165                // String is_group
+566:      155: getstatic     #202                // Field java/lang/Boolean.TRUE:Ljava/lang/Boolean;
+567:      158: invokevirtual #206                // Method java/lang/Boolean.toString:()Ljava/lang/String;
+568:      161: invokevirtual #194                // Method org/jdom/Element.setAttribute:(Ljava/lang/String;Ljava/lang/String;)Lorg/jdom/Element;
+569:      164: pop
+570:      165: aload_1
+571:      166: ldc           #167                // String forse_popup
+572:      168: aload_0
+573:      169: getfield      #34                 // Field myComponentType:I
+574:      172: iconst_4
+575:      173: if_icmpne     180
+576:      176: iconst_1
+[...]
+580:      184: invokevirtual #194                // Method org/jdom/Element.setAttribute:(Ljava/lang/String;Ljava/lang/String;)Lorg/jdom/Element;
+581:      187: pop
+582:      188: aload_1
+583:      189: ldc           #174                // String action_type
+584:      191: aload_0
+585:      192: getfield      #24                 // Field myActionType:I
+586:      195: invokestatic  #215                // Method java/lang/Integer.toString:(I)Ljava/lang/String;
+587:      198: invokevirtual #194                // Method org/jdom/Element.setAttribute:(Ljava/lang/String;Ljava/lang/String;)Lorg/jdom/Element;
+588:      201: pop
+589:      202: aload_1
+590:      203: ldc           #182                // String position
+591:      205: aload_0
+592:      206: getfield      #27                 // Field myAbsolutePosition:I
+593:      209: invokestatic  #215                // Method java/lang/Integer.toString:(I)Ljava/lang/String;
+594:      212: invokevirtual #194                // Method org/jdom/Element.setAttribute:(Ljava/lang/String;Ljava/lang/String;)Lorg/jdom/Element;
+595:      215: pop

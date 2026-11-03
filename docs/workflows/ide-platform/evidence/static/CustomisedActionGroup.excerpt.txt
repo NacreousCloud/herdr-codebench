@@ -1,0 +1,64 @@
+# Focused javap excerpts. [...] = omitted original lines. Numbers are original dump lines.
+1: Compiled from "CustomisedActionGroup.java"
+2: public final class com.intellij.ide.ui.customization.CustomisedActionGroup extends com.intellij.openapi.actionSystem.ActionGroupWrapper {
+3:   private com.intellij.openapi.actionSystem.AnAction[] myChildren;
+[...]
+5:   private final com.intellij.ide.ui.customization.CustomActionsSchema mySchema;
+[...]
+7:   private final java.lang.String myDefaultGroupName;
+[...]
+9:   private final java.lang.String myRootGroupName;
+[...]
+11:   private int mySchemeModificationStamp;
+[...]
+13:   private int myGroupModificationStamp;
+[...]
+45:   public com.intellij.openapi.actionSystem.AnAction[] getChildren(com.intellij.openapi.actionSystem.AnActionEvent);
+[...]
+48:        1: invokevirtual #37                 // Method getDelegate:()Lcom/intellij/openapi/actionSystem/ActionGroup;
+49:        4: astore_2
+50:        5: invokestatic  #41                 // Method com/intellij/ide/ui/customization/CustomActionsSchema.getInstance:()Lcom/intellij/ide/ui/customization/CustomActionsSchema;
+51:        8: invokevirtual #47                 // Method com/intellij/ide/ui/customization/CustomActionsSchema.getModificationStamp:()I
+52:       11: istore_3
+53:       12: getstatic     #51                 // Field com/intellij/openapi/actionSystem/ActionUpdaterInterceptor.Companion:Lcom/intellij/openapi/actionSystem/ActionUpdaterInterceptor$Companion;
+54:       15: invokevirtual #57                 // Method com/intellij/openapi/actionSystem/ActionUpdaterInterceptor$Companion.treatDefaultActionGroupAsDynamic:()Z
+[...]
+60:       29: checkcast     #63                 // class com/intellij/openapi/actionSystem/DefaultActionGroup
+61:       32: astore        5
+62:       34: aload         5
+63:       36: invokevirtual #65                 // Method com/intellij/openapi/actionSystem/DefaultActionGroup.getModificationStamp:()I
+64:       39: goto          43
+65:       42: iconst_m1
+66:       43: istore        4
+67:       45: aload_0
+68:       46: getfield      #7                  // Field mySchemeModificationStamp:I
+69:       49: iload_3
+70:       50: if_icmplt     84
+71:       53: aload_0
+72:       54: getfield      #13                 // Field myGroupModificationStamp:I
+73:       57: iload         4
+74:       59: if_icmplt     84
+75:       62: iload         4
+76:       64: iflt          84
+77:       67: aload_0
+78:       68: getfield      #66                 // Field myChildren:[Lcom/intellij/openapi/actionSystem/AnAction;
+79:       71: invokestatic  #70                 // Method com/intellij/util/ArrayUtil.isEmpty:([Ljava/lang/Object;)Z
+80:       74: ifne          84
+81:       77: aload_2
+[...]
+94:      100: getfield      #30                 // Field myDefaultGroupName:Ljava/lang/String;
+95:      103: aload_0
+96:      104: getfield      #34                 // Field myRootGroupName:Ljava/lang/String;
+97:      107: invokestatic  #82                 // Method com/intellij/ide/ui/customization/CustomizationUtil.getReordableChildren:(Lcom/intellij/openapi/actionSystem/ActionGroup;[Lcom/intellij/openapi/actionSystem/AnAction;Lcom/intellij/ide/ui/customization/CustomActionsSchema;Ljava/lang/String;Ljava/lang/String;)[Lcom/intellij/openapi/actionSystem/AnAction;
+98:      110: putfield      #66                 // Field myChildren:[Lcom/intellij/openapi/actionSystem/AnAction;
+99:      113: aload_0
+100:      114: iload_3
+101:      115: putfield      #7                  // Field mySchemeModificationStamp:I
+102:      118: aload_0
+103:      119: iload         4
+104:      121: putfield      #13                 // Field myGroupModificationStamp:I
+105:      124: aload_0
+106:      125: getfield      #66                 // Field myChildren:[Lcom/intellij/openapi/actionSystem/AnAction;
+107:      128: dup
+108:      129: ifnonnull     136
+109:      132: iconst_1

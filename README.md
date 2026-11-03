@@ -121,6 +121,7 @@ herdr-app do layout.switch --name idea
 Shift를 눌렀다 놓는 동작을 두 번 하면 **어디서나 검색**이 열립니다. Herdr 0.1.12의 기본 `shift shift` 키 시퀀스를 사용하므로 터미널·파일 탐색기·에디터·리뷰 등 포커스 위치와 관계없이 IDEA 레이아웃에서 동작합니다. 설정 → 키맵 → 탐색에서도 `어디서나 검색` / `⇧ ⇧`를 볼 수 있습니다. 다른 컴퓨터에서도 `idea-ux` 브랜치에서 설치하세요.
 
 - 기준과 분석: [선정 계획](design/idea/PARITY_PLAN.md), [세부 비교](design/idea/DETAIL_AUDIT.md)
+- 구조 전환 설계: [현재 기능 목록 · IDEA 구조 조사 · 공통 플랫폼 계획](docs/workflows/ide-platform/README.md) (조사·설계 완료, 리팩터링 미착수)
 - 새 화면 개발: [컴포넌트 계약과 예제](design/idea/COMPONENTS.md), [개발 규칙](AGENTS.md)
 - 실제 예제: idea에서 ⌘⇧A → `design-system` → UI 컴포넌트 갤러리
 - 생성·검사: `python3 design/idea/sync_ui.py --check`, `node --experimental-vm-modules design/idea/check_system.mjs`

@@ -1,0 +1,149 @@
+# Focused javap excerpts. [...] = omitted original lines. Numbers are original dump lines.
+1: Compiled from "CustomizationUtil.java"
+2: public final class com.intellij.ide.ui.customization.CustomizationUtil {
+3:   private static final com.intellij.openapi.diagnostic.Logger LOG;
+[...]
+5:   public static final com.intellij.openapi.util.Key<java.lang.Boolean> DISABLE_CUSTOMIZE_POPUP_KEY;
+[...]
+106:   static com.intellij.openapi.actionSystem.AnAction[] getReordableChildren(com.intellij.openapi.actionSystem.ActionGroup, com.intellij.openapi.actionSystem.AnAction[], com.intellij.ide.ui.customization.CustomActionsSchema, java.lang.String, java.lang.String);
+[...]
+132:       50: invokestatic  #108                // Method com/intellij/util/containers/ContainerUtil.addAll:(Ljava/util/Collection;[Ljava/lang/Object;)Ljava/util/Collection;
+133:       53: pop
+134:       54: aload_2
+135:       55: invokevirtual #60                 // Method com/intellij/ide/ui/customization/CustomActionsSchema.getActions:()Ljava/util/List;
+136:       58: invokeinterface #64,  1           // InterfaceMethod java/util/List.iterator:()Ljava/util/Iterator;
+137:       63: astore        8
+138:       65: aload         8
+[...]
+143:       82: checkcast     #80                 // class com/intellij/ide/ui/customization/ActionUrl
+144:       85: astore        9
+145:       87: aload         9
+146:       89: invokevirtual #114                // Method com/intellij/ide/ui/customization/ActionUrl.getParentGroup:()Ljava/lang/String;
+147:       92: astore        10
+148:       94: aload         10
+149:       96: ifnonnull     102
+[...]
+163:      129: invokevirtual #117                // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+164:      132: ifeq          65
+165:      135: aload         9
+166:      137: invokevirtual #120                // Method com/intellij/ide/ui/customization/ActionUrl.getRootGroup:()Ljava/lang/String;
+167:      140: aload         4
+168:      142: invokevirtual #117                // Method java/lang/String.equals:(Ljava/lang/Object;)Z
+169:      145: ifne          151
+170:      148: goto          65
+171:      151: aload         9
+172:      153: invokevirtual #123                // Method com/intellij/ide/ui/customization/ActionUrl.getComponentAction:()Lcom/intellij/openapi/actionSystem/AnAction;
+173:      156: astore        11
+174:      158: aload         11
+175:      160: ifnonnull     166
+176:      163: goto          65
+177:      166: aload         9
+178:      168: invokevirtual #127                // Method com/intellij/ide/ui/customization/ActionUrl.getAbsolutePosition:()I
+179:      171: istore        12
+180:      173: aload         9
+181:      175: invokevirtual #130                // Method com/intellij/ide/ui/customization/ActionUrl.getActionType:()I
+182:      178: iconst_1
+183:      179: if_icmpne     241
+184:      182: aload         11
+[...]
+198:      218: aload         7
+199:      220: iload         12
+200:      222: aload         11
+201:      224: invokevirtual #151                // Method java/util/ArrayList.add:(ILjava/lang/Object;)V
+202:      227: goto          342
+203:      230: aload         7
+204:      232: aload         11
+205:      234: invokevirtual #155                // Method java/util/ArrayList.add:(Ljava/lang/Object;)Z
+206:      237: pop
+207:      238: goto          342
+208:      241: aload         9
+209:      243: invokevirtual #130                // Method com/intellij/ide/ui/customization/ActionUrl.getActionType:()I
+210:      246: iconst_m1
+211:      247: if_icmpne     342
+212:      250: aload         7
+213:      252: aload         11
+214:      254: invokevirtual #157                // Method java/util/ArrayList.remove:(Ljava/lang/Object;)Z
+215:      257: ifne          342
+216:      260: iload         12
+217:      262: aload         7
+[...]
+244:      331: ifeq          342
+245:      334: aload         7
+246:      336: iload         12
+247:      338: invokevirtual #173                // Method java/util/ArrayList.remove:(I)Ljava/lang/Object;
+248:      341: pop
+249:      342: goto          65
+250:      345: iconst_0
+[...]
+345:   private static void computeDiff(com.intellij.ide.ui.customization.ActionUrl[], com.intellij.ide.ui.customization.ActionUrl[], java.util.List<? super com.intellij.ide.ui.customization.ActionUrl>);
+[...]
+352:       10: astore_3
+353:       11: aload_0
+354:       12: aload_1
+355:       13: invokestatic  #265                // Method com/intellij/util/diff/Diff.buildChanges:([Ljava/lang/Object;[Ljava/lang/Object;)Lcom/intellij/util/diff/Diff$Change;
+356:       16: astore_3
+357:       17: goto          30
+358:       20: astore        4
+[...]
+378:       59: astore        6
+379:       61: aload         6
+380:       63: iconst_m1
+381:       64: invokevirtual #286                // Method com/intellij/ide/ui/customization/ActionUrl.setActionType:(I)V
+382:       67: aload         6
+383:       69: iload         5
+384:       71: invokevirtual #290                // Method com/intellij/ide/ui/customization/ActionUrl.setAbsolutePosition:(I)V
+385:       74: aload_2
+386:       75: aload         6
+387:       77: invokeinterface #293,  2          // InterfaceMethod java/util/List.add:(Ljava/lang/Object;)Z
+[...]
+405:      114: astore        6
+406:      116: aload         6
+407:      118: iconst_1
+408:      119: invokevirtual #286                // Method com/intellij/ide/ui/customization/ActionUrl.setActionType:(I)V
+409:      122: aload         6
+410:      124: iload         5
+411:      126: invokevirtual #290                // Method com/intellij/ide/ui/customization/ActionUrl.setAbsolutePosition:(I)V
+412:      129: aload_2
+413:      130: aload         6
+414:      132: invokeinterface #293,  2          // InterfaceMethod java/util/List.add:(Ljava/lang/Object;)Z
+[...]
+1014:   public static void updateActionGroup(java.util.List<java.lang.Object>, java.lang.String);
+[...]
+1056:       78: aload_0
+1057:       79: invokestatic  #507                // Method toActionUrls:(Ljava/util/ArrayList;Ljava/util/List;)[Lcom/intellij/ide/ui/customization/ActionUrl;
+1058:       82: aload_3
+1059:       83: invokestatic  #511                // Method computeDiff:([Lcom/intellij/ide/ui/customization/ActionUrl;[Lcom/intellij/ide/ui/customization/ActionUrl;Ljava/util/List;)V
+1060:       86: invokestatic  #498                // Method com/intellij/ide/ui/customization/CustomActionsSchema.getInstance:()Lcom/intellij/ide/ui/customization/CustomActionsSchema;
+1061:       89: astore        5
+1062:       91: new           #8                  // class com/intellij/ide/ui/customization/CustomActionsSchema
+[...]
+1066:       99: astore        6
+1067:      101: aload         6
+1068:      103: aload         5
+1069:      105: invokevirtual #515                // Method com/intellij/ide/ui/customization/CustomActionsSchema.copyFrom:(Lcom/intellij/ide/ui/customization/CustomActionsSchema;)V
+1070:      108: new           #105                // class java/util/ArrayList
+1071:      111: dup
+1072:      112: aload         6
+1073:      114: invokevirtual #60                 // Method com/intellij/ide/ui/customization/CustomActionsSchema.getActions:()Ljava/util/List;
+1074:      117: invokespecial #364                // Method java/util/ArrayList."<init>":(Ljava/util/Collection;)V
+1075:      120: astore        7
+1076:      122: aload         7
+1077:      124: aload         4
+1078:      126: invokedynamic #519,  0            // InvokeDynamic #7:test:(Ljava/util/ArrayList;)Ljava/util/function/Predicate;
+1079:      131: invokevirtual #523                // Method java/util/ArrayList.removeIf:(Ljava/util/function/Predicate;)Z
+1080:      134: pop
+1081:      135: aload         7
+1082:      137: aload_3
+1083:      138: invokevirtual #527                // Method java/util/ArrayList.addAll:(Ljava/util/Collection;)Z
+1084:      141: pop
+1085:      142: aload         6
+1086:      144: aload         7
+1087:      146: invokevirtual #261                // Method com/intellij/ide/ui/customization/CustomActionsSchema.setActions:(Ljava/util/List;)V
+1088:      149: aload         5
+1089:      151: aload         6
+1090:      153: invokevirtual #515                // Method com/intellij/ide/ui/customization/CustomActionsSchema.copyFrom:(Lcom/intellij/ide/ui/customization/CustomActionsSchema;)V
+1091:      156: invokestatic  #530                // InterfaceMethod com/intellij/ide/ui/customization/CustomActionsListener.fireSchemaChanged:()V
+1092:      159: return
+1093:
+[...]
+1475:   static {};

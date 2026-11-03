@@ -1,0 +1,46 @@
+# Focused javap excerpts. [...] = omitted original lines. Numbers are original dump lines.
+1: Compiled from "WindowInfoImpl.kt"
+2: public final class com.intellij.openapi.wm.impl.WindowInfoImpl extends com.intellij.openapi.components.BaseState implements java.lang.Cloneable,com.intellij.openapi.wm.WindowInfo {
+3:   public static final com.intellij.openapi.wm.impl.WindowInfoImpl$Companion Companion;
+[...]
+5:   static final kotlin.reflect.KProperty<java.lang.Object>[] $$delegatedProperties;
+[...]
+7:   private final kotlin.properties.ReadWriteProperty isActiveOnStart$delegate;
+[...]
+9:   private final kotlin.properties.ReadWriteProperty toolWindowPaneId$delegate;
+[...]
+11:   private final kotlin.properties.ReadWriteProperty anchor$delegate;
+[...]
+13:   private final kotlin.properties.ReadWriteProperty isAutoHide$delegate;
+[...]
+15:   private final kotlin.properties.ReadWriteProperty floatingBounds$delegate;
+[...]
+17:   private final kotlin.properties.ReadWriteProperty isMaximized$delegate;
+[...]
+19:   private final kotlin.properties.ReadWriteProperty id$delegate;
+[...]
+21:   private final kotlin.properties.ReadWriteProperty internalType$delegate;
+[...]
+23:   private final kotlin.properties.ReadWriteProperty type$delegate;
+[...]
+25:   private final kotlin.properties.ReadWriteProperty isVisible$delegate;
+[...]
+27:   private final kotlin.properties.ReadWriteProperty isShowStripeButton$delegate;
+[...]
+29:   private final kotlin.properties.ReadWriteProperty weight$delegate;
+[...]
+31:   private final kotlin.properties.ReadWriteProperty sideWeight$delegate;
+[...]
+33:   private final kotlin.properties.ReadWriteProperty isSplit$delegate;
+[...]
+35:   private final kotlin.properties.ReadWriteProperty contentUiType$delegate;
+[...]
+37:   private final kotlin.properties.ReadWriteProperty order$delegate;
+[...]
+39:   private boolean isFromPersistentSettings;
+[...]
+41:   public static final java.lang.String TAG = "window_info";
+[...]
+43:   public static final float DEFAULT_WEIGHT = 0.33f;
+[...]
+861:   static {};

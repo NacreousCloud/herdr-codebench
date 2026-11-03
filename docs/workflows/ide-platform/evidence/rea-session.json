@@ -1,0 +1,234 @@
+{
+  "checkedAt": "2026-11-04",
+  "scope": "Installed IntelliJ IDEA identity; JAR inventory attempts did not succeed.",
+  "jarOpen": {
+    "result": {
+      "path": "/Applications/IntelliJ IDEA.app/Contents/lib/intellij.platform.ide.impl.jar",
+      "format": "zip",
+      "kind": "archive",
+      "sha256": "5a19d56e6ff99866f413af64200954a2e61c6dc8258014de0811a08e4312e026",
+      "architecture": null
+    }
+  },
+  "jarInventoryError": {
+    "error": {
+      "code": "artifact_operation_failed",
+      "category": "integrity_mismatch",
+      "message": "Artifact bytes contradict declared integrity. If expected, rerun inspect_artifact with integrity_policy=record-and-continue (CLI: --integrity-policy record-and-continue) to retain observed bytes as untrusted; otherwise get a fresh copy.",
+      "retryable": false,
+      "remediation": {
+        "action": "Artifact bytes contradict declared integrity. If expected, rerun inspect_artifact with integrity_policy=record-and-continue (CLI: --integrity-policy record-and-continue) to retain observed bytes as untrusted; otherwise get a fresh copy."
+      },
+      "details": {
+        "operation": "inspect_artifact",
+        "reason": "integrity",
+        "detail": "Root artifact changed during inventory: /Applications/IntelliJ IDEA.app/Contents/lib/intellij.platform.ide.impl.jar"
+      }
+    }
+  },
+  "jarInventoryRecordContinueError": {
+    "error": {
+      "code": "artifact_operation_failed",
+      "category": "integrity_mismatch",
+      "message": "Artifact bytes contradict declared integrity. If expected, rerun inspect_artifact with integrity_policy=record-and-continue (CLI: --integrity-policy record-and-continue) to retain observed bytes as untrusted; otherwise get a fresh copy.",
+      "retryable": false,
+      "remediation": {
+        "action": "Artifact bytes contradict declared integrity. If expected, rerun inspect_artifact with integrity_policy=record-and-continue (CLI: --integrity-policy record-and-continue) to retain observed bytes as untrusted; otherwise get a fresh copy."
+      },
+      "details": {
+        "operation": "inspect_artifact",
+        "reason": "integrity",
+        "detail": "Root artifact changed during inventory: /Applications/IntelliJ IDEA.app/Contents/lib/intellij.platform.ide.impl.jar"
+      }
+    }
+  },
+  "appPlist": {
+    "evidence_id": "ev_8b0fa4811f40735b491add73a7f1b7cefc04fba7a576ceddd84fda70b96e67fe",
+    "subject": {
+      "name": "idea",
+      "digest": {
+        "sha256": "55784569d028407c2bdeb925920dc49e8d2438f79679031bdb2c88f34c081bf8"
+      },
+      "local_path": "/Applications/IntelliJ IDEA.app/Contents/MacOS/idea",
+      "format": "mach-o",
+      "architecture": "arm64"
+    },
+    "provider": {
+      "id": "native-macos",
+      "name": "macOS native inspection utilities",
+      "version": null
+    },
+    "analysis_profile": null,
+    "predicate_type": "rea.analysis",
+    "operation": "inspect_plist",
+    "parameters": {},
+    "raw_result": null,
+    "normalized_result": {
+      "format": "xml",
+      "value": {
+        "CFBundleName": "IntelliJ IDEA",
+        "NSDesktopFolderUsageDescription": "An application in IntelliJ IDEA requests access to the user's Desktop folder.",
+        "LSArchitecturePriority": [
+          "arm64"
+        ],
+        "CFBundleVersion": "IU-262.11879.100",
+        "NSCameraUsageDescription": "An application in IntelliJ IDEA requests access to the device's camera.",
+        "CFBundleDevelopmentRegion": "English",
+        "CFBundleDocumentTypes": [
+          {
+            "CFBundleTypeName": "IntelliJ IDEA Project File",
+            "CFBundleTypeExtensions": [
+              "ipr"
+            ],
+            "CFBundleTypeRole": "Editor",
+            "CFBundleTypeIconFile": "idea.icns"
+          },
+          {
+            "CFBundleTypeExtensions": [
+              "java"
+            ],
+            "CFBundleTypeRole": "Editor",
+            "CFBundleTypeIconFile": "idea.icns"
+          },
+          {
+            "CFBundleTypeExtensions": [
+              "groovy"
+            ],
+            "CFBundleTypeRole": "Editor",
+            "CFBundleTypeIconFile": "idea.icns"
+          },
+          {
+            "CFBundleTypeExtensions": [
+              "kt"
+            ],
+            "CFBundleTypeRole": "Editor",
+            "CFBundleTypeIconFile": "idea.icns"
+          },
+          {
+            "CFBundleTypeExtensions": [
+              "kts"
+            ],
+            "CFBundleTypeRole": "Editor",
+            "CFBundleTypeIconFile": "idea.icns"
+          },
+          {
+            "CFBundleTypeExtensions": [
+              "jfr"
+            ],
+            "CFBundleTypeRole": "Editor",
+            "CFBundleTypeIconFile": "idea.icns"
+          },
+          {
+            "CFBundleTypeExtensions": [
+              "hprof"
+            ],
+            "CFBundleTypeRole": "Editor",
+            "CFBundleTypeIconFile": "idea.icns"
+          },
+          {
+            "CFBundleTypeName": "All documents",
+            "CFBundleTypeExtensions": [
+              "*"
+            ],
+            "CFBundleTypeOSTypes": [
+              "****"
+            ],
+            "CFBundleTypeRole": "Editor",
+            "LSTypeIsPackage": false
+          }
+        ],
+        "NSSupportsAutomaticGraphicsSwitching": true,
+        "NSMicrophoneUsageDescription": "An application in IntelliJ IDEA requests access to the device's microphone.",
+        "CFBundlePackageType": "APPL",
+        "CFBundleIconFile": "idea.icns",
+        "NSHighResolutionCapable": true,
+        "CFBundleShortVersionString": "2026.2.4",
+        "CFBundleInfoDictionaryVersion": "6.0",
+        "CFBundleExecutable": "idea",
+        "NSLocationUsageDescription": "An application in IntelliJ IDEA requests access to the user's location information.",
+        "LSRequiresNativeExecution": "YES",
+        "CFBundleURLTypes": [
+          {
+            "CFBundleTypeRole": "Editor",
+            "CFBundleURLName": "Stacktrace",
+            "CFBundleURLSchemes": [
+              "idea"
+            ]
+          }
+        ],
+        "CFBundleIdentifier": "com.jetbrains.intellij",
+        "LSApplicationCategoryType": "public.app-category.developer-tools",
+        "LSMinimumSystemVersion": "10.13",
+        "NSDocumentsFolderUsageDescription": "An application in IntelliJ IDEA requests access to the user's Documents folder.",
+        "NSDownloadsFolderUsageDescription": "An application in IntelliJ IDEA requests access to the user's Downloads folder.",
+        "NSNetworkVolumesUsageDescription": "An application in IntelliJ IDEA requests access to files on a network volume.",
+        "NSRemovableVolumesUsageDescription": "An application in IntelliJ IDEA requests access to files on a removable volume.",
+        "CFBundleGetInfoString": "IntelliJ IDEA 2026.2.4, build IU-262.11879.100. Copyright JetBrains s.r.o., (c) 2000-2026",
+        "NSAppleEventsUsageDescription": "An application in IntelliJ IDEA requests the ability to send Apple events.",
+        "NSBluetoothAlwaysUsageDescription": "An application in IntelliJ IDEA requests access to Bluetooth.",
+        "NSLocalNetworkUsageDescription": "IntelliJ IDEA's features, such as SSH and database connectivity, require permissions for accessing the local network and sending broadcast requests."
+      },
+      "bundle": {
+        "identifier": "com.jetbrains.intellij",
+        "executable": "idea",
+        "name": "IntelliJ IDEA",
+        "version": "IU-262.11879.100",
+        "short_version": "2026.2.4"
+      },
+      "source_path": "/Applications/IntelliJ IDEA.app/Contents/Info.plist",
+      "provenance": [
+        {
+          "tool": "file",
+          "command": [
+            "/usr/bin/file",
+            "-b",
+            "$PLIST"
+          ],
+          "tool_version": null,
+          "version_reason": "Tool exposes no uniform stable version flag; executable SHA-256 is a prelaunch file sample and does not prove atomic OS image binding.",
+          "executable_sha256": "d8e4b968f4b77c651d8f250aac8425d6fb0bba4049d3c1a897d2e86b8a70e8df",
+          "exit": {
+            "code": 0,
+            "signal": null
+          },
+          "stdout_bytes": 34,
+          "stderr_bytes": 0
+        },
+        {
+          "tool": "plutil",
+          "command": [
+            "/usr/bin/plutil",
+            "-convert",
+            "json",
+            "-o",
+            "-",
+            "--",
+            "$PLIST"
+          ],
+          "tool_version": null,
+          "version_reason": "Tool exposes no uniform stable version flag; executable SHA-256 is a prelaunch file sample and does not prove atomic OS image binding.",
+          "executable_sha256": "86b18a09c1d78effa3d5b4939d416a4b44316682a7ca8620f245ae49b543556b",
+          "exit": {
+            "code": 0,
+            "signal": null
+          },
+          "stdout_bytes": 3008,
+          "stderr_bytes": 0
+        }
+      ],
+      "limitations": []
+    },
+    "confidence": "observed",
+    "authority": "shipped-artifact",
+    "environment": null,
+    "limitations": [],
+    "relationship_coverage": null,
+    "locations": [
+      {
+        "kind": "artifact-path",
+        "path": "/Applications/IntelliJ IDEA.app/Contents/Info.plist"
+      }
+    ],
+    "evidence_links": []
+  }
+}

@@ -1,0 +1,137 @@
+# Focused javap excerpts. [...] = omitted original lines. Numbers are original dump lines.
+1: Compiled from "DesktopLayout.kt"
+2: public final class com.intellij.openapi.wm.impl.DesktopLayout {
+3:   public static final com.intellij.openapi.wm.impl.DesktopLayout$Companion Companion;
+[...]
+5:   private final java.util.Map<java.lang.String, com.intellij.openapi.wm.impl.WindowInfoImpl> idToInfo;
+[...]
+7:   private final com.intellij.openapi.wm.impl.UnifiedToolWindowWeights unifiedWeights;
+[...]
+9:   public static final java.lang.String TAG = "layout";
+[...]
+304:   public final java.util.List<com.intellij.openapi.wm.impl.WindowInfoImpl> setAnchor(com.intellij.openapi.wm.impl.WindowInfoImpl, java.lang.String, com.intellij.openapi.wm.ToolWindowAnchor, int);
+[...]
+324:       39: aload_0
+325:       40: aload_2
+326:       41: aload_3
+327:       42: invokevirtual #289                // Method getNextOrder$intellij_platform_ide_impl:(Ljava/lang/String;Lcom/intellij/openapi/wm/ToolWindowAnchor;)I
+328:       45: istore        5
+329:       47: goto          167
+330:       50: aload_0
+331:       51: getfield      #24                 // Field idToInfo:Ljava/util/Map;
+332:       54: invokeinterface #52,  1           // InterfaceMethod java/util/Map.values:()Ljava/util/Collection;
+333:       59: invokeinterface #292,  1          // InterfaceMethod java/util/Collection.iterator:()Ljava/util/Iterator;
+334:       64: astore        7
+[...]
+354:      115: invokestatic  #304                // Method kotlin/jvm/internal/Intrinsics.areEqual:(Ljava/lang/Object;Ljava/lang/Object;)Z
+355:      118: ifeq          66
+356:      121: aload         8
+357:      123: invokevirtual #108                // Method com/intellij/openapi/wm/impl/WindowInfoImpl.getOrder:()I
+358:      126: iconst_m1
+359:      127: if_icmpeq     66
+360:      130: aload         8
+361:      132: invokevirtual #108                // Method com/intellij/openapi/wm/impl/WindowInfoImpl.getOrder:()I
+362:      135: iload         5
+363:      137: if_icmplt     66
+364:      140: aload         8
+365:      142: invokevirtual #108                // Method com/intellij/openapi/wm/impl/WindowInfoImpl.getOrder:()I
+366:      145: istore        9
+367:      147: aload         8
+368:      149: iload         9
+369:      151: iconst_1
+370:      152: iadd
+371:      153: invokevirtual #308                // Method com/intellij/openapi/wm/impl/WindowInfoImpl.setOrder:(I)V
+372:      156: aload         6
+373:      158: aload         8
+374:      160: invokevirtual #312                // Method java/util/ArrayList.add:(Ljava/lang/Object;)Z
+[...]
+376:      164: goto          66
+377:      167: aload_1
+378:      168: iload         5
+379:      170: invokevirtual #308                // Method com/intellij/openapi/wm/impl/WindowInfoImpl.setOrder:(I)V
+380:      173: aload_1
+381:      174: aload_2
+382:      175: invokevirtual #216                // Method com/intellij/openapi/wm/impl/WindowInfoImpl.setToolWindowPaneId:(Ljava/lang/String;)V
+383:      178: aload_1
+384:      179: aload_3
+385:      180: invokevirtual #224                // Method com/intellij/openapi/wm/impl/WindowInfoImpl.setAnchor:(Lcom/intellij/openapi/wm/ToolWindowAnchor;)V
+386:      183: aload         6
+387:      185: checkcast     #314                // class java/util/List
+388:      188: areturn
+[...]
+390:   public final void readExternal(org.jdom.Element, boolean);
+[...]
+392:        0: aload_1
+393:        1: ldc_w         #323                // String layoutElement
+394:        4: invokestatic  #16                 // Method kotlin/jvm/internal/Intrinsics.checkNotNullParameter:(Ljava/lang/Object;Ljava/lang/String;)V
+395:        7: invokestatic  #329                // Method com/intellij/configurationStore/XmlSerializer.getJdomSerializer:()Lcom/intellij/configurationStore/JdomSerializer;
+396:       10: ldc           #104                // class com/intellij/openapi/wm/impl/WindowInfoImpl
+397:       12: invokeinterface #335,  2          // InterfaceMethod com/intellij/configurationStore/JdomSerializer.getBeanBinding:(Ljava/lang/Class;)Lcom/intellij/util/xmlb/BeanBinding;
+398:       17: astore_3
+[...]
+427:       89: aload         6
+428:       91: invokevirtual #354                // Method com/intellij/util/xmlb/BeanBinding.deserializeInto:(Ljava/lang/Object;Lorg/jdom/Element;)V
+429:       94: aload         7
+430:       96: invokevirtual #357                // Method com/intellij/openapi/wm/impl/WindowInfoImpl.normalizeAfterRead$intellij_platform_ide_impl:()V
+431:       99: aload         7
+432:      101: invokevirtual #358                // Method com/intellij/openapi/wm/impl/WindowInfoImpl.getId:()Ljava/lang/String;
+433:      104: astore        8
+[...]
+440:      124: invokevirtual #379                // Method com/intellij/openapi/diagnostic/Logger.warn:(Ljava/lang/String;)V
+441:      127: goto          44
+442:      130: aload_0
+443:      131: getfield      #24                 // Field idToInfo:Ljava/util/Map;
+444:      134: aload         8
+445:      136: aload         7
+446:      138: invokeinterface #175,  3          // InterfaceMethod java/util/Map.put:(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+[...]
+456:      164: astore        5
+457:      166: aload         5
+458:      168: ifnull        185
+459:      171: invokestatic  #329                // Method com/intellij/configurationStore/XmlSerializer.getJdomSerializer:()Lcom/intellij/configurationStore/JdomSerializer;
+460:      174: aload_0
+461:      175: getfield      #27                 // Field unifiedWeights:Lcom/intellij/openapi/wm/impl/UnifiedToolWindowWeights;
+462:      178: aload         5
+463:      180: invokeinterface #387,  3          // InterfaceMethod com/intellij/configurationStore/JdomSerializer.deserializeInto:(Ljava/lang/Object;Lorg/jdom/Element;)V
+464:      185: aload         4
+[...]
+477:      223: invokevirtual #394                // Method com/intellij/openapi/wm/impl/WindowInfoImpl.resetModificationCount:()V
+478:      226: goto          199
+479:      229: aload_0
+480:      230: getfield      #27                 // Field unifiedWeights:Lcom/intellij/openapi/wm/impl/UnifiedToolWindowWeights;
+481:      233: invokevirtual #395                // Method com/intellij/openapi/wm/impl/UnifiedToolWindowWeights.resetModificationCount:()V
+482:      236: return
+483:
+[...]
+529:   public final org.jdom.Element writeExternal(java.lang.String);
+[...]
+532:        1: ldc_w         #421                // String tagName
+533:        4: invokestatic  #16                 // Method kotlin/jvm/internal/Intrinsics.checkNotNullParameter:(Ljava/lang/Object;Ljava/lang/String;)V
+534:        7: aload_0
+535:        8: getfield      #24                 // Field idToInfo:Ljava/util/Map;
+536:       11: invokeinterface #413,  1          // InterfaceMethod java/util/Map.isEmpty:()Z
+537:       16: ifeq          21
+538:       19: aconst_null
+[...]
+555:       56: iconst_0
+556:       57: bipush        6
+557:       59: aconst_null
+558:       60: invokestatic  #429                // Method com/intellij/configurationStore/XmlSerializer.serialize$default:(Ljava/lang/Object;Lcom/intellij/util/xmlb/SerializationFilter;ZILjava/lang/Object;)Lorg/jdom/Element;
+559:       63: dup
+560:       64: ifnonnull     71
+561:       67: pop
+[...]
+576:       96: aload_2
+577:       97: ifnull        123
+578:      100: aload_0
+579:      101: getfield      #27                 // Field unifiedWeights:Lcom/intellij/openapi/wm/impl/UnifiedToolWindowWeights;
+580:      104: aconst_null
+581:      105: iconst_0
+582:      106: bipush        6
+583:      108: aconst_null
+584:      109: invokestatic  #429                // Method com/intellij/configurationStore/XmlSerializer.serialize$default:(Ljava/lang/Object;Lcom/intellij/util/xmlb/SerializationFilter;ZILjava/lang/Object;)Lorg/jdom/Element;
+585:      112: astore_3
+586:      113: aload_3
+587:      114: ifnull        123
+[...]
+670:   static {};

@@ -1,0 +1,194 @@
+[
+  {
+    "member": "idea/PlatformActions.xml",
+    "attributes": {
+      "id": "MainToolbarPopupActions",
+      "searchable": "false"
+    },
+    "children": [
+      {
+        "tag": "reference",
+        "ref": "ViewToolBar"
+      },
+      {
+        "tag": "action",
+        "id": "CustomizeUI",
+        "class": "com.intellij.ide.actions.CustomizeUIAction"
+      }
+    ]
+  },
+  {
+    "member": "idea/PlatformActions.xml",
+    "attributes": {
+      "id": "EditorTabsToolbarActions",
+      "searchable": "false"
+    },
+    "children": []
+  },
+  {
+    "member": "idea/PlatformActions.xml",
+    "attributes": {
+      "id": "MainToolbarNewUI"
+    },
+    "children": [
+      {
+        "tag": "group",
+        "id": "MainToolbarLeft",
+        "searchable": "false"
+      },
+      {
+        "tag": "group",
+        "id": "MainToolbarCenter",
+        "searchable": "false"
+      },
+      {
+        "tag": "group",
+        "id": "MainToolbarRight",
+        "searchable": "false"
+      }
+    ]
+  },
+  {
+    "member": "idea/PlatformActions.xml",
+    "attributes": {
+      "id": "MainToolbarLeft",
+      "searchable": "false"
+    },
+    "children": [
+      {
+        "tag": "action",
+        "id": "main.toolbar.Project",
+        "class": "com.intellij.openapi.wm.impl.headertoolbar.ProjectToolbarWidgetAction"
+      },
+      {
+        "tag": "group",
+        "id": "MainToolbarGeneralActionsGroup",
+        "searchable": "false"
+      }
+    ]
+  },
+  {
+    "member": "idea/PlatformActions.xml",
+    "attributes": {
+      "id": "MainToolbarCenter",
+      "searchable": "false"
+    },
+    "children": [
+      {
+        "tag": "action",
+        "id": "main.toolbar.Filename",
+        "class": "com.intellij.openapi.wm.impl.headertoolbar.FilenameToolbarWidgetAction"
+      }
+    ]
+  },
+  {
+    "member": "idea/PlatformActions.xml",
+    "attributes": {
+      "id": "MainToolbarRight",
+      "searchable": "false"
+    },
+    "children": [
+      {
+        "tag": "reference",
+        "ref": "SearchEverywhere"
+      },
+      {
+        "tag": "reference",
+        "ref": "SettingsEntryPoint"
+      }
+    ]
+  },
+  {
+    "member": "idea/PlatformActions.xml",
+    "attributes": {
+      "id": "EditorTabPopupMenu"
+    },
+    "children": [
+      {
+        "tag": "reference",
+        "ref": "CloseEditorsGroup"
+      },
+      {
+        "tag": "separator"
+      },
+      {
+        "tag": "reference",
+        "ref": "CopyPaths"
+      },
+      {
+        "tag": "separator"
+      },
+      {
+        "tag": "reference",
+        "ref": "SplitVertically"
+      },
+      {
+        "tag": "reference",
+        "ref": "MoveTabRight"
+      },
+      {
+        "tag": "reference",
+        "ref": "SplitHorizontally"
+      },
+      {
+        "tag": "reference",
+        "ref": "MoveTabDown"
+      },
+      {
+        "tag": "action",
+        "id": "MoveEditorToOppositeTabGroup",
+        "class": "com.intellij.openapi.fileEditor.impl.MoveEditorToOppositeTabGroupAction"
+      },
+      {
+        "tag": "action",
+        "id": "OpenEditorInOppositeTabGroup",
+        "class": "com.intellij.openapi.fileEditor.impl.OpenEditorInOppositeTabGroupAction"
+      },
+      {
+        "tag": "reference",
+        "ref": "ChangeSplitOrientation"
+      },
+      {
+        "tag": "reference",
+        "ref": "Unsplit"
+      },
+      {
+        "tag": "reference",
+        "ref": "UnsplitAll"
+      },
+      {
+        "tag": "separator"
+      },
+      {
+        "tag": "reference",
+        "ref": "PinActiveEditorTab"
+      },
+      {
+        "tag": "reference",
+        "ref": "KeepTabOpen"
+      },
+      {
+        "tag": "reference",
+        "ref": "EditSourceInNewWindow"
+      },
+      {
+        "tag": "reference",
+        "ref": "ConfigureEditorTabs"
+      },
+      {
+        "tag": "separator"
+      },
+      {
+        "tag": "reference",
+        "ref": "ReopenClosedTab"
+      }
+    ]
+  },
+  {
+    "member": "idea/PlatformActions.xml",
+    "attributes": {
+      "id": "ToolWindowContextMenu"
+    },
+    "children": []
+  }
+]

@@ -1,0 +1,173 @@
+# Focused javap excerpts. [...] = omitted original lines. Numbers are original dump lines.
+1: Compiled from "ActionToolbarImpl.kt"
+2: public class com.intellij.openapi.actionSystem.impl.ActionToolbarImpl extends javax.swing.JPanel implements com.intellij.openapi.actionSystem.ActionToolbar,com.intellij.ui.switcher.QuickActionProvider,com.intellij.util.animation.AlphaAnimated {
+3:   public static final com.intellij.openapi.actionSystem.impl.ActionToolbarImpl$Companion Companion;
+[...]
+5:   private final java.lang.Throwable myCreationTrace;
+[...]
+7:   private final java.util.ArrayList<java.awt.Rectangle> myComponentBounds;
+[...]
+9:   private java.util.function.Supplier<? extends java.awt.Dimension> myMinimumButtonSizeSupplier;
+[...]
+11:   private com.intellij.openapi.actionSystem.toolbarLayout.ToolbarLayoutStrategy myLayoutStrategy;
+[...]
+13:   private int myOrientation;
+[...]
+15:   private final com.intellij.openapi.actionSystem.ActionGroup myActionGroup;
+[...]
+17:   private final java.lang.String myPlace;
+[...]
+19:   private java.util.List<? extends com.intellij.openapi.actionSystem.AnAction> myVisibleActions;
+[...]
+21:   private final com.intellij.openapi.actionSystem.impl.PresentationFactory presentationFactory;
+[...]
+23:   private final boolean myDecorateButtons;
+[...]
+25:   private final com.intellij.openapi.actionSystem.impl.ToolbarUpdater myUpdater;
+[...]
+27:   private kotlinx.coroutines.Job myLastUpdate;
+[...]
+29:   private boolean myForcedUpdateRequested;
+[...]
+31:   private kotlinx.coroutines.Job myUpdateOnFirstShowJob;
+[...]
+33:   private int myUpdatesWithNewButtons;
+[...]
+35:   private int myForcedUpdatesWithNewButtons;
+[...]
+37:   private java.lang.String myLastNewButtonActionClass;
+[...]
+39:   private com.intellij.openapi.actionSystem.ex.ActionButtonLook myCustomButtonLook;
+[...]
+41:   private javax.swing.border.Border myActionButtonBorder;
+[...]
+43:   private final com.intellij.openapi.actionSystem.ex.ActionButtonLook myMinimalButtonLook;
+[...]
+45:   private java.awt.Rectangle myAutoPopupRec;
+[...]
+47:   private final com.intellij.openapi.actionSystem.DefaultActionGroup mySecondaryActions;
+[...]
+49:   private com.intellij.openapi.actionSystem.impl.ActionToolbarImpl$SecondaryGroupUpdater mySecondaryGroupUpdater;
+[...]
+51:   private boolean myForceMinimumSize;
+[...]
+53:   private boolean mySkipWindowAdjustments;
+[...]
+55:   private boolean myMinimalMode;
+[...]
+57:   private boolean myLayoutSecondaryActions;
+[...]
+59:   private com.intellij.openapi.actionSystem.impl.ActionButton mySecondaryActionsButton;
+[...]
+61:   private int myFirstOutsideIndex;
+[...]
+63:   private com.intellij.openapi.ui.popup.JBPopup myPopup;
+[...]
+65:   private javax.swing.JComponent myTargetComponent;
+[...]
+67:   private boolean myReservePlaceAutoPopupIcon;
+[...]
+69:   private boolean myShowSeparatorTitles;
+[...]
+71:   private java.awt.Image myCachedImage;
+[...]
+73:   private final com.intellij.util.animation.AlphaAnimationContext alphaContext;
+[...]
+75:   private final com.intellij.util.EventDispatcher<com.intellij.openapi.actionSystem.ActionToolbarListener> myListeners;
+[...]
+77:   private java.util.function.Function<? super java.lang.String, ? extends java.awt.Component> mySeparatorCreator;
+[...]
+79:   private boolean myNeedCheckHoverOnLayout;
+[...]
+81:   public static final java.lang.String DO_NOT_ADD_CUSTOMIZATION_HANDLER = "ActionToolbarImpl.suppressTargetComponentWarning";
+[...]
+83:   private static final com.intellij.openapi.util.Key<java.lang.Boolean> SUPPRESS_FAST_TRACK;
+[...]
+85:   public static final java.lang.String IMPORTANT_TOOLBAR_KEY = "ActionToolbarImpl.importantToolbar";
+[...]
+87:   public static final java.lang.String USE_BASELINE_KEY = "ActionToolbarImpl.baseline";
+[...]
+290:   protected com.intellij.openapi.actionSystem.impl.PresentationFactory createPresentationFactory();
+291:     Code:
+292:        0: new           #322                // class com/intellij/openapi/actionSystem/impl/ActionToolbarPresentationFactory
+293:        3: dup
+294:        4: aload_0
+295:        5: checkcast     #6                  // class com/intellij/openapi/actionSystem/ActionToolbar
+296:        8: invokespecial #325                // Method com/intellij/openapi/actionSystem/impl/ActionToolbarPresentationFactory."<init>":(Lcom/intellij/openapi/actionSystem/ActionToolbar;)V
+297:       11: checkcast     #327                // class com/intellij/openapi/actionSystem/impl/PresentationFactory
+298:       14: areturn
+299:
+[...]
+632:   public com.intellij.openapi.actionSystem.ActionGroup getActionGroup();
+633:     Code:
+634:        0: aload_0
+635:        1: getfield      #195                // Field myActionGroup:Lcom/intellij/openapi/actionSystem/ActionGroup;
+636:        4: areturn
+637:
+[...]
+2205:   private final void updateActionsImpl(boolean);
+[...]
+2222:       29: invokeinterface #272,  1          // InterfaceMethod com/intellij/openapi/application/Application.isUnitTestMode:()Z
+2223:       34: istore_3
+2224:       35: aload_0
+2225:       36: invokevirtual #1493               // Method getDataContext:()Lcom/intellij/openapi/actionSystem/DataContext;
+2226:       39: invokestatic  #1497               // Method com/intellij/openapi/actionSystem/impl/Utils.createAsyncDataContext:(Lcom/intellij/openapi/actionSystem/DataContext;)Lcom/intellij/openapi/actionSystem/DataContext;
+2227:       42: astore        4
+2228:       44: aload_0
+2229:       45: invokespecial #550                // Method cancelCurrentUpdate:()V
+[...]
+3133:   public void setTargetComponent(javax.swing.JComponent);
+3134:     Code:
+3135:        0: aload_0
+3136:        1: getfield      #1910               // Field myTargetComponent:Ljavax/swing/JComponent;
+3137:        4: ifnonnull     18
+3138:        7: aload_0
+3139:        8: ldc_w         #1914               // String ActionToolbarImpl.suppressTargetComponentWarning
+[...]
+3141:       12: invokestatic  #409                // Method java/lang/Boolean.valueOf:(Z)Ljava/lang/Boolean;
+3142:       15: invokevirtual #1915               // Method putClientProperty:(Ljava/lang/Object;Ljava/lang/Object;)V
+3143:       18: aload_0
+3144:       19: getfield      #1910               // Field myTargetComponent:Ljavax/swing/JComponent;
+3145:       22: aload_1
+3146:       23: if_acmpeq     42
+3147:       26: aload_0
+3148:       27: aload_1
+3149:       28: putfield      #1910               // Field myTargetComponent:Ljavax/swing/JComponent;
+3150:       31: aload_0
+3151:       32: invokevirtual #488                // Method isShowing:()Z
+3152:       35: ifeq          42
+[...]
+3186:   protected com.intellij.openapi.actionSystem.DataContext getDataContext();
+3187:     Code:
+3188:        0: aload_0
+3189:        1: getfield      #1910               // Field myTargetComponent:Ljavax/swing/JComponent;
+3190:        4: ifnonnull     65
+3191:        7: aload_0
+3192:        8: ldc_w         #1914               // String ActionToolbarImpl.suppressTargetComponentWarning
+[...]
+3211:       59: invokespecial #167                // Method java/lang/Throwable."<init>":(Ljava/lang/String;Ljava/lang/Throwable;)V
+3212:       62: invokevirtual #173                // Method com/intellij/openapi/diagnostic/Logger.warn:(Ljava/lang/Throwable;)V
+3213:       65: aload_0
+3214:       66: getfield      #1910               // Field myTargetComponent:Ljavax/swing/JComponent;
+3215:       69: ifnull        82
+3216:       72: aload_0
+3217:       73: getfield      #1910               // Field myTargetComponent:Ljavax/swing/JComponent;
+3218:       76: checkcast     #106                // class java/awt/Component
+3219:       79: goto          89
+3220:       82: aload_0
+[...]
+3223:       89: dup
+3224:       90: invokestatic  #378                // Method kotlin/jvm/internal/Intrinsics.checkNotNull:(Ljava/lang/Object;)V
+3225:       93: astore_1
+3226:       94: invokestatic  #1944               // Method com/intellij/ide/DataManager.getInstance:()Lcom/intellij/ide/DataManager;
+3227:       97: aload_1
+3228:       98: invokevirtual #1947               // Method com/intellij/ide/DataManager.getDataContext:(Ljava/awt/Component;)Lcom/intellij/openapi/actionSystem/DataContext;
+3229:      101: dup
+3230:      102: ldc_w         #1949               // String getDataContext(...)
+3231:      105: invokestatic  #92                 // Method kotlin/jvm/internal/Intrinsics.checkNotNullExpressionValue:(Ljava/lang/Object;Ljava/lang/String;)V
+3232:      108: areturn
+3233:
+[...]
+4362:   public static final void access$updateActionsImpl(com.intellij.openapi.actionSystem.impl.ActionToolbarImpl, boolean);
+[...]
+4375:   static {};

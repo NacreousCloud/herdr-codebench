@@ -1,0 +1,94 @@
+# Focused javap excerpts. [...] = omitted original lines. Numbers are original dump lines.
+1: Compiled from "ActionManagerImpl.kt"
+2: public class com.intellij.openapi.actionSystem.impl.ActionManagerImpl extends com.intellij.openapi.actionSystem.ex.ActionManagerEx {
+3:   private final kotlinx.coroutines.CoroutineScope coroutineScope;
+[...]
+5:   private final java.util.List<com.intellij.openapi.actionSystem.ex.ActionPopupMenuListener> actionPopupMenuListeners;
+[...]
+7:   private final java.util.ArrayList<java.lang.Object> popups;
+[...]
+9:   private com.intellij.openapi.actionSystem.impl.ActionManagerImpl$MyTimer timer;
+[...]
+11:   private final com.intellij.openapi.actionSystem.ex.ActionRuntimeRegistrar actionPostInitRuntimeRegistrar;
+[...]
+13:   private java.lang.String lastPreformedActionId;
+[...]
+15:   private java.lang.String prevPreformedActionId;
+[...]
+17:   private long lastTimeEditorWasTypedIn;
+[...]
+19:   private final com.intellij.openapi.actionSystem.impl.PostInitActionRegistrar actionPostInitRegistrar;
+[...]
+21:   private final java.util.Map<java.lang.String, java.util.List<com.intellij.openapi.actionSystem.impl.KeymapShortcutOperation>> keymapToOperations;
+[...]
+23:   private final com.intellij.openapi.actionSystem.impl.ActionPluginRegistrar pluginRegistrar;
+[...]
+25:   private final kotlinx.coroutines.flow.MutableSharedFlow<kotlin.Unit> _timerEvents;
+[...]
+27:   private final kotlinx.coroutines.flow.Flow<kotlin.Unit> timerEvents;
+[...]
+613:   public com.intellij.openapi.actionSystem.ActionPopupMenu createActionPopupMenu(java.lang.String, com.intellij.openapi.actionSystem.ActionGroup, com.intellij.openapi.actionSystem.impl.PresentationFactory);
+[...]
+618:        7: aload_2
+619:        8: ldc_w         #643                // String group
+620:       11: invokestatic  #15                 // Method kotlin/jvm/internal/Intrinsics.checkNotNullParameter:(Ljava/lang/Object;Ljava/lang/String;)V
+621:       14: new           #645                // class com/intellij/openapi/actionSystem/impl/ActionPopupMenuImpl
+622:       17: dup
+623:       18: aload_1
+624:       19: aload_2
+625:       20: aload_0
+626:       21: aload_3
+627:       22: invokespecial #648                // Method com/intellij/openapi/actionSystem/impl/ActionPopupMenuImpl."<init>":(Ljava/lang/String;Lcom/intellij/openapi/actionSystem/ActionGroup;Lcom/intellij/openapi/actionSystem/impl/ActionManagerImpl;Lcom/intellij/openapi/actionSystem/impl/PresentationFactory;)V
+628:       25: checkcast     #650                // class com/intellij/openapi/actionSystem/ActionPopupMenu
+629:       28: areturn
+630:
+631:   public com.intellij.openapi.actionSystem.ActionPopupMenu createActionPopupMenu(java.lang.String, com.intellij.openapi.actionSystem.ActionGroup);
+[...]
+636:        7: aload_2
+637:        8: ldc_w         #643                // String group
+638:       11: invokestatic  #15                 // Method kotlin/jvm/internal/Intrinsics.checkNotNullParameter:(Ljava/lang/Object;Ljava/lang/String;)V
+639:       14: new           #645                // class com/intellij/openapi/actionSystem/impl/ActionPopupMenuImpl
+640:       17: dup
+641:       18: aload_1
+642:       19: aload_2
+643:       20: aload_0
+644:       21: aconst_null
+645:       22: invokespecial #648                // Method com/intellij/openapi/actionSystem/impl/ActionPopupMenuImpl."<init>":(Ljava/lang/String;Lcom/intellij/openapi/actionSystem/ActionGroup;Lcom/intellij/openapi/actionSystem/impl/ActionManagerImpl;Lcom/intellij/openapi/actionSystem/impl/PresentationFactory;)V
+646:       25: checkcast     #650                // class com/intellij/openapi/actionSystem/ActionPopupMenu
+647:       28: areturn
+648:
+649:   public com.intellij.openapi.actionSystem.ActionToolbar createActionToolbar(java.lang.String, com.intellij.openapi.actionSystem.ActionGroup, boolean);
+[...]
+666:   public com.intellij.openapi.actionSystem.ActionToolbar createActionToolbar(java.lang.String, com.intellij.openapi.actionSystem.ActionGroup, boolean, boolean);
+[...]
+676:       16: iload_3
+677:       17: iload         4
+678:       19: iconst_0
+679:       20: invokestatic  #666                // Method com/intellij/openapi/actionSystem/impl/ActionManagerXmlSupportKt.createActionToolbarImpl:(Ljava/lang/String;Lcom/intellij/openapi/actionSystem/ActionGroup;ZZZ)Lcom/intellij/openapi/actionSystem/impl/ActionToolbarImpl;
+680:       23: checkcast     #668                // class com/intellij/openapi/actionSystem/ActionToolbar
+681:       26: areturn
+682:
+683:   public com.intellij.openapi.actionSystem.ActionToolbar createActionToolbar(java.lang.String, com.intellij.openapi.actionSystem.ActionGroup, boolean, boolean, boolean);
+[...]
+693:       16: iload_3
+694:       17: iload         4
+695:       19: iload         5
+696:       21: invokestatic  #666                // Method com/intellij/openapi/actionSystem/impl/ActionManagerXmlSupportKt.createActionToolbarImpl:(Ljava/lang/String;Lcom/intellij/openapi/actionSystem/ActionGroup;ZZZ)Lcom/intellij/openapi/actionSystem/impl/ActionToolbarImpl;
+697:       24: checkcast     #668                // class com/intellij/openapi/actionSystem/ActionToolbar
+698:       27: areturn
+699:
+700:   public final com.intellij.openapi.actionSystem.ActionToolbar createActionToolbar(java.lang.String, com.intellij.openapi.actionSystem.ActionGroup, boolean, java.util.function.Function<? super java.lang.String, ? extends java.awt.Component>);
+[...]
+713:       24: iload_3
+714:       25: iconst_0
+715:       26: iconst_1
+716:       27: invokestatic  #666                // Method com/intellij/openapi/actionSystem/impl/ActionManagerXmlSupportKt.createActionToolbarImpl:(Ljava/lang/String;Lcom/intellij/openapi/actionSystem/ActionGroup;ZZZ)Lcom/intellij/openapi/actionSystem/impl/ActionToolbarImpl;
+717:       30: astore        5
+718:       32: aload         5
+719:       34: aload         4
+[...]
+874:   public void registerAction(java.lang.String, com.intellij.openapi.actionSystem.AnAction, com.intellij.openapi.extensions.PluginId);
+[...]
+894:   public void registerAction(java.lang.String, com.intellij.openapi.actionSystem.AnAction);
+[...]
+913:   public void unregisterAction(java.lang.String);

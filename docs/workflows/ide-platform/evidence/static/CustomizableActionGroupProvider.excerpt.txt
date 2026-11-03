@@ -1,0 +1,6 @@
+# Focused javap excerpts. [...] = omitted original lines. Numbers are original dump lines.
+1: Compiled from "CustomizableActionGroupProvider.java"
+2: public abstract class com.intellij.ide.ui.customization.CustomizableActionGroupProvider {
+[...]
+9:   public abstract void registerGroups(com.intellij.ide.ui.customization.CustomizableActionGroupProvider$CustomizableActionGroupRegistrar);
+10: }
