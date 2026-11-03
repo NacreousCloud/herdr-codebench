@@ -7,7 +7,7 @@
 // looked for from the file's folder up to the repository; the chosen one is kept per folder in shared "codenav.httpEnv".
 import { div } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
-import { theme, shared, setShared, props, closeOverlay, openOverlay, readTextFile, writeTextFile, exec } from "herdr";
+import { theme, shared, setShared, props, closeOverlay, openOverlay, readTextFile, exec } from "herdr";
 import { T } from "./i18n.js";
 import { basename } from "./common.js";
 import { toolImage } from "./ideaicons.js";
@@ -89,12 +89,12 @@ function withGlobals(block, saved, names, first) {
   return out;
 }
 
-// A path nobody can guess, created fresh and private (only you can read it): it fails
-// when anything, a link included, is there already.
-async function freshPath(dir, ext, folder = false) {
+// A path nobody can guess, created fresh and private (only you can read it) in one
+// step, with its text: it fails when anything, a link included, is there already.
+async function freshPath(dir, ext, text = null) {
   const path = `${dir}/.codenav-${Math.random().toString(36).slice(2)}${Date.now().toString(36)}${ext}`;
-  const make = folder ? 'umask 077 && mkdir "$1"' : 'umask 077 && set -C && : > "$1"';
-  const r = await exec("sh", ["-c", make, "sh", path]).catch(() => null);
+  const make = text === null ? 'umask 077 && mkdir "$1"' : 'umask 077 && set -C && printf "%s" "$2" > "$1"';
+  const r = await exec("sh", ["-c", make, "sh", path, text ?? ""]).catch(() => null);
   return r?.code === 0 ? path : null;
 }
 
@@ -108,11 +108,8 @@ export async function runHttp(path, lines, envs, req, after) {
   const saved = kept.get(dir) ?? {}, names = globalNames(lines);
   const reqs = req ? [req] : httpRequests(lines);
   const text = [...(req ? [] : lines.slice(0, reqs[0]?.start ?? 0)), ...reqs.flatMap((r, i) => withGlobals(lines.slice(r.start, r.end), saved, names, i === 0))].join("\n") + "\n";
-  const tmp = await freshPath(dir, ".http"), report = tmp && await freshPath(dir, "", true);
+  const tmp = await freshPath(dir, ".http", text), report = tmp && await freshPath(dir, "");
   if (!tmp || !report) { if (tmp) exec("rm", ["-f", tmp]).catch(() => {}); return; }
-  // It exists already (empty, private): replace that, then keep it private.
-  try { await writeTextFile(tmp, text, ""); } catch { exec("rm", ["-rf", tmp, report]).catch(() => {}); return; }
-  await exec("chmod", ["600", tmp]).catch(() => {});
   // The copy holds kept values: gone when the run ends, even by Ctrl+C.
   runConfig({ name: "HTTP", command: `(trap ${sq(`rm -f ${sq(tmp)}`)} EXIT INT TERM; ${opts} -r ${sq(report)} ${sq(tmp)})`, folder: dir }, after);
   // The run's report, once written: the globals it ended with.

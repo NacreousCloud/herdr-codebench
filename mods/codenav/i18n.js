@@ -150,6 +150,7 @@ const KO = {
   "Comments need a file inside a git repository": "코멘트는 git 저장소 안의 파일에만 남길 수 있습니다",
   "File comment · ": "파일 코멘트 · ",
   // the idea layout
+  "Agents": "에이전트",
   "Run request": "요청 실행",
   "Run All Requests in File": "파일의 모든 요청 실행",
   "Run with:": "다음으로 실행:",

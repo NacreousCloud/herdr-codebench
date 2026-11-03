@@ -271,6 +271,13 @@
                       }
                     },
                     {
+                      "id": "bottom-agents",
+                      "type": "block",
+                      "content": {
+                        "mod": "agents"
+                      }
+                    },
+                    {
                       "id": "bottom-empty",
                       "type": "block",
                       "content": {

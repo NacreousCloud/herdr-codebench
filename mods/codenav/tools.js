@@ -23,6 +23,8 @@ export const TOOLS = {
   terminal: { child: "bottom-terminal", icon: "terminal", idea: "terminal", label: "Terminal", key: "⌥F12" },
   problems: { child: "bottom-problems", icon: "alert", idea: "problems", label: "Problems", key: "⌘6" },
   notifications: { child: "bottom-notifications", icon: "message", idea: "notifications", label: "Notifications", key: "" },
+  // Herdr's own agents list (the shipped "agents" mod): running agents by status.
+  agents: { child: "bottom-agents", icon: "terminal", idea: "services", label: "Agents", key: "", content: { mod: "agents" } },
 };
 // The three places a tool window can be. Each stack keeps an empty child, so a
 // side whose tools all moved away still has one.
@@ -94,7 +96,7 @@ export function arrange(want, show = false) {
 export const moveTool = (name, to) => arrange({ [name]: to }, true);
 
 // The default sides (Settings → tool windows), kept in shared "codenav.toolSides".
-export const DEFAULT_SIDES = { project: "left", commit: "left", structure: "left", find: "left", terminal: "bottom", problems: "bottom", notifications: "bottom" };
+export const DEFAULT_SIDES = { project: "left", commit: "left", structure: "left", find: "left", terminal: "bottom", problems: "bottom", notifications: "bottom", agents: "bottom" };
 export const savedSides = () => ({ ...DEFAULT_SIDES, ...(shared("codenav.toolSides") ?? {}) });
 export const openToolSettings = () => openOverlay({ mod: "codenav", props: { view: "toolsettings" }, kind: "dialog", width: 520, height: 360 });
 
@@ -145,7 +147,7 @@ export class Stripe {
       for (const n of missing) {
         const stack = find(tree, SIDES[sides[n] ?? "bottom"].stack);
         if (stack && !stack.children.some((c) => c.id === TOOLS[n].child))
-          stack.children = [...stack.children, { id: TOOLS[n].child, type: "block", content: { mod: "codenav", props: { view: n } } }];
+          stack.children = [...stack.children, { id: TOOLS[n].child, type: "block", content: TOOLS[n].content ?? { mod: "codenav", props: { view: n } } }];
       }
       run("layout.set", { layout: tree });
     });
