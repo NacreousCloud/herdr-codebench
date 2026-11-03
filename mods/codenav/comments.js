@@ -80,7 +80,7 @@ export class CommentBox {
       .child(h_flex().gap(8).items_center().text_size(12)
         .child(icon("message", 13).text_color(t.accent))
         .child(div().flex_1().min_w(0).truncate().text_color(t.muted)
-          .child(`${T(c.id ? "Edit comment on {where}" : "Comment on {where}", { where: where(c) })}${c.side === "old" ? T(" (removed)") : ""}${T("  ·  Shift+click a line number for a range")}`)))
+          .child(`${T(c.id ? "Edit comment on {where}" : "Comment on {where}", { where: where(c) })}${c.side === "old" ? T(" (removed)") : ""}${T("  ·  drag over line numbers for a range")}`)))
       .child(Textarea.new(this.box))
       .child(h_flex().gap(6).items_center()
         .child(div().flex_1().text_size(11.5).text_color(t.dim).child(note ?? ""))

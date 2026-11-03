@@ -1,11 +1,12 @@
 // Branch review: what changed since the merge base with a chosen branch
 // (committed, staged, unstaged and untracked work, or committed only), file by
-// file. Click a line number to comment (Shift+click for a range); comments are
+// file. Click a line number to comment (drag over them, or Shift+click, for a range); comments are
 // kept per repository and go to a terminal's input as one message: pasted for
 // the person to edit and send, or sent with Enter.
 import { div } from "gpui-kit";
 import { T } from "./i18n.js";
-import { v_flex, h_flex, v_virtual_list, VirtualListScrollHandle, Scrollbar, InputState, Input, TextView } from "gpui-base";
+import { v_flex, h_flex, InputState, Input, TextView } from "gpui-base";
+import { Scroller } from "./scroller.js";
 import { lsp } from "./lsp.js";
 import { CommentBox, commentCard, commentHeight, commentsOf, repoKey, repoStore, saveRepo } from "./comments.js";
 import { exec, hc, readTextFile, theme, settings, shared, setShared, run, notify, watchFolder, spaces } from "herdr";
@@ -71,7 +72,7 @@ export default class Review {
     // place); main: the diff half (the editor area). Halves share the repo's store.
     this.part = p?.part ?? "full";
     this.files = []; this.rows = []; this.branches = []; this.mode = "worktree"; this.full = false;
-    this.scroll = VirtualListScrollHandle.new();
+    this.scroll = new Scroller();
     this.filter = InputState.new({ placeholder: T("Filter branches") });
     this.filter.on("change", (_e, cx) => cx.notify());
     this.comment = new CommentBox();
@@ -290,7 +291,7 @@ export default class Review {
     if (this.selected === path) return;
     this.selected = path; this.rows = []; this.anchor = null; this.cur = null;
     if (this.comment.draft && this.comment.draft.path !== path) this.comment.close();
-    this.scroll.scroll_to_item(0);
+    this.scroll.setTop(0);
     cx.spawn(async (cx) => { await this.loadDiff(cx); cx.notify(); });
   }
 
@@ -353,7 +354,7 @@ export default class Review {
     } else if (st.selected && st.selected !== this.selected && this.files.some((f) => f.path === st.selected)) {
       this.selected = st.selected; this.rows = []; this.anchor = null; this.syncing = true;
       if (this.comment.draft && this.comment.draft.path !== st.selected) this.comment.close();
-      cx.timer.after(0, (cx) => cx.spawn(async (cx) => { try { this.scroll.scroll_to_item(0); await this.loadDiff(cx); } finally { this.syncing = false; cx.notify(); } }));
+      cx.timer.after(0, (cx) => cx.spawn(async (cx) => { try { this.scroll.setTop(0); await this.loadDiff(cx); } finally { this.syncing = false; cx.notify(); } }));
     } else if (this.part !== "side" && st.editing) {
       const c = this.comments().find((x) => x.id === st.editing);
       cx.timer.after(0, (cx) => { this.save({ editing: null }); if (c && c.path === this.selected) { this.comment.edit(c); cx.notify(); } });
@@ -384,12 +385,20 @@ export default class Review {
 
   // A click on a row: on its line numbers it starts a comment (Shift extends the
   // last one); on the code it only selects the row, for the Comment button.
-  clickRow(item, cx, shift, x, mods) {
+  pressRow(item, e, cx) {
     if (item.type === "comment") { this.comment.edit(item.c); cx.notify(); return; }
     if (item.r.kind === "@") return;
+    const x = e.local_position?.x ?? 0, mods = e.modifiers ?? {};
     if (x >= GUTTER) { this.cur = item.i; this.pickWord(item, x, mods, cx); cx.notify(); return; }
-    if (shift && this.anchor !== null && this.anchor !== undefined && this.anchorPath === this.selected) this.selectRows(this.anchor, item.i, cx);
-    else { this.anchor = item.i; this.anchorPath = this.selected; this.selectRows(item.i, item.i, cx); }
+    if (!(mods.shift && this.anchor !== null && this.anchor !== undefined && this.anchorPath === this.selected)) { this.anchor = item.i; this.anchorPath = this.selected; }
+    this.selectRows(this.anchor, item.i, cx);
+    this.gutterDrag = { to: item.i };
+  }
+  dragRow(item, cx) {
+    const g = this.gutterDrag;
+    if (!g || item.type !== "row" || item.r.kind === "@" || g.to === item.i) return;
+    g.to = item.i;
+    this.selectRows(this.anchor, item.i, cx);
   }
 
   // Comments on the rows from i to j of the diff: the new side's lines when the
@@ -550,7 +559,7 @@ export default class Review {
       .child(v_flex().flex_none().max_h(260).border_t(1).border_color(t.border)
         .child(sectionHeader(T("Comments ({n})", { n: comments.length }), comments.length ? [iconButton("rv-clear", "trash", T("Delete all comments"), (_e, cx) => { this.save({ comments: [] }); this.comment.close(); cx.notify(); })] : []))
         .child(div().id("rv-comments").flex_1().min_h(0).overflow_y_scrollbar()
-          .when(!comments.length, (e) => e.child(div().px(12).pb(8).text_size(11.5).text_color(t.dim).child(T("Click a line number in the diff to comment; Shift+click another for a range."))))
+          .when(!comments.length, (e) => e.child(div().px(12).pb(8).text_size(11.5).text_color(t.dim).child(T("Click a line number in the diff to comment; drag over them for a range."))))
           .children([...comments].sort((a, b) => a.path.localeCompare(b.path) || a.start - b.start).map((c, i) =>
             h_flex().id(`rv-c-${i}`).px(12).py(4).gap(6).items_start().text_size(12).cursor_pointer().hover((e) => e.bg(t.hover))
               // On press: the delete button stops its press, so deleting doesn't open the comment.
@@ -597,7 +606,7 @@ export default class Review {
       .child(div().flex_1().min_w(0).truncate().text_size(11).text_color(t.dim)
         .child(file ? `${T({ A: "Added", M: "Modified", D: "Deleted", U: "Untracked", T: "Type changed" }[file.status] ?? file.status)} · ${this.base}…${this.to() ?? T("working tree")}` : ""))
       .when(Number.isInteger(this.cur) && this.rows[this.cur] && this.rows[this.cur].kind !== "@", (e) => e.child(
-        button("rv-comment", T("Comment"), (_e, cx) => this.selectRows(this.cur, this.cur, cx), { tip: T("Comment on the selected line (or click its line number)") })))
+        button("rv-comment", T("Comment"), (_e, cx) => this.selectRows(this.cur, this.cur, cx), { tip: T("Comment on the selected line (or drag over line numbers)") })))
       .child(iconButton("rv-full", "eye", this.full ? T("Show changes only") : T("Show the whole file"), (_e, cx) => { this.full = !this.full; cx.spawn(async (cx) => { await this.loadDiff(cx); cx.notify(); }); }, { color: this.full ? t.accent : undefined }))
       .when(Boolean(file) && file.status !== "D", (e) => e.child(iconButton("rv-open", "external", T("Open the file"), () => this.openFile(this.selected, c?.start ?? lineOf(this.rows.find((r) => r.kind === "+") ?? {}) ?? 1))));
     const measure = measureFont(this, font, FONT);
@@ -605,20 +614,16 @@ export default class Review {
     if (this.error) body = div().p(16).text_color(t.dim).child(this.error);
     else if (!this.selected) body = div().p(16).text_color(t.dim).child(this.loading ? T("Loading…") : T("No changes against {base}.", { base: this.base ?? "" }));
     else if (this.binary) body = div().p(16).text_color(t.dim).child(T("No text diff (binary, empty, or only a mode change)."));
-    else body = div().flex_1().min_h(0).relative().font_family(font).text_size(FONT)
-      .child(div().id("rv-x").size_full().overflow_x_scrollbar()
-        .child(div().id("rv-wide").min_w(this.width ?? 400).w_full().h_full()
-          .on_mouse_down("left", (e) => { this.shift = Boolean(e.modifiers?.shift); this.pressX = e.local_position?.x ?? 0; this.pressMods = e.modifiers ?? {}; })
-          .child(v_virtual_list("rv-diff", items.length, sizes, (i) => items[i].type === "comment" ? `c:${items[i].c.id}` : `r:${items[i].i}`, (range) => {
-            const out = [];
-            for (let i = range.start; i < range.end; i++) out.push(this.item(items[i], t, inRange));
-            return out;
-          }).size_full().track_scroll(this.scroll)
-            .on_item_click((k, cx) => {
-              const it = k.startsWith("c:") ? items.find((x) => x.type === "comment" && x.c.id === k.slice(2)) : items.find((x) => x.type === "row" && x.i === +k.slice(2));
-              if (it) this.clickRow(it, cx, this.shift, this.pressX ?? 0, this.pressMods);
-            }))))
-      .child(Scrollbar.vertical("rv-diff").absolute().inset_0());
+    else {
+      this.scroll.setHeights(sizes);
+      body = div().flex_1().min_h(0).flex().font_family(font).text_size(FONT)
+        .child(this.scroll.view("rv-diff", t, this.width ?? 400, (k) => {
+          const it = items[k];
+          return this.item(it, t, inRange).id(it.type === "comment" ? `rv-c-${it.c.id}` : `rv-r-${it.i}`)
+            .on_mouse_down("left", (e, cx) => this.pressRow(it, e, cx))
+            .on_mouse_move((_e, cx) => this.dragRow(it, cx));
+        }, () => { this.gutterDrag = null; }));
+    }
     return v_flex().flex_1().min_w(0).h_full().bg(t.background)
       .child(header)
       .child(measure)

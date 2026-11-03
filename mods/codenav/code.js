@@ -7,14 +7,15 @@
 // repository's review comments (comments.js) and show inline. The gutter marks
 // lines added, changed and removed since HEAD. Drag (or Shift+click) selects
 // text; Cmd+C copies it, else the selected name, else the current line.
-// The view scrolls itself and draws only the rows on screen: rows that are
-// plain elements can take presses and drags, which a virtual list's can't.
+// Dragging over the line numbers comments on those lines. The rows are a
+// Scroller's (scroller.js), so they take presses and drags.
 import { div } from "gpui-kit";
 import { T } from "./i18n.js";
 import { v_flex, h_flex, v_virtual_list, Scrollbar, TextView, InputState, Input } from "gpui-base";
 import { readTextFile, watchFolder, theme, settings, run, exec, nextCommand, notify } from "herdr";
 import { lsp } from "./lsp.js";
 import { CommentBox, commentCard, commentHeight, commentsOf, repoKey } from "./comments.js";
+import { Scroller } from "./scroller.js";
 import {
   iconButton, button, editorKey, editorSpec, setEditorSpec, CHILD, STACK, hasArea, measureFont,
   syntaxColors, expandTabs, displayWidth, offsetAt, wordAt, tilde, sectionHeader, copyText,
@@ -30,7 +31,7 @@ export default class CodeView {
   init(_p, cx) {
     this.lines = []; this.toks = null; this.diags = []; this.symbols = []; this.refs = null;
     this.cw = FONT * 0.6; this.outline = true;
-    this.top = 0; this.viewH = 0;
+    this.scroll = new Scroller();
     this.focus = cx.focus_handle();
     this.find = InputState.new({ placeholder: T("Find") });
     this.find.on("change", (_e, cx) => { this.findQuery = this.find.value(); this.findAt = -1; cx.notify(); });
@@ -80,7 +81,7 @@ export default class CodeView {
         this.text = text;
         this.lines = text.split("\n");
         this.width = Math.max(...this.lines.slice(0, 20000).map((l) => displayWidth(l.length > MAX_LINE ? l.slice(0, MAX_LINE) : l)), 40);
-        if (!keepView) { this.comment.close(); this.reveal(spec.line, spec.col); }
+        if (!keepView) { this.comment.close(); this.selection = null; this.scroll.setTop(0); this.reveal(spec.line, spec.col); }
         this.loading = false; cx.notify();
         this.watch(spec, cx);
         // The repository the file is in: its review comments are kept there.
@@ -205,53 +206,30 @@ export default class CodeView {
   fileComments() { const rel = this.rel(); return rel ? commentsOf(this.rkey()).filter((c) => c.path === rel && c.side !== "old") : []; }
 
   // Lines and the comments under them, as the list shows them.
+  // Kept until the file's lines or its comments change: renders come often.
   items() {
+    const comments = this.fileComments();
+    const key = JSON.stringify(comments.map((c) => [c.id, c.end, c.body]));
+    if (this.itemsCache?.lines === this.lines && this.itemsCache.key === key) return this.itemsCache.items;
     const after = new Map();
-    for (const c of this.fileComments()) {
+    for (const c of comments) {
       const at = Math.min(Math.max(c.end - 1, 0), Math.max(this.lines.length - 1, 0));
       if (!after.has(at)) after.set(at, []);
       after.get(at).push(c);
     }
-    const items = [], index = [], tops = [0];
+    const items = [], index = [];
     this.lines.forEach((_, i) => {
       index[i] = items.length;
       items.push({ line: i });
       for (const c of after.get(i) ?? []) items.push({ c });
     });
-    for (const it of items) tops.push(tops[tops.length - 1] + (it.c ? commentHeight(it.c) : ROW));
-    this.itemIndex = index; this.tops = tops;
+    this.scroll.setHeights(items.map((it) => it.c ? commentHeight(it.c) : ROW));
+    this.itemIndex = index;
+    this.itemsCache = { lines: this.lines, key, items };
     return items;
   }
 
-  // -- scrolling: px from the top of the first row --------------------------------------
-  maxTop() { return Math.max(0, (this.tops?.at(-1) ?? 0) - this.viewH); }
-  setTop(px) { this.top = Math.min(Math.max(px, 0), this.maxTop()); }
-  // "center" puts the line in the middle; otherwise it is only brought on screen.
-  scrollTo(line, how) {
-    const y = this.tops?.[this.itemIndex?.[line] ?? line] ?? line * ROW;
-    if (how === "center") this.setTop(y - this.viewH / 2 + ROW / 2);
-    else if (y < this.top) this.setTop(y);
-    else if (y + ROW > this.top + this.viewH) this.setTop(y + ROW - this.viewH);
-  }
-
-  scrollbar(t) {
-    const total = this.tops?.at(-1) ?? 0, h = this.viewH;
-    if (!h || total <= h) return div();
-    const thumb = Math.max(24, (h * h) / total), y = (this.top / this.maxTop()) * (h - thumb);
-    this.thumb = { y, size: thumb };
-    return div().id("cn-sb").absolute().top(0).right(0).w(10).h_full()
-      .on_mouse_down("left", (e, cx) => {
-        cx.stop_propagation();
-        const ly = e.local_position?.y ?? 0;
-        this.thumbGrab = ly >= y && ly <= y + thumb ? ly - y : thumb / 2;
-        this.dragThumb(ly); cx.notify();
-      })
-      .child(div().absolute().top(y).right(2).w(6).h(thumb).rounded(3).bg(t.dim + "88"));
-  }
-  dragThumb(ly) {
-    const room = this.viewH - this.thumb.size;
-    if (room > 0) this.setTop(((ly - this.thumbGrab) / room) * this.maxTop());
-  }
+  scrollTo(line, how) { this.scroll.scrollTo(this.itemIndex?.[line] ?? line, how); }
 
   // Lines from..to (0-based) get a comment box.
   commentLines(from, to, cx) {
@@ -279,8 +257,9 @@ export default class CodeView {
     this.focus.focus();
     // The line numbers start a comment; Shift extends it from the last one.
     if (x < this.gutter()) {
-      if (mods.shift && this.commentAnchor !== undefined) this.commentLines(this.commentAnchor, line, cx);
-      else { this.commentAnchor = line; this.commentLines(line, line, cx); }
+      if (!(mods.shift && this.commentAnchor !== undefined)) this.commentAnchor = line;
+      this.commentLines(this.commentAnchor, line, cx);
+      this.gutterDrag = { to: line };
       return;
     }
     const p = this.pointAt(line, x);
@@ -293,6 +272,8 @@ export default class CodeView {
   }
 
   dragTo(line, e, cx) {
+    const g = this.gutterDrag;
+    if (g && g.to !== line) { g.to = line; this.commentLines(this.commentAnchor, line, cx); return; }
     const d = this.dragging;
     if (!d) return;
     const p = this.pointAt(line, e.local_position?.x ?? 0), b = this.selection?.b;
@@ -306,7 +287,7 @@ export default class CodeView {
   // Without a drag the press was a click: the name under it, its definition with Cmd.
   release(line, cx) {
     const d = this.dragging;
-    this.dragging = null;
+    this.dragging = null; this.gutterDrag = null;
     if (!d || d.moved) return;
     this.selection = null;
     this.pick(line, d.x, cx);
@@ -414,7 +395,7 @@ export default class CodeView {
     else if (k === "ctrl--" || k === "alt-left") this.goBack(cx);
     else if (k === "ctrl-shift--" || k === "ctrl-_" || k === "alt-right") this.goForward(cx);
     else if (k === "escape") { this.refs = null; this.hover = null; this.selection = null; this.finding = false; this.focus.focus(); }
-    else if (k === "pageup" || k === "pagedown") this.setTop(this.top + (k === "pageup" ? -1 : 1) * (this.viewH - ROW * 2));
+    else if (k === "pageup" || k === "pagedown") this.scroll.page(k === "pageup" ? -1 : 1);
     else if (k === "up" || k === "down") {
       const line = Math.min(Math.max((this.sel?.line ?? 0) + (k === "up" ? -1 : 1), 0), this.lines.length - 1);
       this.sel = { line, col: 0, start: 0, end: 0, word: null };
@@ -557,7 +538,7 @@ export default class CodeView {
           button("cn-a-refs", T("References"), (_e, cx) => this.references(cx), { tip: "Shift+F12" }),
         ]))
         .when(Boolean(sel), (e) => e.child(button("cn-a-copy", T("Copy"), () => this.copy(), { tip: "Cmd+C" })))
-        .when(Boolean(sel) && Boolean(this.rel()), (e) => e.child(button("cn-a-comment", T("Comment"), (_e, cx) => this.commentLines(sel.line, sel.line, cx), { tip: T("Comment on this line (or click its line number)") })))
+        .when(Boolean(sel) && Boolean(this.rel()), (e) => e.child(button("cn-a-comment", T("Comment"), (_e, cx) => { const r = this.span(); this.commentLines(r ? r[0].line : sel.line, r ? r[1].line : sel.line, cx); }, { tip: T("Comment on the selected lines (or drag over their line numbers)") })))
         .child(iconButton("cn-info-x", "x", T("Close (Esc)"), (_e, cx) => { this.sel = null; this.selection = null; this.hover = null; this.note = null; cx.notify(); })))
       .when(diags.length > 0 || Boolean(md) || Boolean(this.hover?.error), (e) => e.child(div().id("cn-info").flex_1().min_h(0).overflow_y_scrollbar().px(12).pb(10)
         .children(diags.map((d, i) => h_flex().gap(6).items_start().py(2).text_size(12)
@@ -605,7 +586,10 @@ export default class CodeView {
   findBar(t) {
     if (!this.finding) return null;
     const q = this.findQuery ?? "";
-    const count = q ? this.lines.reduce((n, l) => n + (l.split(q).length - 1), 0) : 0;
+    // Counted again only when the query or the file changes.
+    if (this.findCount?.q !== q || this.findCount.lines !== this.lines)
+      this.findCount = { q, lines: this.lines, n: q ? this.lines.reduce((n, l) => n + (l.split(q).length - 1), 0) : 0 };
+    const count = this.findCount.n;
     return h_flex().h(34).flex_none().px(8).gap(6).items_center().border_b(1).border_color(t.border).bg(t.chrome)
       .child(div().w(260).child(Input.new(this.find)))
       .child(div().text_size(12).text_color(t.dim).child(q ? T("{n} found", { n: count }) : ""))
@@ -615,28 +599,16 @@ export default class CodeView {
       .child(iconButton("cn-find-x", "x", T("Close (Esc)"), (_e, cx) => { this.finding = false; this.focus.focus(); cx.notify(); }));
   }
 
-  // The items on screen, as elements that take presses and drags.
-  rows(items, t, colors) {
-    const tops = this.tops;
-    this.setTop(this.top);
-    let lo = 0, hi = items.length;
-    while (lo < hi) { const mid = (lo + hi) >> 1; if (tops[mid + 1] <= this.top) lo = mid + 1; else hi = mid; }
-    const out = [];
-    for (let k = lo; k < items.length && tops[k] < this.top + this.viewH + ROW; k++) {
-      const it = items[k];
-      if (it.c) {
-        out.push(commentCard(t, it.c, { pl: this.gutter() + PAD }).id(`cn-c-${it.c.id}`).cursor_pointer()
-          .on_mouse_down("left", (_e, cx) => { this.comment.edit(it.c); cx.notify(); }));
-        continue;
-      }
-      const i = it.line;
-      out.push(this.row(i, t, colors).id(`cn-l-${i}`).cursor_text()
-        .on_mouse_down("left", (e, cx) => this.press(i, e, cx))
-        .on_mouse_move((e, cx) => this.dragTo(i, e, cx))
-        .on_mouse_up("left", (_e, cx) => this.release(i, cx))
-        .on_mouse_down("right", (e, cx) => { this.pick(i, e.local_position?.x ?? 0, cx); this.hoverAt(cx); cx.notify(); }));
-    }
-    return v_flex().absolute().left(0).w_full().top((tops[lo] ?? 0) - this.top).children(out);
+  // An item on screen: a line that takes presses and drags, or a comment under it.
+  item(it, t, colors) {
+    if (it.c) return commentCard(t, it.c, { pl: this.gutter() + PAD }).id(`cn-c-${it.c.id}`).cursor_pointer()
+      .on_mouse_down("left", (_e, cx) => { this.comment.edit(it.c); cx.notify(); });
+    const i = it.line;
+    return this.row(i, t, colors).id(`cn-l-${i}`).cursor_text()
+      .on_mouse_down("left", (e, cx) => this.press(i, e, cx))
+      .on_mouse_move((e, cx) => this.dragTo(i, e, cx))
+      .on_mouse_up("left", (_e, cx) => this.release(i, cx))
+      .on_mouse_down("right", (e, cx) => { this.pick(i, e.local_position?.x ?? 0, cx); this.hoverAt(cx); cx.notify(); });
   }
 
   render(cx) {
@@ -653,20 +625,9 @@ export default class CodeView {
     this.commented = new Set(this.fileComments().flatMap((c) => Array.from({ length: c.end - c.start + 1 }, (_, k) => c.start + k)));
     if (s && !this.error && !(this.loading && !this.lines.length)) body = h_flex().flex_1().min_h(0)
       .child(v_flex().flex_1().min_w(0).h_full()
-        .child(div().id("cn-view").flex_1().min_h(0).relative().font_family(font).text_size(FONT).bg(t.background)
-          .on_size_change((size, cx) => { if (size.height !== this.viewH) { this.viewH = size.height; this.setTop(this.top); cx.notify(); } })
-          .on_mouse_move((e, cx) => { if (this.thumbGrab === undefined) return; this.dragThumb(e.local_position?.y ?? 0); cx.notify(); })
-          .on_mouse_up("left", () => { this.thumbGrab = undefined; this.dragging = null; })
-          .child(div().id("cn-x").size_full().overflow_x_scrollbar()
-            .child(div().id("cn-wide").relative().overflow_hidden().min_w(this.gutter() + PAD + this.width * this.cw + 40).w_full().h_full()
-              .on_scroll_wheel((e, cx) => {
-                if (Math.abs(e.delta.y) <= Math.abs(e.delta.x)) return;
-                cx.stop_propagation();
-                this.setTop(this.top - e.delta.y);
-                cx.notify();
-              })
-              .child(this.rows(items, t, colors))))
-          .child(this.scrollbar(t)))
+        .child(div().flex_1().min_h(0).flex().font_family(font).text_size(FONT).bg(t.background)
+          .child(this.scroll.view("cn-view", t, this.gutter() + PAD + this.width * this.cw + 40, (k) => this.item(items[k], t, colors),
+            () => { this.dragging = null; this.gutterDrag = null; })))
         .child(this.comment.panel(t, this.rkey(), (cx) => cx.notify(), T("Comments go to the Review list, sent to the agent together")) ?? this.refsPanel(t) ?? this.infoBar(t) ?? div()))
       .child(this.outlinePanel(t) ?? div());
     return v_flex().id("codenav-code").size_full().min_h(0).relative().bg(t.background).text_color(t.foreground).text_size(13)
