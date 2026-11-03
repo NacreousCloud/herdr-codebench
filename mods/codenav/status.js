@@ -25,7 +25,7 @@ import { recordLocation } from "./locations.js";
 // would get them otherwise): what each does in the shown layout.
 const TERM_KEYS = {
   idea: { "shift shift": "find-all", "cmd-shift-o": "find-file", "cmd-o": "find-class", "cmd-alt-o": "find-symbol", "cmd-shift-a": "find-action", "cmd-e": "find-recent", "cmd-shift-e": "find-locations", "cmd-,": "settings" },
-  codebench: { "cmd-shift-o": "terminal-files" },
+  codebench: { "shift shift": "find-all", "cmd-shift-o": "terminal-files", "cmd-o": "find-class", "cmd-alt-o": "find-symbol", "cmd-shift-a": "find-action", "cmd-e": "find-recent" },
 };
 async function termKey(key) {
   const c = TERM_KEYS[shared("layout")]?.[key];

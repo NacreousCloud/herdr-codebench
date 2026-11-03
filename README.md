@@ -92,6 +92,10 @@ Herdr를 한 번 실행한 뒤 설치하세요. `install.sh`는 `keys.json`의 �
 | Ctrl+Alt+2…4 | 탐색기 / 검색 / 리뷰 |
 | Ctrl+Alt+R | 리뷰 열기 |
 | Cmd+Shift+O | 포커스된 터미널에 나온 파일 목록 |
+| Shift Shift | 어디서나 검색 (파일·클래스·심볼·텍스트·액션, Tab으로 전환) |
+| Cmd+O / Cmd+Alt+O | 클래스 / 심볼로 이동 (LSP) |
+| Cmd+Shift+A | 액션 찾기 |
+| Cmd+E | 최근 파일 |
 | Cmd+W | 코드 뷰에서 현재 탭 닫기 |
 | Ctrl+- / Ctrl+Shift+- | 이전 / 다음 탭 (탭 이동 기록) |
 | Ctrl+\` | 터미널 패널 토글 |
