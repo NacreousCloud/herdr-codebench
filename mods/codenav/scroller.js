@@ -20,8 +20,9 @@ export class Scroller {
   total() { return this.tops[this.tops.length - 1]; }
   maxTop() { return Math.max(0, this.total() - this.viewH); }
   maxLeft() { return Math.max(0, this.width - this.viewW); }
-  setTop(px) { this.top = Math.min(Math.max(px, 0), this.maxTop()); }
-  setLeft(px) { this.left = Math.min(Math.max(px, 0), this.maxLeft()); }
+  // A position that isn't a number (a missing wheel delta) counts as the start.
+  setTop(px) { this.top = Math.min(Math.max(Number(px) || 0, 0), this.maxTop()); }
+  setLeft(px) { this.left = Math.min(Math.max(Number(px) || 0, 0), this.maxLeft()); }
   page(dir) { this.setTop(this.top + dir * Math.max(this.viewH - 40, 20)); }
 
   // "center" puts item k in the middle; otherwise it is only brought on screen.
@@ -42,8 +43,10 @@ export class Scroller {
     let lo = 0, hi = n;
     while (lo < hi) { const mid = (lo + hi) >> 1; if (tops[mid + 1] <= this.top) lo = mid + 1; else hi = mid; }
     const out = [];
-    for (let k = lo; k < n && tops[k] < this.top + this.viewH; k++) out.push(render(k));
-    return div().id(id).flex_1().min_h(0).min_w(0).relative().overflow_hidden()
+    // Before the first layout reports a size, a screenful anyway (the box has no height of its own).
+    const viewH = this.viewH || 1200;
+    for (let k = lo; k < n && tops[k] < this.top + viewH; k++) out.push(render(k));
+    return div().id(id).flex_1().h_full().min_h(0).min_w(0).relative().overflow_hidden()
       .on_size_change((size, cx) => {
         if (size.height === this.viewH && size.width === this.viewW) return;
         this.viewH = size.height; this.viewW = size.width;
@@ -51,7 +54,9 @@ export class Scroller {
         cx.notify();
       })
       .on_scroll_wheel((e, cx) => {
-        const dx = e.modifiers?.shift ? e.delta.y : e.delta.x, dy = e.modifiers?.shift ? 0 : e.delta.y;
+        // macOS already turns Shift+wheel sideways; a device that doesn't sends it as y.
+        const shift = e.modifiers?.shift, x = Number(e.delta?.x) || 0, y = Number(e.delta?.y) || 0;
+        const dx = shift && !x ? y : x, dy = shift ? 0 : y;
         cx.stop_propagation();
         this.setTop(this.top - dy); this.setLeft(this.left - dx);
         cx.notify();
