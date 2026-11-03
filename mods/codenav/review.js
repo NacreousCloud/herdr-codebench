@@ -592,6 +592,13 @@ export default class Review {
     const { cwd, on } = location();
     if (`${on ?? ""}:${cwd}` !== this.context && !this.loading) cx.timer.after(0, (cx) => this.refresh(cx));
     else this.syncStore(cx);
+    // The diff half tells the tab strip which file it shows (a tab per reviewed file).
+    const now = this.root && this.selected ? { rkey: this.rkey(), path: this.selected } : null;
+    const cur = shared("codenav.review.current");
+    if (this.part !== "side" && now && (cur?.rkey !== now.rkey || cur?.path !== now.path) && this.publishing !== now.path) {
+      this.publishing = now.path;
+      cx.timer.after(0, () => { this.publishing = null; setShared("codenav.review.current", now); });
+    }
     return h_flex().id("codenav-review").size_full().min_h(0).bg(t.background).text_color(t.foreground).text_size(13)
       .on_key_down((e, cx) => {
         if (e.keystroke === "cmd-enter" || e.keystroke === "ctrl-enter") { this.saveComment(cx); cx.stop_propagation(); }

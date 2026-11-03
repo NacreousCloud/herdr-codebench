@@ -497,12 +497,10 @@ export default class CodeView {
           .on_click((_e, cx) => { this.reveal(sym.line + 1, sym.col); cx.notify(); }).child(`${KIND[sym.kind] ?? ""} ${sym.name}`)])))
       .when(errors + warnings > 0, (e) => e.child(chip(`${errors ? `✕ ${errors}` : ""}${errors && warnings ? "  " : ""}${warnings ? `⚠ ${warnings}` : ""}`, errors ? t.ansi1 : t.ansi3, T("Problems in this file"))))
       .when(Boolean(lspChip), (e) => e.child(lspChip))
-      .child(iconButton("cn-find", "search", T("Find (Cmd+F)"), () => { this.finding = !this.finding; if (this.finding) this.find.focus(); }, { color: this.finding ? t.accent : undefined }))
+      .child(iconButton("cn-find", "search", T("Find (Cmd+F)"), (_e, cx) => { this.finding = !this.finding; if (this.finding) this.find.focus(); else this.focus.focus(); cx.notify(); }, { color: this.finding ? t.accent : undefined }))
       .child(iconButton("cn-outline", "layers", T("Outline (Cmd+Shift+O)"), (_e, cx) => { this.outline = !this.outline; cx.notify(); }, { color: this.outline ? t.accent : undefined }))
-      .child(iconButton("cn-review", "git-branch", T("Branch review (Ctrl+Alt+R)"), () => showReview()))
       .child(iconButton("cn-edit", "pencil", T("Edit this file"), () => this.edit()))
-      .child(iconButton("cn-vscode", "vscode", T("Open in VS Code"), () => this.openInVscode()))
-      .child(iconButton("cn-close", "x", T("Close"), () => this.closeFile()));
+      .child(iconButton("cn-vscode", "vscode", T("Open in VS Code"), () => this.openInVscode()));
   }
 
   // What the selected name is, problems on its line, and what can be done with it.

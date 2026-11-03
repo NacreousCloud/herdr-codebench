@@ -35,6 +35,7 @@
   - **전송 ↵**: `hc send`로 입력하고 Enter까지 누릅니다
 
 ### 그 밖에
+- **탭**: 연 파일마다, 리뷰한 파일마다 탭이 생깁니다(스페이스별, 최대 20개). 마지막 탭을 닫으면 편집기 영역이 숨겨집니다
 - **스페이스별 배치 기억**: 편집기 영역, 리뷰/편집기, 사이드바 탭, 터미널 패널, 크기
 - **한국어**: 상태 표시줄 오른쪽 끝의 `EN` / `한국어` 칩, 또는 `herdr-app do codenav.lang:ko`
 - **CLI로 파일 열기**: `herdr-app do codenav.open:/절대/경로/파일.kt:42`
@@ -42,6 +43,9 @@
 ## LSP
 
 `mods/codenav/bridge/lsp_bridge.py`가 언어 서버를 켜 두고, mod는 `127.0.0.1:47821`로 짧게 묻습니다. herdr mod는 계속 켜져 있는 프로세스를 가질 수 없어서 이렇게 나눴습니다. bridge는 필요할 때 herdr-core 터미널(`codenav-lsp`, 화면에는 안 보임)로 저절로 켜지고, 1시간 동안 요청이 없으면 꺼집니다. 로그는 `~/.cache/herdr-codenav/`에 남습니다.
+
+- bridge는 켜질 때마다 무작위 토큰을 `~/.cache/herdr-codenav/bridge.json`(권한 0600)에 쓰고, 그 토큰이 없는 요청과 브라우저발 요청(Origin 헤더, 다른 Host)은 거부합니다.
+- Java 기반 서버(jdtls, kotlin-lsp)는 `java.awt.headless`, `apple.awt.UIElement` 옵션으로 띄워 macOS 독에 나타나지 않습니다.
 
 | 언어 | 서버 | 설치 |
 | --- | --- | --- |

@@ -7,6 +7,8 @@ language server (stdio LSP) and the mod asks it one question at a time:
     POST http://127.0.0.1:47821/<method>   {"path": "/abs/file.go", "line": 0, "col": 4}
 
 Lines and columns are 0-based UTF-16 offsets, as in LSP and JavaScript strings.
+Every request carries X-Codenav-Token: the token the bridge writes at start to
+~/.cache/herdr-codenav/bridge.json (mode 0600) with its port and pid.
 Methods: health, status, tokens, info, hover, definition, references, symbols,
 diagnostics, wsymbols. Servers are chosen by servers.json next to this file.
 The bridge stops itself after an hour without requests; the mod starts it again.
@@ -14,7 +16,9 @@ The bridge stops itself after an hour without requests; the mod starts it again.
 import argparse
 import fnmatch
 import hashlib
+import hmac
 import json
+import secrets
 import os
 import shutil
 import subprocess
@@ -99,6 +103,10 @@ def widen_path():
     java = os.path.join(home, ".sdkman/candidates/java/current")
     if "JAVA_HOME" not in os.environ and os.path.isdir(java):
         os.environ["JAVA_HOME"] = java
+    # Java servers (jdtls, kotlin-lsp) stay out of the macOS Dock and app switcher.
+    headless = "-Djava.awt.headless=true -Dapple.awt.UIElement=true"
+    if headless not in os.environ.get("JAVA_TOOL_OPTIONS", ""):
+        os.environ["JAVA_TOOL_OPTIONS"] = (os.environ.get("JAVA_TOOL_OPTIONS", "") + " " + headless).strip()
 
 
 widen_path()
@@ -426,7 +434,10 @@ def materialize(uri, srv=None):
     if uri.startswith("jar:"):
         jar, _, entry = unquote(uri[len("jar:"):].lstrip("/")).partition("!/")
         jar = "/" + jar.lstrip("/")
-        target = os.path.join(out_dir, entry)
+        target = os.path.realpath(os.path.join(out_dir, entry))
+        # An entry naming a place outside the cache folder (absolute, "..") is refused.
+        if os.path.isabs(entry) or not target.startswith(os.path.realpath(out_dir) + os.sep):
+            raise ValueError(f"unsafe path in jar: {entry}")
         if not os.path.exists(target):
             import zipfile
             with zipfile.ZipFile(jar) as z:
@@ -503,7 +514,7 @@ def flatten_symbols(items, depth=0, out=None):
 def tokens(text, path):
     """Syntax colors per line: [[utf16_length, category], ...] with pygments, or None."""
     try:
-        from pygments.lexers import get_lexer_for_filename, guess_lexer
+        from pygments.lexers import get_lexer_for_filename
         from pygments.util import ClassNotFound
         from pygments import token as T
     except ImportError:
@@ -654,8 +665,18 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def allowed(self):
+        """Only the codenav mod: it sends the token from the bridge file. Browsers
+        (an Origin header, or a Host that isn't this address) are refused."""
+        host = self.headers.get("Host", "")
+        if self.headers.get("Origin") or host not in (f"127.0.0.1:{PORT}", f"localhost:{PORT}"):
+            return False
+        return hmac.compare_digest(self.headers.get("X-Codenav-Token", ""), TOKEN)
+
     def handle_method(self, req):
         global last_request
+        if not self.allowed():
+            return self.reply(403, {"ok": False, "error": "forbidden"})
         last_request = time.time()
         fn = METHODS.get(self.path.strip("/").split("?")[0])
         if not fn:
@@ -669,6 +690,8 @@ class Handler(BaseHTTPRequestHandler):
         self.handle_method({})
 
     def do_POST(self):
+        if not (self.headers.get("Content-Type") or "").startswith("application/json"):
+            return self.reply(415, {"ok": False, "error": "application/json only"})
         length = int(self.headers.get("Content-Length") or 0)
         try:
             req = json.loads(self.rfile.read(length) or b"{}")
@@ -696,11 +719,28 @@ def reaper(httpd):
 
 STARTED = time.time()
 
+STATE = os.path.join(CACHE, "bridge.json")
+PORT = 47821
+TOKEN = ""
+
+
+def write_state():
+    """The port, a fresh token and this process, readable by this user only."""
+    os.makedirs(CACHE, exist_ok=True)
+    fd = os.open(STATE + ".tmp", os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w") as f:
+        json.dump({"port": PORT, "token": TOKEN, "pid": os.getpid()}, f)
+    os.replace(STATE + ".tmp", STATE)
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=47821)
     args = ap.parse_args()
+    PORT = args.port
+    TOKEN = secrets.token_hex(24)
     httpd = ThreadingHTTPServer(("127.0.0.1", args.port), Handler)
+    write_state()
     httpd.daemon_threads = True
     threading.Thread(target=reaper, args=(httpd,), daemon=True).start()
     log("listening on", args.port)

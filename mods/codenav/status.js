@@ -7,6 +7,7 @@ import { h_flex } from "gpui-base";
 import { theme, nextCommand } from "herdr";
 import { showReview, openPath } from "./common.js";
 import { followSpace } from "./memory.js";
+import { peek } from "./lsp.js";
 
 export default class Status {
   init(_p, cx) {
@@ -23,8 +24,7 @@ export default class Status {
     });
     const poll = async (cx) => {
       // Only asks a bridge that is already running; never starts one.
-      const r = await fetch("http://127.0.0.1:47821/status").then((x) => x.json()).catch(() => null);
-      const next = r?.ok ? r.result : null;
+      const next = await peek("status");
       if (JSON.stringify(next) !== JSON.stringify(this.servers)) { this.servers = next; cx.notify(); }
     };
     cx.timer.after(500, (cx) => poll(cx));

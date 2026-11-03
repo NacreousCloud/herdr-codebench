@@ -1,22 +1,44 @@
 // Client of bridge/lsp_bridge.py: the bridge keeps the language servers running,
-// this asks it one short question at a time over localhost.
-import { hc, exec, appHome } from "herdr";
+// this asks it one short question at a time over localhost. Each request carries
+// the token the bridge wrote to its state file (readable by this user only), and
+// the bridge's answer to "health" must name the pid from that file.
+import { hc, exec, appHome, home, readTextFile } from "herdr";
 
 export const PORT = 47821;
 const URL = `http://127.0.0.1:${PORT}`;
 const SCRIPT = () => `${appHome()}/mods/codenav/bridge/lsp_bridge.py`;
+const STATE = () => `${home()}/.cache/herdr-codenav/bridge.json`;
 
 let starting = null;
+let state = null;
+
+async function readState() {
+  const text = await readTextFile(STATE()).catch(() => null);
+  try { state = text ? JSON.parse(text) : null; } catch { state = null; }
+  return state;
+}
 
 async function post(method, body) {
-  const r = await fetch(`${URL}/${method}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body ?? {}) });
+  if (!state) await readState();
+  if (!state?.token) throw new Error("connect: no bridge");
+  const r = await fetch(`${URL}/${method}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "X-Codenav-Token": state.token },
+    body: JSON.stringify(body ?? {}),
+  });
+  if (r.status === 403) { state = null; throw new Error("connect: bridge token changed"); }
   const data = await r.json();
   if (!data.ok) throw new Error(data.error);
   return data.result;
 }
 
+// Ours: it knows the token and is the process the state file names.
 async function alive() {
-  try { await post("health"); return true; } catch { return false; }
+  try {
+    await readState();
+    const h = await post("health");
+    return h?.pid === state?.pid;
+  } catch { return false; }
 }
 
 // A python3 with pygments (syntax colors) if there is one; PATHs differ between shells.
@@ -50,4 +72,9 @@ export async function lsp(method, body, sleep) {
     if (!(await ensureBridge(sleep))) throw new Error("LSP bridge did not start (python3 needed)");
     return post(method, body);
   }
+}
+
+// Asks a running bridge only; never starts one (null when none answers).
+export async function peek(method) {
+  try { return await post(method); } catch { return null; }
 }
