@@ -72,6 +72,7 @@ export default class Review {
     // full: both halves (a tab of its own); side: the sidebar half (Explorer's
     // place); main: the diff half (the editor area). Halves share the repo's store.
     this.part = p?.part ?? "full";
+    this.focus = cx.focus_handle();
     this.files = []; this.rows = []; this.branches = []; this.mode = "worktree"; this.full = false;
     this.scroll = new Scroller();
     this.filter = InputState.new({ placeholder: T("Filter branches") });
@@ -670,7 +671,6 @@ export default class Review {
     }
     // Outside a repository the diff half has nothing to review: the editor's empty state.
     if (this.part === "main" && this.notRepo) {
-      this.focus ??= cx.focus_handle();
       return div().id("codenav-review").size_full().bg(t.background).text_color(t.foreground)
         .track_focus(this.focus).on_mouse_down("left", () => this.focus.focus())
         .on_modifiers_changed((this.shiftTaps ??= doubleShift(this, () => openEverywhere("all"))))

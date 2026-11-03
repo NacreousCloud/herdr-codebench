@@ -8,7 +8,7 @@
 import { div } from "gpui-kit";
 import { T, lang, setLang } from "./i18n.js";
 import { h_flex } from "gpui-base";
-import { theme, nextCommand, focused, run } from "herdr";
+import { theme, nextCommand, focused, run, shared } from "herdr";
 import { showTerminalFiles } from "./termfiles.js";
 import { closeTab, tabBack, tabForward } from "./tabs.js";
 import { toggleTool, toggleAllTools, hideActiveTool, moveTool, arrange, savedSides, openToolSettings, TOOLS } from "./tools.js";
@@ -16,6 +16,18 @@ import { openEverywhere } from "./everywhere.js";
 import { showReview, openPath } from "./common.js";
 import { followSpace } from "./memory.js";
 import { peek } from "./lsp.js";
+
+// Keys bound in keys.json's terminal section (programs in Kitty keyboard mode
+// would get them otherwise): what each does in the shown layout.
+const TERM_KEYS = {
+  idea: { "cmd-shift-o": "find-file", "cmd-o": "find-class", "cmd-alt-o": "find-symbol", "cmd-shift-a": "find-action", "cmd-e": "find-recent" },
+  codebench: { "cmd-shift-o": "terminal-files" },
+};
+function termKey(key) {
+  const c = TERM_KEYS[shared("layout")]?.[key];
+  if (c === "terminal-files") showTerminalFiles(focused()?.terminal);
+  else if (c?.startsWith("find-")) openEverywhere({ "find-file": "files", "find-class": "classes", "find-symbol": "symbols", "find-action": "actions", "find-recent": "recent" }[c]);
+}
 
 export default class Status {
   init(_p, cx) {
@@ -35,6 +47,7 @@ export default class Status {
         else if (c.startsWith("tool-") && TOOLS[c.slice(5)]) toggleTool(c.slice(5));
         else if (c === "hide-tools") toggleAllTools();
         else if (c === "hide-active") hideActiveTool();
+        else if (c.startsWith("key:")) termKey(c.slice(4));
         else if (c.startsWith("move-")) { const [name, side] = c.slice(5).split(":"); if (TOOLS[name]) moveTool(name, side); }
         else if (c === "tool-settings") openToolSettings();
         else if (c === "tool-reset") arrange(savedSides());

@@ -45,5 +45,12 @@
     "cmd-]": "codenav.nav-forward",
     "ctrl-alt-r": "codenav.review",
     "shift-escape": "codenav.hide-active"
+  },
+  "terminal": {
+    "cmd-shift-o": "codenav.key:cmd-shift-o",
+    "cmd-o": "codenav.key:cmd-o",
+    "cmd-alt-o": "codenav.key:cmd-alt-o",
+    "cmd-shift-a": "codenav.key:cmd-shift-a",
+    "cmd-e": "codenav.key:cmd-e"
   }
 }
