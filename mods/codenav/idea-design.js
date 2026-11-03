@@ -82,7 +82,7 @@ export function uiInputBox(input, { focused = false, error = false, mono = false
 }
 export function uiListRow(id, children, { selected = false, focused = true, disabled = false, onClick, interactive = Boolean(onClick), indent = 0 } = {}) {
   const c = uiColors();
-  let el = ideaUI(h_flex()).id(id).h(Math.max(IDEA.rowHeight, uiSize() + 8)).flex_none().min_w(0).items_center().gap(6)
+  let el = ideaUI(h_flex()).id(id).aria_selected(selected).h(Math.max(IDEA.rowHeight, uiSize() + 8)).flex_none().min_w(0).items_center().gap(6)
     .pl(8 + indent).pr(8).rounded(IDEA.selectionRadius).bg(selected ? focused ? c.selection : c.selectionInactive : "#00000000")
     .text_color(disabled ? c.disabled : selected ? c.selectionForeground : c.foreground).children(Array.isArray(children) ? children : [children]);
   if (!disabled && interactive) el = el.cursor_pointer().hover(s => s.bg(selected ? c.selection : c.hover));
@@ -102,7 +102,7 @@ export function uiTab(id, children, { selected = false, active = true, onSelect,
     .bg(selected ? active ? c.tabSelected : c.selectionInactive : "#00000000").hover(s => s.bg(selected ? c.tabSelected : c.hover))
     .children(Array.isArray(children) ? children : [children]);
   if (onClose && closeIcon) fill = fill.child(uiIconButton(`${id}-close`, closeIcon, onClose, { size: 18, tip: "Close" }));
-  let el = ideaUI(h_flex()).id(id).h(Math.max(IDEA.tabHeight, uiSize() + 16)).flex_none().px(2).items_center().text_color(c.foreground).child(fill);
+  let el = ideaUI(h_flex()).id(id).aria_selected(selected).h(Math.max(IDEA.tabHeight, uiSize() + 16)).flex_none().px(2).items_center().text_color(c.foreground).child(fill);
   if (onSelect) el = el.cursor_pointer().on_click(onSelect);
   if (onClose) el = el.on_mouse_down("middle", (event, cx) => { cx.stop_propagation(); onClose(event, cx); });
   if (tip) el = el.tooltip(tip);

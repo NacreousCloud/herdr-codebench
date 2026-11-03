@@ -119,6 +119,7 @@ export default class Files {
     if (next !== this.context?.key) {
       if (this.context) this.saved.set(this.context.key, this.folders);
       this.context = { key: next, cwd, on, root: null };
+      this.shownIdentity = null;
       this.entries = new Map(); this.folders = new Set(this.saved.get(next)); this.pending = new Set();
       this.marks = {}; this.dirty = new Set(); this.watched = null; this.error = null; this.limited = false; this.loading = false;
       this.sel = new Set(); this.anchor = null;
@@ -164,6 +165,50 @@ export default class Files {
         this.marks = marks; this.dirty = dirty; this.error = null; this.watch(context.root, cx);
       } catch (e) { if (this.current(context)) this.error = String(e.message ?? e); }
       finally { if (this.context === context) this.loading = false; cx.notify(); }
+    });
+  }
+
+  // Follow the displayed editor/review file instead of the last tree click.
+  shownFile() {
+    if (shared("codenav.area") !== "review") return editorSpec();
+    const review = shared("codenav.review.current");
+    if (!review?.path || review.space !== location().space) return null;
+    const separator = review.rkey.indexOf(":");
+    return { path: `${review.rkey.slice(separator + 1)}/${review.path}`, on: review.rkey.slice(0, separator) || null };
+  }
+
+  syncShownFile(cx) {
+    const context = this.context;
+    if (!context?.root) return;
+    const file = this.shownFile();
+    const identity = JSON.stringify([context.key, file?.on ?? null, file?.path ?? null]);
+    if (identity === this.shownIdentity) return;
+    this.shownIdentity = identity;
+    const root = context.root.replace(/\/$/, "");
+    const rel = file?.path?.startsWith(root + "/") && sameMachine(file.on, context.on) ? file.path.slice(root.length + 1) : null;
+    // Selection and directory IO run between frames. Ignore stale tab/space
+    // loads, and leave later manual tree selection alone until the file changes.
+    cx.timer.after(0, cx => {
+      if (!this.current(context) || this.shownIdentity !== identity) return;
+      this.sel = new Set(rel ? [rel] : []); this.anchor = rel;
+      if (rel) {
+        const parts = rel.split("/"), parents = parts.slice(0, -1).map((_part, i) => parts.slice(0, i + 1).join("/"));
+        for (const path of parents) this.folders.add(path);
+        cx.spawn(async cx => {
+          try {
+            for (const path of parents) {
+              if (!this.current(context) || this.shownIdentity !== identity || !this.folders.has(path)) return;
+              if (this.entries.has(path)) continue;
+              const entries = await directory(`${context.root}/${path}`, context.on);
+              if (!this.current(context) || this.shownIdentity !== identity || !this.folders.has(path)) return;
+              this.setEntries(path, entries);
+            }
+          } catch (error) {
+            if (this.current(context) && this.shownIdentity === identity) this.error = String(error.message ?? error);
+          } finally { cx.notify(); }
+        });
+      }
+      cx.notify();
     });
   }
 
@@ -400,9 +445,9 @@ export default class Files {
       const cut = this.cut.has(abs);
       this.flat.push({ path, dir: entry.dir });
       const row = idea ? uiListRow(`file-${path}`, [], {
-        selected: chosen, focused: this.focus.is_focused(), disabled: false, indent: depth * 14,
+        selected: chosen || current, focused: chosen && this.focus.is_focused(), disabled: false, indent: depth * 14,
         onClick: (e, cx) => this.click(entry, path, e, cx),
-      }).mx(4).when(!chosen && current, el => el.bg(t.hover))
+      }).mx(4)
         : h_flex().id(`file-${path}`).h(24).flex_none().pl(6 + depth * 14).pr(10).gap(5).items_center().cursor_pointer()
         .when(chosen, (el) => el.bg(t.selected)).when(!chosen && current, (el) => el.bg(t.hover)).when(!idea || !chosen, (el) => el.hover((s) => s.bg(t.hover)))
         .on_click((e, cx) => this.click(entry, path, e, cx));
@@ -412,7 +457,7 @@ export default class Files {
         .on_drop((e, cx) => { cx.stop_propagation(); this.drop(e.paths, path, cx); })
         .child(entry.dir ? icon(`chevron-${open ? "down" : "right"}`, 12).text_color(t.dim) : div().w(12).flex_none())
         .child(fileImage(path, entry.dir, open))
-        .child(div().flex_1().min_w(0).truncate().when(Boolean(color), (el) => el.text_color(color)).child(idea && !entry.dir ? ideaName(entry.name) : entry.name))
+        .child(div().flex_1().min_w(0).truncate().when(idea && current, el => el.font_semibold()).when(Boolean(color), (el) => el.text_color(color)).child(idea && !entry.dir ? ideaName(entry.name) : entry.name))
         .when(Boolean(mark), (el) => el.child(div().text_size(10).text_color(color).child(mark))));
       if (entry.dir && open) this.rows(path, depth + 1, out, t, openPath);
     }
@@ -421,12 +466,14 @@ export default class Files {
 
   render(cx) {
     if (locationKey() !== this.context?.key) this.refresh(cx);
+    this.syncShownFile(cx);
     this.takeRequest(cx);
     const clip = shared(CLIP);
     this.cut = new Set(clip?.cut && sameMachine(clip.items?.[0]?.on, this.context?.on) ? clip.items.map((i) => i.path) : []);
     this.flat = [];
     const t = theme(), idea = isIdea();
-    const openPath = editorSpec()?.path;
+    const file = this.shownFile();
+    const openPath = sameMachine(file?.on, this.context?.on) ? file?.path : null;
     const root = this.context?.root ?? this.context?.cwd;
     return ideaUI(v_flex().id("activity-files").size_full().min_h(0).bg(idea ? t.surface : t.chrome).text_color(t.foreground).text_size(13))
       .when(!idea, el => el.child(viewHeader("Explorer", [

@@ -160,9 +160,9 @@ export default class Tabs {
       const count = x.type === "review" ? comments.get(`${x.rkey}:${x.path}`) ?? 0 : 0;
       // Opens on press: the close button stops its press, so closing never reopens the tab.
       const idea = shared("layout") === "idea";
-      if (idea) return uiTab(`cn-tab-${i}`, [
+      if (idea) return uiTab(`cn-tab-${x.id}`, [
         x.type === "file" ? ideaImage(x.spec.path, false, IDEA.iconSize) : icon("git-branch", IDEA.iconSize).text_color(t.accent),
-        div().max_w(180).truncate().child(name),
+        div().max_w(180).truncate().when(on, el => el.font_semibold()).child(name),
         ...(count > 0 ? [div().px(5).h(15).flex().items_center().rounded(8).bg(t.accent).text_color(t.accent_foreground).text_size(10).font_bold().child(String(count))] : []),
       ], { selected: on, onSelect: () => openTab(x), onClose: () => closeTab(x.id), closeIcon: icon("x", 11),
         tip: x.type === "file" ? x.spec.rel ?? x.spec.path : `${T("Review")} · ${x.path}` })

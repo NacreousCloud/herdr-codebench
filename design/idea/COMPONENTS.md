@@ -108,3 +108,11 @@ openOverlay({ mod: "codenav", props: { view: "designpreview" },
 위치/표시는 다른 설정과 같은 draft 및 Apply/OK/Cancel 수명을 따른다. 일반 Apply에서는 수정된 툴의 위치만 arrange에 전달한다. 명시적 레이아웃 복원은 Apply 후 현재 draft의 전체 알려진 위치를 적용한다. 표시만 바꿀 때는 레이아웃을 재배치하지 않으며 알 수 없는 미래 설정과 동시에 바뀐 다른 항목을 유지한다.
 
 회귀 검사: `node --experimental-vm-modules design/idea/check_settings.mjs`.
+
+## 현재 파일 선택
+
+`uiListRow`와 `uiTab`은 호출자가 전달한 selected를 배경과 접근성 선택 상태에 함께 반영한다. 파일 탭은 파일/머신의 안정적인 id를 사용하며 현재 탭 이름을 semibold로 표시한다.
+
+Project는 에디터/리뷰의 현재 파일이 바뀔 때 선택과 anchor를 맞추고 상위 폴더를 펼쳐 읽는다. 에디터에 포커스가 있을 때는 공통 비활성 선택 색을 유지한다. 같은 파일의 일반 redraw는 수동 다중 선택·폴더 접기를 덮어쓰지 않는다. 경로 경계·머신·스페이스가 다른 파일은 선택하지 않으며, 이전 파일의 비동기 폴더 읽기는 새 선택을 바꾸지 않는다. 일반 트리의 스크롤 위치는 유지한다.
+
+회귀 검사: `node --experimental-vm-modules design/idea/check_file_selection.mjs`.
