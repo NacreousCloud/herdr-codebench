@@ -141,6 +141,7 @@ const KO = {
   "Copy": "복사",
   "Copied {what}": "{what} 복사했습니다",
   "the selection": "선택한 내용",
+  "Lines {from}-{to} selected": "{from}-{to}행 선택됨",
   "the line": "현재 줄",
   "  ·  drag over line numbers for a range": "  ·  줄 번호를 드래그해 범위 선택",
   "Comments go to the Review list, sent to the agent together": "코멘트는 리뷰 목록에 모여 에이전트에게 함께 보내집니다",

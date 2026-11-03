@@ -232,11 +232,18 @@ export default class CodeView {
   scrollTo(line, how) { this.scroll.scrollTo(this.itemIndex?.[line] ?? line, how); }
 
   // Lines from..to (0-based) get a comment box.
-  commentLines(from, to, cx) {
+  commentLines(from, to, cx, quote) {
     if (!this.rel()) { this.note = T("Comments need a file inside a git repository"); cx.notify(); return; }
     const lo = Math.min(from, to), hi = Math.max(from, to);
-    this.comment.open({ path: this.rel(), side: "new", start: lo + 1, end: hi + 1, code: this.lines.slice(lo, hi + 1).slice(0, 30).map((l) => `  ${l}`), kind: "file" });
+    const code = (quote ?? this.lines.slice(lo, hi + 1)).slice(0, 30).map((l) => `  ${l}`);
+    this.comment.open({ path: this.rel(), side: "new", start: lo + 1, end: hi + 1, code, kind: "file" });
     cx.notify();
+  }
+  // The selected text's lines, quoting just the selected part; else the name's line.
+  commentSelection(cx) {
+    const r = this.span();
+    if (r) this.commentLines(r[0].line, r[1].line, cx, this.selectedText().split("\n"));
+    else if (this.sel) this.commentLines(this.sel.line, this.sel.line, cx);
   }
 
   // -- pointer on the code ----------------------------------------------------------------
@@ -296,13 +303,17 @@ export default class CodeView {
     cx.notify();
   }
 
+  selectedText() {
+    const r = this.span();
+    return r ? this.lines.slice(r[0].line, r[1].line + 1).map((l, k, all) =>
+      l.slice(k === 0 ? r[0].col : 0, k === all.length - 1 ? r[1].col : l.length)).join("\n") : null;
+  }
+
   // What Cmd+C takes: the selected text, else the selected name, else the current line.
   copy() {
     const r = this.span(), sel = this.sel;
     if (!r && !sel) return;
-    const text = r ? this.lines.slice(r[0].line, r[1].line + 1).map((l, k, all) =>
-      l.slice(k === 0 ? r[0].col : 0, k === all.length - 1 ? r[1].col : l.length)).join("\n")
-      : sel.word?.trim() ? sel.word : this.lines[sel.line] ?? "";
+    const text = r ? this.selectedText() : sel.word?.trim() ? sel.word : this.lines[sel.line] ?? "";
     const what = r ? T("the selection") : sel.word?.trim() ? sel.word : T("the line");
     copyText(text).then(() => notify({ title: T("Copied {what}", { what }), level: "success", timeout: 1500 }))
       .catch((e) => notify({ title: String(e.message ?? e), level: "error", timeout: 3000 }));
@@ -522,23 +533,24 @@ export default class CodeView {
 
   // What the selected name is, problems on its line, and what can be done with it.
   infoBar(t) {
-    const sel = this.sel;
-    if (!sel && !this.note) return null;
+    const sel = this.sel, r = this.span();
+    if (!sel && !r && !this.note) return null;
     const diags = sel ? this.diags.filter((d) => d.line <= sel.line && sel.line <= d.end_line) : [];
     const md = this.hover?.markdown;
     const can = this.lspReady() && sel?.word;
     return v_flex().flex_none().max_h(220).border_t(1).border_color(t.border).bg(t.chrome)
       .child(h_flex().h(30).flex_none().px(10).gap(6).items_center()
         .child(div().flex_1().min_w(0).truncate().text_size(12).text_color(t.muted)
-          .child(this.note ?? (sel ? `${sel.word?.trim() ? `${sel.word} · ` : ""}${T("Ln {line}, Col {col}", { line: sel.line + 1, col: sel.col + 1 })}` : "")))
-        .when(Boolean(can), (e) => e.children([
+          .child(this.note ?? (r ? T("Lines {from}-{to} selected", { from: r[0].line + 1, to: r[1].line + 1 })
+            : sel ? `${sel.word?.trim() ? `${sel.word} · ` : ""}${T("Ln {line}, Col {col}", { line: sel.line + 1, col: sel.col + 1 })}` : "")))
+        .when(Boolean(can) && !r, (e) => e.children([
           button("cn-a-def", T("Definition"), (_e, cx) => this.definition(cx), { tip: T("F12 or Cmd+click") }),
           button("cn-a-type", T("Type"), (_e, cx) => this.definition(cx, "typeDefinition"), { tip: T("Go to type definition") }),
           button("cn-a-impl", T("Implementations"), (_e, cx) => this.definition(cx, "implementation"), { tip: "Cmd+F12" }),
           button("cn-a-refs", T("References"), (_e, cx) => this.references(cx), { tip: "Shift+F12" }),
         ]))
-        .when(Boolean(sel), (e) => e.child(button("cn-a-copy", T("Copy"), () => this.copy(), { tip: "Cmd+C" })))
-        .when(Boolean(sel) && Boolean(this.rel()), (e) => e.child(button("cn-a-comment", T("Comment"), (_e, cx) => { const r = this.span(); this.commentLines(r ? r[0].line : sel.line, r ? r[1].line : sel.line, cx); }, { tip: T("Comment on the selected lines (or drag over their line numbers)") })))
+        .when(Boolean(sel || r), (e) => e.child(button("cn-a-copy", T("Copy"), () => this.copy(), { tip: "Cmd+C" })))
+        .when(Boolean(sel || r) && Boolean(this.rel()), (e) => e.child(button("cn-a-comment", T("Comment"), (_e, cx) => this.commentSelection(cx), { tip: T("Comment on the selected lines (or drag over their line numbers)") })))
         .child(iconButton("cn-info-x", "x", T("Close (Esc)"), (_e, cx) => { this.sel = null; this.selection = null; this.hover = null; this.note = null; cx.notify(); })))
       .when(diags.length > 0 || Boolean(md) || Boolean(this.hover?.error), (e) => e.child(div().id("cn-info").flex_1().min_h(0).overflow_y_scrollbar().px(12).pb(10)
         .children(diags.map((d, i) => h_flex().gap(6).items_start().py(2).text_size(12)
