@@ -48,25 +48,32 @@
     "cmd-]": "codenav.nav-forward",
     "ctrl-alt-r": "codenav.run-choose",
     "shift-escape": "codenav.hide-active",
-    "ctrl-e": "codenav.find-recent",
-    "ctrl-shift-e": "codenav.find-recent",
-    "ctrl-shift-a": "codenav.find-action",
-    "ctrl-shift-f12": "codenav.hide-tools",
+    "cmd-e": "codenav.find-recent",
+    "cmd-shift-e": "codenav.find-locations",
+    "cmd-shift-a": "codenav.find-action",
+    "cmd-shift-f12": "codenav.hide-tools",
     "f12": "codenav.tool-last",
     "cmd-alt-left": "codenav.nav-back",
     "cmd-alt-right": "codenav.nav-forward",
     "cmd-shift-]": "codenav.tab-next",
     "cmd-shift-[": "codenav.tab-prev",
     "cmd-r": "codenav.rerun",
-    "ctrl-f2": "codenav.stop"
+    "cmd-f2": "codenav.stop",
+    "cmd-s": "activity.save",
+    "cmd-3": "codenav.tool-find",
+    "cmd-,": "codenav.settings",
+    "shift-f12": "codenav.tool-reset"
   },
   "terminal": {
     "cmd-shift-o": "codenav.key:cmd-shift-o",
     "cmd-o": "codenav.key:cmd-o",
     "cmd-alt-o": "codenav.key:cmd-alt-o",
+    "ctrl-e": "codenav.key:ctrl-e",
+    "ctrl-shift-e": "codenav.key:ctrl-shift-e",
+    "ctrl-shift-a": "codenav.key:ctrl-shift-a",
+    "cmd-e": "codenav.key:cmd-e",
+    "cmd-shift-e": "codenav.key:cmd-shift-e",
     "cmd-shift-a": "codenav.key:cmd-shift-a",
-    "ctrl-e": "terminal",
-    "ctrl-shift-e": "terminal",
-    "ctrl-shift-a": "terminal"
+    "cmd-,": "codenav.key:cmd-,"
   }
 }

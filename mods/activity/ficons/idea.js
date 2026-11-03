@@ -1,6 +1,6 @@
 // IntelliJ's New UI icons (mods/codenav/idea-icons, Apache-2.0, see its NOTICE)
 // for files, folders and symbols, as the idea layout shows them. The same file is
-// mods/codenav/ideaicons.js (a mod can't import another's code): keep both alike.
+// mods/activity/ficons/idea.js (a mod can't import another's code): keep both alike.
 import { image } from "gpui-kit";
 
 const DIR = "mods/codenav/idea-icons";
@@ -61,4 +61,4 @@ export function symbolIcon(kind, path = "") {
   return `${DIR}/${kt || KIND[kind] || "unknown"}.svg`;
 }
 export const symbolImage = (kind, path, size = 16) => image(symbolIcon(kind, path)).size(size).flex_none();
-export const toolImage = (name, size = 18) => image(`${DIR}/${name}.svg`).size(size).flex_none();
+export const toolImage = (name, size = 18, selected = false) => image(`${DIR}/${name}${selected ? "Selected" : ""}.svg`).size(size).flex_none();

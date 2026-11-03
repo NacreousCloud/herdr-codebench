@@ -12,6 +12,7 @@ import { h_flex, v_flex } from "gpui-base";
 import { theme, shared, setShared, layout, run, spaces, openOverlay, closeOverlay, props } from "herdr";
 import { icon, iconButton, find, STACK, AREA, editorSpec, editorKey, setEditorSpec, wantedChild, showReview, basename, location } from "./common.js";
 import { ideaImage } from "./ideaicons.js";
+import { IDEA, isIdea, uiSize, ideaUI, popupSurface, uiTab, uiMenu, uiPopupSize, MenuController } from "./idea-design.js";
 
 const KEY = "codenav.tabs";
 const MAX = 20;
@@ -20,6 +21,15 @@ const reviewId = (r) => `r:${r.rkey}:${r.path}`;
 
 // -- the open tabs of the shown space ----------------------------------------------
 const tabsNow = () => (shared(KEY) ?? {})[editorKey()] ?? [];
+// Reviews only belong to the repository currently shown by this space.
+const visibleTabs = () => {
+  const { cwd, on } = location();
+  return tabsNow().filter((x) => {
+    if (x.type !== "review") return true;
+    const at = x.rkey.indexOf(":"), host = x.rkey.slice(0, at), root = x.rkey.slice(at + 1);
+    return host === (on ?? "") && Boolean(cwd) && (cwd + "/").startsWith(root + "/");
+  });
+};
 function setTabs(list) {
   const all = { ...(shared(KEY) ?? {}) };
   all[editorKey()] = list.slice(-MAX);
@@ -150,9 +160,18 @@ export default class Tabs {
       const count = x.type === "review" ? comments.get(`${x.rkey}:${x.path}`) ?? 0 : 0;
       // Opens on press: the close button stops its press, so closing never reopens the tab.
       const idea = shared("layout") === "idea";
-      return h_flex().id(`cn-tab-${i}`).flex_none().pl(10).pr(4).gap(6).items_center().text_size(idea ? 13 : 12).cursor_pointer()
-        .when(idea, (e) => e.h(28).my(5).mx(1).rounded(6).when(on, (x) => x.bg("#233558")).when(!on, (x) => x.hover((h) => h.bg("#FFFFFF17"))))
-        .when(!idea, (e) => e.h_full().border_b(2).border_color(on ? t.accent : "#00000000").when(on, (x) => x.bg(t.background)))
+      if (idea) return uiTab(`cn-tab-${i}`, [
+        x.type === "file" ? ideaImage(x.spec.path, false, IDEA.iconSize) : icon("git-branch", IDEA.iconSize).text_color(t.accent),
+        div().max_w(180).truncate().child(name),
+        ...(count > 0 ? [div().px(5).h(15).flex().items_center().rounded(8).bg(t.accent).text_color(t.accent_foreground).text_size(10).font_bold().child(String(count))] : []),
+      ], { selected: on, onSelect: () => openTab(x), onClose: () => closeTab(x.id), closeIcon: icon("x", 11),
+        tip: x.type === "file" ? x.spec.rel ?? x.spec.path : `${T("Review")} · ${x.path}` })
+        .on_mouse_down("right", (_e, cx) => {
+          cx.stop_propagation();
+          openOverlay({ mod: "codenav", props: { view: "tabmenu", id: x.id }, kind: "popup", frame: "none", ...uiPopupSize(3, { width: 210 }) });
+        });
+      return h_flex().id(`cn-tab-${i}`).flex_none().pl(12).pr(6).gap(6).items_center().text_size(12).cursor_pointer()
+        .h_full().border_b(2).border_color(on ? t.accent : "#00000000").when(on, el => el.bg(t.background))
         .text_color(on ? t.foreground : t.muted).hover((e) => e.text_color(t.foreground))
         .tooltip(x.type === "file" ? x.spec.rel ?? x.spec.path : `${T("Review")} · ${x.path}`)
         .on_mouse_down("left", () => openTab(x))
@@ -167,41 +186,65 @@ export default class Tabs {
         .when(count > 0, (e) => e.child(div().px(5).h(15).flex().items_center().rounded(8).bg(t.accent).text_color(t.accent_foreground).text_size(10).font_bold().child(String(count))))
         .child(iconButton(`cn-tab-x-${i}`, "x", T("Close (Cmd+W)"), () => closeTab(x.id), { size: 16, icon: 11 }));
     };
-    // A review tab shows only where its repository is (the focused folder inside it).
-    const { cwd, on } = location();
-    const here = (x) => {
-      if (x.type !== "review") return true;
-      const at = x.rkey.indexOf(":"), host = x.rkey.slice(0, at), root = x.rkey.slice(at + 1);
-      return host === (on ?? "") && Boolean(cwd) && (cwd + "/").startsWith(root + "/");
-    };
-    const list = tabsNow().filter(here);
+    const list = visibleTabs();
     const ideaLook = shared("layout") === "idea";
-    return h_flex().id("codenav-tabs").size_full().pr(6).items_center().bg(t.chrome).when(!ideaLook, (e) => e.border_b(1).border_color(t.border)).when(ideaLook, (e) => e.pl(4).rounded_t(10))
-      .child(h_flex().flex_none().h_full().px(4).gap(2).items_center().border_r(1).border_color(t.border)
-        .child(iconButton("cn-tabs-back", "chevron-left", T("Previous tab (Ctrl+-)"), () => tabBack(), { color: canStep(-1) ? t.muted : t.dim }))
-        .child(iconButton("cn-tabs-fwd", "chevron-right", T("Next tab (Ctrl+Shift+-)"), () => tabForward(), { color: canStep(1) ? t.muted : t.dim })))
+    return ideaUI(h_flex()).id("codenav-tabs").size_full().pr(6).items_center().bg(t.chrome).when(!ideaLook, (e) => e.border_b(1).border_color(t.border)).when(ideaLook, (e) => e.pl(4).rounded_t(IDEA.islandRadius))
+      .child(h_flex().flex_none().h_full().px(4).gap(2).items_center().when(!ideaLook, (e) => e.border_r(1).border_color(t.border))
+        .child(iconButton("cn-tabs-back", "chevron-left", T(ideaLook ? "Back (Cmd+[)" : "Previous tab (Ctrl+-)"), () => ideaLook ? run("codenav.nav-back") : tabBack(), { color: ideaLook || canStep(-1) ? t.muted : t.dim }))
+        .child(iconButton("cn-tabs-fwd", "chevron-right", T(ideaLook ? "Forward (Cmd+])" : "Next tab (Ctrl+Shift+-)"), () => ideaLook ? run("codenav.nav-forward") : tabForward(), { color: ideaLook || canStep(1) ? t.muted : t.dim })))
       .child(h_flex().id("cn-tabs-scroll").flex_1().min_w(0).h_full().overflow_x_scrollbar()
         .children(list.length ? list.map(tab) : [div().px(12).text_size(12).text_color(t.dim).child(T("Editor"))]))
       .when(Boolean(spec?.edit) && !reviewing(), (e) => e.child(iconButton("cn-tab-codeview", "eye", T("Back to the code view (language server help)"), () => {
         const { edit, ...rest } = spec;
         setEditorSpec(editorKey(), rest);
       })))
-      .child(iconButton("cn-area-x", "x", T("Hide the editor area (Ctrl+Alt+E)"), () => run("layout.hide", { id: AREA })));
+      .when(!ideaLook, (e) => e.child(iconButton("cn-area-x", "x", T("Hide the editor area (Ctrl+Alt+E)"), () => run("layout.hide", { id: AREA }))))
+      .when(ideaLook, (e) => e.child(iconButton("cn-tabs-list", "chevron-down", T("Open Tabs"), () => openOverlay({ mod: "codenav", props: { view: "tablist" }, kind: "popup", frame: "none", ...uiPopupSize(Math.max(1, list.length), { width: 360, maxHeight: 360 }) }))));
   }
 }
 
 // The right-click menu of a tab (a popup).
 export class TabMenu {
-  init() {}
-  render() {
+  init(_p, cx) { this.menu = new MenuController(cx); this.menu.focus.focus(); }
+  release() { this.menu.release(); }
+  render(cx) {
     const t = theme(), { id, overlay } = props() ?? {};
-    const item = (key, label, action) => div().id(`cn-tm-${key}`).h(30).px(12).flex().items_center().rounded(5).text_size(12.5).cursor_pointer()
+    const actions = [() => closeTab(id), () => closeOthers(id), () => closeAll()];
+    const rows = ["Close", "Close Others", "Close All"].map((label, i) => ({ id: String(i), label: T(label), action: actions[i] }));
+    if (isIdea()) return uiMenu("cn-tabmenu", rows, this.menu, cx, { width: 210, onClose: () => closeOverlay(overlay) });
+    const choose = (i) => { closeOverlay(overlay); actions[i]?.(); };
+    const item = (key, label, i) => div().id(`cn-tm-${key}`).h(isIdea() ? IDEA.rowHeight : 30).px(12).flex().items_center().rounded(isIdea() ? IDEA.selectionRadius : 5).text_size(isIdea() ? uiSize() : 12.5).cursor_pointer()
+      .when(i === this.menu.at, (e) => e.bg(t.selected))
       .hover((e) => e.bg(t.hover))
-      .on_click(() => { closeOverlay(overlay); action(); })
+      .on_click(() => choose(i))
       .child(label);
-    return v_flex().size_full().p(4).gap(2).bg(t.popover).text_color(t.foreground)
-      .child(item("close", T("Close"), () => closeTab(id)))
-      .child(item("others", T("Close Others"), () => closeOthers(id)))
-      .child(item("all", T("Close All"), () => closeAll()));
+    return popupSurface(v_flex()).size_full().p(4).gap(2).bg(t.popover).text_color(t.foreground)
+      .track_focus(this.menu.focus).on_key_down((event, eventCx) => this.menu.key(event, eventCx, rows, { onClose: () => closeOverlay(overlay) }))
+      .child(item("close", T("Close"), 0))
+      .child(item("others", T("Close Others"), 1))
+      .child(item("all", T("Close All"), 2));
+  }
+}
+
+export class TabList {
+  init(_p, cx) { this.menu = new MenuController(cx, Math.max(0, visibleTabs().findIndex(x => x.id === activeId()))); this.menu.focus.focus(); }
+  release() { this.menu.release(); }
+  render(cx) {
+    const t = theme(), tabs = visibleTabs(), done = (x) => { closeOverlay(props().overlay); if (x) openTab(x); };
+    const rows = tabs.map(x => {
+      const path = x.type === "file" ? x.spec.path : x.path;
+      return { id: x.id, label: basename(path), icon: () => ideaImage(path, false, IDEA.iconSize), shortcut: path, action: () => openTab(x) };
+    });
+    this.menu.normalize(rows);
+    if (isIdea()) return uiMenu("cn-tablist", rows, this.menu, cx, { width: 360, maxHeight: 360, onClose: () => closeOverlay(props().overlay) });
+    return popupSurface(v_flex()).size_full().p(4).text_color(t.foreground).track_focus(this.menu.focus)
+      .on_key_down((event, eventCx) => this.menu.key(event, eventCx, rows, { onClose: () => closeOverlay(props().overlay) }))
+      .child(v_flex().id("cn-tablist").flex_1().min_h(0).overflow_y_scrollbar()
+        .children(tabs.map((x, i) => {
+          const path = x.type === "file" ? x.spec.path : x.path;
+          return h_flex().id(`cn-tablist-${i}`).h(IDEA.rowHeight).px(8).gap(6).items_center().rounded(4).cursor_pointer()
+            .bg(i === this.menu.at ? t.selected : "#00000000").hover((e) => e.bg(t.hover)).on_click(() => done(x))
+            .child(ideaImage(path, false, 16)).child(div().flex_1().truncate().child(basename(path))).tooltip(path);
+        })));
   }
 }

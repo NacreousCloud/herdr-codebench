@@ -4,6 +4,7 @@ import { div, svg } from "gpui-kit";
 import { h_flex } from "gpui-base";
 import { T } from "./i18n.js";
 import { spaces, panes, focused, run, shared, setShared, layout, theme, home, exec, writeTextFile, appHome, settings } from "herdr";
+import { isIdea, IDEA, uiSize, ideaUI, uiButton, uiIconButton, uiToolHeader } from "./idea-design.js";
 
 const MOD = "codenav";
 export const icon = (name, size = 16) => svg(`mods/${MOD}/icons/${name}.svg`).size(size).flex_none();
@@ -113,13 +114,13 @@ export function doubleShift(state, open) {
 }
 
 // The idea layout's islands: a view at an island's bottom (or top) rounds its own corners.
-export const islandBottom = (el) => shared("layout") === "idea" ? el.rounded_b(10) : el;
-export const islandTop = (el) => shared("layout") === "idea" ? el.rounded_t(10) : el;
+export const islandBottom = (el) => isIdea() ? ideaUI(el).overflow_hidden() : el;
+export const islandTop = (el) => isIdea() ? ideaUI(el).rounded_t(IDEA.islandRadius) : el;
 
 // What an editor area with nothing open says: IntelliJ's hints in the idea layout.
 export function emptyEditor(t) {
   if (shared("layout") !== "idea") return div().p(16).text_color(t.dim).child(T("Open a file from the Explorer or Search view."));
-  const rows = [["Search Everywhere", "Double ⇧"], ["Go to File", "⇧⌘O"], ["Recent Files", "⌃E"], ["Project", "⌘1"], ["Terminal", "⌥F12"]];
+  const rows = [["Search Everywhere", "Double ⇧"], ["Go to File", "⇧⌘O"], ["Recent Files", "⌘E"], ["Project", "⌘1"], ["Terminal", "⌥F12"]];
   return div().size_full().flex().items_center().justify_center().bg(t.background)
     .child(div().flex().flex_col().gap(10).text_size(13)
       .children(rows.map(([label, key]) => h_flex().gap(12).items_center()
@@ -134,20 +135,20 @@ export const ext = (p) => { const b = basename(p); return b.includes(".") ? b.sp
 // The person's fonts (Settings → Look): code in the code font and its size, rows
 // tall enough for it; panels in the UI font.
 export function codeFont() {
-  const st = settings(), size = Number(st.font_size) || 13;
-  return { family: st.font_family ?? "JetBrains Mono", size, row: Math.round(size * 1.55) };
+  const st = settings(), a = isIdea() ? shared("codenav.appearance") : null, size = Number(a?.editorSize ?? st.font_size) || 13;
+  return { family: a?.editorFont ?? st.font_family ?? "JetBrains Mono", size, row: Math.round(size * 1.55) };
 }
-export const uiFontFamily = () => settings().ui_font_family ?? "Geist";
+export const uiFontFamily = () => isIdea() ? shared("codenav.appearance")?.uiFont ?? settings().ui_font_family ?? ".AppleSystemUIFont" : settings().ui_font_family ?? "Geist";
 
 // Syntax categories (bridge/lsp_bridge.py `tokens`) to theme colors.
 // The idea layout: IntelliJ's dark editor colors.
-const IDEA = {
+const IDEA_SYNTAX = {
   keyword: "#cf8e6d", type: "#bcbec4", constant: "#c77dbb", builtin: "#cf8e6d", function: "#56a8f5",
   decorator: "#b3ae60", namespace: "#bcbec4", property: "#c77dbb", escape: "#cf8e6d",
   string: "#6aab73", number: "#2aacb8", comment: "#7a7e85", operator: "#bcbec4", punctuation: "#bcbec4",
 };
 export function syntaxColors(t) {
-  if (shared("layout") === "idea") return IDEA;
+  if (shared("layout") === "idea") return IDEA_SYNTAX;
   return {
     keyword: t.ansi5, type: t.ansi3, constant: t.ansi6, builtin: t.ansi6, function: t.ansi4,
     decorator: t.ansi3, namespace: t.ansi4, property: t.ansi12 ?? t.ansi4, escape: t.ansi6,
@@ -174,20 +175,26 @@ export async function copyText(text) {
 // A small square icon button.
 export function iconButton(id, name, tip, action, opts = {}) {
   const t = theme();
-  return div().id(id).size(opts.size ?? 22).flex_none().flex().items_center().justify_center().rounded(5)
+  if (isIdea()) return uiIconButton(id, icon(name, opts.icon ?? IDEA.iconSize), action,
+    { tip, size: opts.size ?? IDEA.toolbarButtonSize, active: opts.active, disabled: opts.disabled })
+    .when(!opts.disabled, el => el.text_color(opts.color ?? t.muted)).on_mouse_down("left", (_e, cx) => cx.stop_propagation());
+  return div().id(id).size(opts.size ?? (isIdea() ? 24 : 22)).flex_none().flex().items_center().justify_center().rounded(isIdea() ? IDEA.controlRadius : 5)
     .text_color(opts.color ?? t.muted).hover((s) => s.bg(t.hover).text_color(t.foreground)).cursor_pointer()
     .tooltip(tip)
     .on_mouse_down("left", (_e, cx) => cx.stop_propagation())
     .on_click((e, cx) => { cx.stop_propagation(); action(e, cx); })
-    .child(icon(name, opts.icon ?? 14));
+    .child(icon(name, opts.icon ?? (isIdea() ? IDEA.iconSize : 14)));
 }
 
 // A text button; `solid` for the main action.
 export function button(id, label, action, opts = {}) {
   const t = theme();
-  return div().id(id).flex_none().h(24).px(10).flex().items_center().rounded(5).text_size(12).cursor_pointer()
+  if (isIdea()) return uiButton(id, label, (event, cx) => { cx.stop_propagation(); action(event, cx); },
+    { primary: Boolean(opts.solid), disabled: Boolean(opts.disabled), small: Boolean(opts.small) })
+    .when(Boolean(opts.tip), el => el.tooltip(opts.tip)).on_mouse_down("left", (_e, cx) => cx.stop_propagation());
+  return ideaUI(div()).id(id).flex_none().h(isIdea() ? IDEA.inputHeight : 24).px(10).flex().items_center().rounded(isIdea() ? IDEA.controlRadius : 5).text_size(isIdea() ? uiSize() : 12).cursor_pointer()
     .when(Boolean(opts.solid), (e) => e.bg(t.solid).text_color(t.solid_foreground))
-    .when(!opts.solid, (e) => e.border_1().border_color(t.border).text_color(t.foreground).hover((s) => s.bg(t.hover)))
+    .when(!opts.solid, (e) => e.border_1().border_color(isIdea() ? t.input : t.border).text_color(t.foreground).hover((s) => s.bg(t.hover)))
     .when(Boolean(opts.tip), (e) => e.tooltip(opts.tip))
     .on_mouse_down("left", (_e, cx) => cx.stop_propagation())
     .on_click((e, cx) => { cx.stop_propagation(); action(e, cx); })
@@ -196,8 +203,9 @@ export function button(id, label, action, opts = {}) {
 
 export function sectionHeader(title, actions = []) {
   const t = theme();
-  return h_flex().h(30).flex_none().pl(12).pr(6).gap(2).items_center()
-    .child(div().flex_1().min_w(0).truncate().text_size(11).font_semibold().text_color(t.muted).child(title.toUpperCase()))
+  if (isIdea()) return uiToolHeader(`section-${title}`, title, { actions });
+  return ideaUI(h_flex()).h(isIdea() ? 32 : 30).flex_none().pl(12).pr(6).gap(2).items_center()
+    .child(div().flex_1().min_w(0).truncate().text_size(isIdea() ? uiSize() : 11).font_semibold().text_color(isIdea() ? t.foreground : t.muted).child(isIdea() ? title : title.toUpperCase()))
     .children(actions);
 }
 

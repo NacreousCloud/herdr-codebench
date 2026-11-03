@@ -8,23 +8,23 @@ import { div } from "gpui-kit";
 import { v_flex, h_flex, InputState, Input } from "gpui-base";
 import { theme, shared, setShared, spaces, panes, run, props, closeOverlay, openOverlay, hc, exec } from "herdr";
 import { T } from "./i18n.js";
+import { IDEA, isIdea, uiSize, popupSurface, MenuController, uiMenu, uiDialog, uiInputBox, uiButton, uiIconButton, uiListRow, uiToolbar, uiCaption, uiSeparator } from "./idea-design.js";
 import { tilde, icon, codeFont, uiFontFamily } from "./common.js";
 import { toolImage } from "./ideaicons.js";
 
 const KEY = "codenav.run";
 const project = () => { const s = spaces().find((x) => x.active); return s ? `${s.machine ?? ""}:${s.folder}` : null; };
 export const runStore = () => (shared(KEY) ?? {})[project()] ?? { configs: [], selected: 0 };
-function saveRun(patch) {
-  const k = project();
+function saveRun(patch, k = project()) {
   if (!k) return;
-  setShared(KEY, { ...(shared(KEY) ?? {}), [k]: { ...runStore(), ...patch } });
+  setShared(KEY, { ...(shared(KEY) ?? {}), [k]: { ...((shared(KEY) ?? {})[k] ?? { configs: [], selected: 0 }), ...patch } });
 }
 export const tabName = (c) => `▶ ${c.name}`;
 export const configTab = (c) => c && spaces().find((s) => s.active)?.tabs.find((t) => t.name === tabName(c));
 const tabTerminal = (tab) => tab && panes().find((p) => p.tab === tab.id && p.terminal);
 // Something other than the shell runs in the configuration's tab.
 export const isRunning = (c) => { const p = tabTerminal(configTab(c)); return Boolean(p && p.program && !p.program.shell); };
-export const openRunConfigs = () => openOverlay({ mod: "codenav", props: { view: "runconfigs" }, kind: "dialog", width: 880, height: 580 });
+export const openRunConfigs = () => openOverlay({ mod: "codenav", props: { view: "runconfigs" }, kind: "dialog", ...(isIdea() ? { frame: "none" } : {}), width: 880, height: 580 });
 
 // "A=1; B=two words" before the command, through env, so a compound command gets them too.
 const quote = (x) => `'${String(x).replace(/'/g, `'\\''`)}'`;
@@ -77,16 +77,18 @@ export async function stopConfig(c) {
 
 // The widget's popup: pick a configuration, or edit them.
 export class RunMenu {
-  init() {}
-  render() {
-    const t = theme(), { overlay } = props() ?? {}, st = runStore();
-    const item = (id, children, action) => h_flex().id(`rm-${id}`).h(30).px(10).gap(8).items_center().rounded(5).text_size(12.5).cursor_pointer()
-      .hover((e) => e.bg(t.hover)).on_click(() => { closeOverlay(overlay); action(); }).children(children);
-    return v_flex().size_full().p(4).gap(2).bg(t.popover).text_color(t.foreground)
-      .children(st.configs.map((c, i) => item(`c${i}`, [toolImage("run", 14), div().flex_1().min_w(0).truncate().when(i === st.selected, (e) => e.font_semibold()).child(c.name),
-        div().flex_none().max_w(180).truncate().text_size(11).text_color(t.dim).child(c.command)], () => saveRun({ selected: i }))))
-      .when(st.configs.length > 0, (e) => e.child(div().h(1).my(2).bg(t.border)))
-      .child(item("edit", [toolImage("settings", 14), div().child(T("Edit Configurations…"))], () => openRunConfigs()));
+  init(_p, cx) {
+    this.menu = new MenuController(cx, runStore().selected ?? 0);
+    this.menu.focus.focus();
+  }
+  release() { this.menu.release(); }
+  render(cx) {
+    const st = runStore(), done = () => closeOverlay(props()?.overlay);
+    const rows = st.configs.map((c, i) => ({ id: `rm-c${i}`, label: c.name, icon: () => toolImage("run", 14), shortcut: c.command,
+      action: () => saveRun({ selected: i }) }));
+    if (rows.length) rows.push({ separator: true });
+    rows.push({ id: "rm-edit", label: T("Edit Configurations…"), icon: () => toolImage("settings", 14), action: () => openRunConfigs() });
+    return uiMenu("run-menu", rows, this.menu, cx, { width: 320, maxHeight: 400, onClose: done });
   }
 }
 
@@ -95,7 +97,11 @@ export class RunMenu {
 // one's fields on the right, Run / Cancel / Apply / OK below.
 const FIELDS = ["name", "command", "folder", "env"];
 export class RunConfigs {
-  init() {
+  init(_p, cx) {
+    this.focus = cx.focus_handle();
+    this.projectKey = project();
+    const space = spaces().find(s => s.active);
+    this.projectSpace = space ? { id: space.id, machine: space.machine, folder: space.folder } : null;
     const st = runStore();
     this.configs = st.configs.map((c) => ({ ...c }));
     this.saved = JSON.stringify(this.configs);
@@ -108,6 +114,10 @@ export class RunConfigs {
     };
     for (const f of FIELDS) this.inputs[f].on("change", (_e, cx) => { if (this.configs[this.at]) { this.configs[this.at][f] = this.inputs[f].value(); cx.notify(); } });
     this.load();
+    if (isIdea()) {
+      if (this.configs.length) this.inputs.name.focus(); else this.focus.focus();
+      for (const f of FIELDS) this.inputs[f].on("submit", () => { this.apply(); closeOverlay(props()?.overlay); });
+    }
   }
   load() {
     const c = this.configs[this.at] ?? {};
@@ -120,24 +130,73 @@ export class RunConfigs {
   }
   apply() {
     const configs = this.configs.filter((c) => c.name?.trim() || c.command?.trim());
-    saveRun({ configs, selected: Math.min(this.at, Math.max(configs.length - 1, 0)) });
+    saveRun({ configs, selected: Math.min(this.at, Math.max(configs.length - 1, 0)) }, this.projectKey);
     this.saved = JSON.stringify(this.configs);
   }
 
+  renderIdea() {
+    const t = theme(), c = this.configs[this.at], space = this.projectSpace;
+    const dirty = JSON.stringify(this.configs) !== this.saved, sameProject = project() === this.projectKey;
+    const done = () => closeOverlay(props()?.overlay);
+    const control = (id, name, tip, action, enabled = true) => uiIconButton(id, toolImage(name, 16), (_event, cx) => { action(); cx.notify(); }, { tip, disabled: !enabled });
+    const field = (label, element, hint) => v_flex().flex_none().gap(4)
+      .child(h_flex().flex_none().min_w(0).gap(10).items_center()
+        .child(div().w(100).flex_none().child(label))
+        .child(div().flex_1().min_w(0).child(element)))
+      .when(Boolean(hint), el => el.child(div().pl(110).text_size(uiSize(11)).text_color(t.dim).child(hint)));
+    const input = (name, mono = false) => uiInputBox(Input.new(this.inputs[name]), { mono }).w_full();
+    const left = v_flex().w(250).flex_none().h_full().min_h(0).border_r(1).border_color(t.border)
+      .child(uiToolbar("rc-toolbar", [
+        control("rc-add", "add", T("Add New Configuration"), () => this.add(false)),
+        control("rc-remove", "remove", T("Remove Configuration"), () => { this.configs.splice(this.at, 1); this.at = Math.max(0, this.at - 1); this.load(); }, Boolean(c)),
+        control("rc-copy", "copy", T("Copy Configuration"), () => this.add(true), Boolean(c)),
+      ]))
+      .child(uiSeparator())
+      .child(v_flex().id("rc-tree").flex_1().min_h(0).overflow_y_scrollbar().py(4)
+        .child(uiListRow("rc-command-kind", [icon(this.configs.length ? "chevron-down" : "chevron-right", 12), toolImage("terminal", 16), div().font_semibold().child(T("Shell Command"))]))
+        .children(this.configs.map((config, i) => uiListRow(`rc-${i}`, [toolImage("runAction", 15), div().flex_1().min_w(0).truncate().child(config.name?.trim() || T("Unnamed"))], {
+          selected: i === this.at, indent: 22, onClick: (_event, cx) => { this.at = i; this.load(); cx.notify(); },
+        }).mx(4))))
+      .child(uiCaption(T("Saved per project")));
+    const right = !c ? v_flex().flex_1().min_w(0).min_h(0).items_center().justify_center().gap(12)
+      .child(uiCaption(T("No run configurations yet.")))
+      .child(uiButton("rc-first", T("Add New Configuration"), (_event, cx) => { this.add(false); cx.notify(); }))
+      : v_flex().id("rc-fields").flex_1().min_w(0).min_h(0).overflow_y_scrollbar().px(18).py(14).gap(14)
+        .child(field(T("Name:"), input("name")))
+        .child(field(T("Run on:"), uiInputBox(h_flex().min_w(0).gap(6).items_center().child(toolImage(space?.machine ? "terminal" : "homeFolder", 15)).child(div().truncate().child(space?.machine ?? T("Local machine")))), T("Runs in this project's own terminal tab; running it again reuses the tab.")))
+        .child(uiSeparator())
+        .child(field(T("Command:"), input("command", true), T("Run by the shell as typed, e.g. ./gradlew bootRun or npm run dev")))
+        .child(field(T("Working directory:"), input("folder", true), tilde(c.folder || space?.folder || "")))
+        .child(field(T("Environment:"), input("env", true), T("KEY=value pairs separated by ;")));
+    const footer = [
+      div().flex_1().min_w(0).truncate().text_size(uiSize(11)).text_color(t.dim).child(sameProject ? "" : T("Switch back to this project to run.")),
+      uiButton("rc-run", h_flex().gap(6).items_center().child(toolImage("runAction", 15)).child(T("Run")), () => {
+        if (project() !== this.projectKey) return;
+        this.apply(); done(); runConfig(this.configs[this.at]);
+      }, { disabled: !c?.command || !sameProject }),
+      uiButton("rc-cancel", T("Cancel"), done),
+      uiButton("rc-apply", T("Apply"), (_event, cx) => { this.apply(); cx.notify(); }, { disabled: !dirty }),
+      uiButton("rc-ok", T("OK"), () => { this.apply(); done(); }, { primary: true }),
+    ];
+    return uiDialog("run-configurations", { title: T("Run/Debug Configurations"), body: h_flex().flex_1().h_full().min_h(0).min_w(0).child(left).child(right), footer })
+      .h(580).track_focus(this.focus).on_key_down((event, cx) => { if ((event.key ?? event.keystroke) === "escape") { done(); cx.stop_propagation(); } });
+  }
+
   render() {
+    if (isIdea()) return this.renderIdea();
     const t = theme(), { overlay } = props() ?? {}, c = this.configs[this.at], dirty = JSON.stringify(this.configs) !== this.saved;
     const space = spaces().find((s) => s.active), mono = codeFont().family;
     const tool = (id, name, tip, action, enabled = true) => div().id(id).size(26).flex_none().flex().items_center().justify_center().rounded(5)
       .when(enabled, (e) => e.cursor_pointer().hover((s) => s.bg(t.hover)).on_click((_e, cx) => { action(); cx.notify(); }))
       .when(!enabled, (e) => e.opacity(0.35)).tooltip(tip).child(toolImage(name, 16));
-    const box = (child, mono_) => div().h(30).px(9).flex().items_center().rounded(4).border_1().border_color(t.input).bg(t.background)
+    const box = (child, mono_) => div().h(isIdea() ? IDEA.inputHeight : 30).px(9).flex().items_center().rounded(IDEA.controlRadius).border_1().border_color(t.input).bg(t.background)
       .when(Boolean(mono_), (e) => e.font_family(mono)).child(child);
     const row = (label, field, hint) => v_flex().gap(5)
       .child(h_flex().gap(12).items_center()
         .child(div().w(104).flex_none().text_color(t.foreground).child(label))
         .child(div().flex_1().min_w(0).child(field)))
-      .when(Boolean(hint), (e) => e.child(div().pl(116).text_size(12).text_color(t.dim).child(hint)));
-    const button = (id, children, action, kind) => h_flex().id(id).h(30).px(16).gap(7).flex_none().items_center().justify_center().rounded(5).text_size(13).cursor_pointer()
+      .when(Boolean(hint), (e) => e.child(div().pl(116).text_size(uiSize(12)).text_color(t.dim).child(hint)));
+    const button = (id, children, action, kind) => h_flex().id(id).h(isIdea() ? IDEA.inputHeight : 30).px(16).gap(7).flex_none().items_center().justify_center().rounded(isIdea() ? IDEA.controlRadius : 5).text_size(uiSize(13)).cursor_pointer()
       .when(kind === "solid", (e) => e.bg(t.solid).text_color(t.solid_foreground).hover((s) => s.opacity(0.9)))
       .when(kind !== "solid", (e) => e.border_1().border_color(t.input).text_color(kind === "off" ? t.dim : t.foreground).when(kind !== "off", (x) => x.hover((s) => s.bg(t.hover))))
       .on_click((_e, cx) => { if (kind !== "off") action(cx); }).children(children);
@@ -151,16 +210,16 @@ export class RunConfigs {
         .child(tool("rc-copy", "copy", T("Copy Configuration"), () => this.add(true), Boolean(c))))
       .child(div().h(1).flex_none().bg(t.border))
       .child(div().id("rc-tree").flex_1().min_h(0).py(4).overflow_y_scrollbar()
-        .child(h_flex().h(28).px(10).gap(6).items_center()
+        .child(h_flex().h(isIdea() ? IDEA.rowHeight : 28).px(10).gap(6).items_center()
           .child(icon(this.configs.length ? "chevron-down" : "chevron-right", 12).text_color(t.muted))
           .child(toolImage("terminal", 16))
           .child(div().font_semibold().child(T("Shell Command"))))
-        .children(this.configs.map((x, i) => h_flex().id(`rc-${i}`).h(28).pl(36).pr(10).gap(7).items_center().cursor_pointer()
+        .children(this.configs.map((x, i) => h_flex().id(`rc-${i}`).h(isIdea() ? IDEA.rowHeight : 28).mx(isIdea() ? 4 : 0).rounded(isIdea() ? IDEA.selectionRadius : 0).pl(36).pr(10).gap(7).items_center().cursor_pointer()
           .bg(i === this.at ? t.selected : "#00000000").hover((e) => e.bg(i === this.at ? t.selected : t.hover))
           .on_click((_e, cx) => { this.at = i; this.load(); cx.notify(); })
           .child(toolImage("runAction", 15))
           .child(div().flex_1().min_w(0).truncate().child(x.name?.trim() || T("Unnamed"))))))
-      .child(div().px(14).py(12).text_size(12).text_color(t.dim).child(T("Saved per project")));
+      .child(div().px(14).py(12).text_size(uiSize(12)).text_color(t.dim).child(T("Saved per project")));
 
     // the fields
     const right = !c ? v_flex().flex_1().items_center().justify_center().gap(12)
@@ -176,9 +235,12 @@ export class RunConfigs {
         .child(row(T("Working directory:"), box(Input.new(this.inputs.folder), true), tilde(c.folder || space?.folder || "")))
         .child(row(T("Environment:"), box(Input.new(this.inputs.env), true), T("KEY=value pairs separated by ;")));
 
-    return v_flex().size_full().bg(t.popover).text_color(t.foreground).text_size(13).font_family(uiFontFamily())
+    return v_flex().size_full().bg(t.popover).text_color(t.foreground).text_size(uiSize(13)).font_family(uiFontFamily())
+      .when(isIdea(), (e) => popupSurface(e, true).p(4))
+      .track_focus(this.focus)
+      .on_key_down((e, cx) => { if (e.key === "escape") { done(); cx.stop_propagation(); } })
       .child(h_flex().h(44).flex_none().px(18).items_center().border_b(1).border_color(t.border)
-        .child(div().text_size(13.5).font_semibold().child(T("Run/Debug Configurations"))))
+        .child(div().text_size(uiSize(13.5)).font_semibold().child(T("Run/Debug Configurations"))))
       .child(h_flex().flex_1().min_h(0).child(left).child(right))
       .child(h_flex().h(58).flex_none().px(18).gap(10).items_center().border_t(1).border_color(t.border)
         .child(div().flex_1())

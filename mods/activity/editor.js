@@ -3,6 +3,7 @@
 // a file (editable, Ctrl+S saves, here or on an ssh machine), a viewer for
 // images / PDFs / media / binary files, or a git diff.
 import { div } from "gpui-kit";
+import { IDEA, isIdea, uiSize, ideaUI } from "./idea-design.js";
 import { T } from "./i18n.js";
 import { v_flex, h_flex, Editor, EditorState, Scrollbar, v_virtual_list, TextView, h_resizable, resizable_panel } from "gpui-base";
 import { exec, readTextFile, writeTextFile, watchFolder, theme, settings, shared, setShared, props, run, panes, nextCommand, home, layout } from "herdr";
@@ -17,6 +18,11 @@ const MD_MODES = { edit: ["split", "split", "Side-by-side preview"], split: ["pr
 
 const LANG = { ts: "js", tsx: "js", mts: "js", cts: "js", jsx: "js", mjs: "js", cjs: "js", toml: "yaml", yml: "yaml", jsonc: "json", svelte: "html", vue: "html", htm: "html", md: "markdown", py: "python", rs: "rust", sh: "bash", zsh: "bash" };
 const MAX_EDIT = 400000;
+const editorFont = () => {
+  const st = settings(), a = isIdea() ? shared("codenav.appearance") : null;
+  return { family: a?.editorFont ?? st.font_family ?? "JetBrains Mono", size: Number(a?.editorSize ?? st.font_size) || 13 };
+};
+const diffHeight = () => isIdea() ? Math.round(editorFont().size * 1.55) : 20;
 
 function diffRows(lines) {
   let old = 0, next = 0;
@@ -101,8 +107,10 @@ export default class EditorPane {
     this.code = EditorState.new({
       language: LANG[ext] ?? ext, readonly: this.readonly,
       value: text.length > MAX_EDIT ? text.slice(0, MAX_EDIT) + "\n… (file truncated, read-only)" : text,
-      font_family: settings().font_family, font_size: 13,
-      syntax: { keyword: t.ansi5, string: t.ansi2, comment: t.dim, function: t.ansi4, type: t.ansi3, number: t.ansi1, constant: t.ansi6, boolean: t.ansi6 },
+      font_family: isIdea() ? editorFont().family : settings().font_family, font_size: isIdea() ? editorFont().size : 13,
+      syntax: isIdea()
+        ? { keyword: "#CF8E6D", string: "#6AAB73", comment: "#7A7E85", function: "#56A8F5", type: "#BCBEC4", number: "#2AACB8", constant: "#C77DBB", boolean: "#CF8E6D" }
+        : { keyword: t.ansi5, string: t.ansi2, comment: t.dim, function: t.ansi4, type: t.ansi3, number: t.ansi1, constant: t.ansi6, boolean: t.ansi6 },
     });
     this.code.on("change", (_e, cx) => {
       const dirty = this.code.value() !== this.original;
@@ -190,12 +198,16 @@ export default class EditorPane {
   save(cx) {
     const spec = this.shown;
     if (!spec || spec.kind !== "file" || !this.code || this.readonly || !this.dirty || this.saving) return;
-    const text = this.code.value();
+    const text = this.code.value(), editedKey = this.slotKey();
     this.saving = true; this.note = null; this.closeArmed = false;
     cx.spawn(async (cx) => {
       try {
         if (spec.on) await writeRemoteText(spec.path, text, this.original, spec.on);
         else await writeTextFile(spec.path, text, this.original);
+        // Recent Files' Only Edited filter records successful writes, scoped to
+        // the editor's machine/workspace key. Failed writes never enter it.
+        const edited = shared("codenav.editedFiles") ?? {};
+        setShared("codenav.editedFiles", { ...edited, [editedKey]: [spec.path, ...(edited[editedKey] ?? []).filter(p => p !== spec.path)].slice(0, 200) });
         this.original = text; this.dirty = false;
         if (this.pending !== null) this.sync(cx);
       } catch (e) { this.note = `Not saved: ${e.message ?? e}. Reopen the file to see the version on disk.`; }
@@ -213,7 +225,7 @@ export default class EditorPane {
 
   close() {
     if (this.slot) {
-      if (this.dirty && !this.closeArmed) { this.closeArmed = true; this.note = "Unsaved changes: save (Ctrl+S), or close again to discard them."; return; }
+      if (this.dirty && !this.closeArmed) { this.closeArmed = true; this.note = `Unsaved changes: save (${isIdea() ? "Cmd" : "Ctrl"}+S), or close again to discard them.`; return; }
       this.closeArmed = false; this.dirty = false;
       // With codenav's tab strip: an edit goes back to its code view, a viewer closes its tab.
       if (find(layout(), "editor-tabs")) {
@@ -231,9 +243,9 @@ export default class EditorPane {
   }
 
   diffRow(r, t) {
-    if (r.kind === "@") return div().w_full().h(20).px(12).flex_none().truncate().bg(t.raised).text_color(t.dim).child(r.text);
+    if (r.kind === "@") return div().w_full().h(diffHeight()).px(12).flex_none().truncate().bg(t.raised).text_color(t.dim).child(r.text);
     const num = (n) => div().w(36).flex_none().text_right().text_color(t.dim).child(n === undefined ? "" : String(n));
-    return h_flex().w_full().h(20).flex_none().gap(8)
+    return h_flex().w_full().h(diffHeight()).flex_none().gap(8)
       .when(r.kind === "+", (e) => e.bg(t.ansi2 + "22")).when(r.kind === "-", (e) => e.bg(t.ansi1 + "22"))
       .child(num(r.a)).child(num(r.b))
       .child(div().w(10).flex_none().text_color(r.kind === "+" ? t.ansi2 : r.kind === "-" ? t.ansi1 : t.dim).child(r.kind === " " ? "" : r.kind))
@@ -242,16 +254,17 @@ export default class EditorPane {
 
   render(cx) {
     this.sync(cx);
-    const t = theme(), s = this.shown;
-    const title = s ? s.rel ?? s.path.split("/").pop() : "No file";
+    const t = theme(), s = this.shown, idea = isIdea();
+    const title = s ? (idea ? s.path.split("/").pop() : s.rel ?? s.path.split("/").pop()) : "No file";
     const sub = !s ? "" : s.kind === "diff" ? (s.untracked ? "Untracked" : s.staged ? "Staged changes" : "Working tree changes")
       : `${s.on ? `${s.on}: ` : ""}${tilde(s.path)}${s.line ? ` · line ${s.line}` : ""}${this.readonly ? " · read-only" : ""}${this.viewer?.subtitle() ? ` · ${this.viewer.subtitle()}` : ""}`;
-    const header = h_flex().h(34).flex_none().pl(12).pr(6).gap(8).items_center().border_b(1).border_color(t.border).bg(t.chrome)
+    const header = ideaUI(h_flex().h(idea ? IDEA.toolHeaderHeight : 34).flex_none().pl(12).pr(6).gap(8).items_center()
+      .when(!idea, (e) => e.border_b(1).border_color(t.border)).bg(idea ? t.surface : t.chrome))
       .child(s?.kind === "file" ? fileImage(s.rel ?? s.path) : icon(s?.kind === "diff" ? "git-branch" : "file-text", 14).text_color(t.muted))
       .child(div().flex_none().max_w(320).truncate().font_semibold().child(title))
       .when(this.dirty, (el) => el.child(div().size(8).rounded_full().bg(t.foreground).tooltip(T("Unsaved changes"))))
-      .child(div().flex_1().min_w(0).truncate().text_size(11).text_color(t.dim).child(sub))
-      .when(this.dirty, (el) => el.child(iconButton("ed-save", "save", T("Save (Ctrl+S)"), (_e, cx) => this.save(cx))))
+      .child(div().flex_1().min_w(0).truncate().text_size(uiSize(11)).text_color(t.dim).child(sub))
+      .when(this.dirty, (el) => el.child(iconButton("ed-save", "save", T(isIdea() ? "Save (Cmd+S)" : "Save (Ctrl+S)"), (_e, cx) => this.save(cx))))
       .when(Boolean(s) && s.kind === "diff", (el) => el.child(iconButton("ed-open", "file", T("Open file"), () => {
         setEditorSpec(this.slotKey(), { kind: "file", path: s.path, root: s.root, rel: s.rel, on: s.on });
       })))
@@ -263,8 +276,8 @@ export default class EditorPane {
       })))
       .child(iconButton("ed-close", "x", T("Close editor"), () => this.close()));
     let body;
-    if (!s) body = div().p(16).text_color(t.dim).child(T("Open a file from the Explorer, Search or Source Control view."));
-    else if (this.error) body = div().p(16).text_color(t.dim).child(this.error);
+    if (!s) body = div().p(16).text_color(t.dim).child(T(idea ? "Open a file from Project, Find or Commit." : "Open a file from the Explorer, Search or Source Control view."));
+    else if (this.error) body = div().p(16).text_color(idea ? t.ansi1 : t.dim).child(this.error);
     else if (this.viewer) body = this.viewer.render(cx, t);
     else if (this.loading && !this.code && !this.rows.length) body = div().p(16).text_color(t.dim).child(T("Loading…"));
     else if (s.kind === "file" && this.code && this.mdMode !== "edit" && MD.test(s.path)) {
@@ -276,18 +289,18 @@ export default class EditorPane {
           .child(resizable_panel().size_range(160).child(div().size_full().border_l(1).border_color(t.border).child(preview)));
     }
     else if (s.kind === "file" && this.code) body = Editor.new(this.code).flex_1().min_h(0);
-    else body = div().flex_1().min_h(0).relative().font_family(settings().font_family ?? "JetBrains Mono").text_size(12)
+    else body = div().flex_1().min_h(0).relative().font_family(idea ? editorFont().family : settings().font_family ?? "JetBrains Mono").text_size(idea ? editorFont().size : 12)
       .child(div().id("ed-diff-x").size_full().overflow_x_scrollbar()
-        .child(div().w_full().min_w(this.width).h_full().child(v_virtual_list("ed-diff", this.rows.length, 20, (i) => String(i),
+        .child(div().w_full().min_w(idea ? Math.round(this.width * editorFont().size / 13) : this.width).h_full().child(v_virtual_list("ed-diff", this.rows.length, diffHeight(), (i) => String(i),
           (range) => this.rows.slice(range.start, range.end).map((r) => this.diffRow(r, t))).size_full())))
       .child(Scrollbar.vertical("ed-diff").viewport_from_layout().absolute().inset_0());
-    return v_flex().id("activity-editor").size_full().min_h(0).bg(t.background).text_color(t.foreground).text_size(13)
+    return ideaUI(v_flex().id("activity-editor").size_full().min_h(0).bg(t.background).text_color(t.foreground).text_size(13))
       .child(header)
-      .when(this.pending !== null && this.dirty, (el) => el.child(h_flex().flex_none().px(12).py(6).gap(8).items_center().bg(t.raised).text_size(12)
+      .when(this.pending !== null && this.dirty, (el) => el.child(h_flex().flex_none().px(12).py(6).gap(8).items_center().bg(t.raised).text_size(uiSize(12))
         .child(div().flex_1().child(`Unsaved changes in ${title}. Save before opening ${this.pending?.rel ?? "the next file"}?`))
-        .child(div().id("ed-p-save").px(8).py(2).rounded(4).bg(t.solid).text_color(t.solid_foreground).cursor_pointer().on_click((_e, cx) => this.save(cx)).child(T("Save")))
-        .child(div().id("ed-p-drop").px(8).py(2).rounded(4).border_1().border_color(t.border).cursor_pointer().on_click((_e, cx) => this.discard(cx)).child(T("Discard")))))
-      .when(Boolean(this.note), (el) => el.child(div().flex_none().px(12).py(6).bg(t.raised).text_size(12).text_color(t.ansi1).child(this.note)))
+        .child(div().id("ed-p-save").px(8).py(2).when(idea, (e) => e.h(IDEA.inputHeight).flex().items_center()).rounded(IDEA.controlRadius).bg(t.solid).text_color(t.solid_foreground).cursor_pointer().on_click((_e, cx) => this.save(cx)).child(T("Save")))
+        .child(div().id("ed-p-drop").px(8).py(2).when(idea, (e) => e.h(IDEA.inputHeight).flex().items_center()).rounded(IDEA.controlRadius).border_1().border_color(t.border).cursor_pointer().on_click((_e, cx) => this.discard(cx)).child(T("Discard")))))
+      .when(Boolean(this.note), (el) => el.child(div().flex_none().px(12).py(6).bg(t.raised).text_size(uiSize(12)).text_color(t.ansi1).child(this.note)))
       .child(body);
   }
 }

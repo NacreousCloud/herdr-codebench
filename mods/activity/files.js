@@ -5,9 +5,10 @@
 // They work the same on remote machines (see io.js).
 // Built from Herdr's shipped `files` mod, reshaped for the sidebar.
 import { div } from "gpui-kit";
+import { IDEA, isIdea, uiSize, ideaUI, uiListRow } from "./idea-design.js";
 import { T } from "./i18n.js";
 import { v_flex, h_flex } from "gpui-base";
-import { exec, watchFolder, theme, focused, shared, setShared, window, openOverlay, run, notify, home } from "herdr";
+import { exec, watchFolder, theme, focused, shared, setShared, window, openOverlay, run, notify, home, nextCommand } from "herdr";
 import { MOD, editorSpec, location, locationKey, basename, openInEditor, iconButton, viewHeader, icon, statusColor } from "./common.js";
 
 import { OP, CLIP, request, openDialog, menuHeight } from "./fileops.js";
@@ -66,6 +67,18 @@ export default class Files {
     // Remote folders can't be watched: asked every 4 s instead (one round trip).
     this.ticks = 0;
     cx.timer.every(4000, (cx) => { if (this.context?.on || ++this.ticks % 3 === 0) this.refresh(cx); });
+    cx.spawn(async cx => {
+      for (;;) {
+        const command = await nextCommand();
+        if (command === "project-refresh") this.refresh(cx);
+        else if (command === "project-collapse") this.collapseAll(cx);
+        else if (command === "project-new-file" || command === "project-new-folder") {
+          const target = this.target();
+          if (target) openDialog(command === "project-new-file" ? "new-file" : "new-folder", target);
+        } else continue;
+        cx.notify();
+      }
+    });
   }
 
   current(context) { return this.context === context && locationKey() === context.key; }
@@ -310,17 +323,24 @@ export default class Files {
 
   // Keys while the tree has the keyboard (click it first), like VS Code's Explorer.
   key(e, cx) {
-    const m = e.modifiers, k = e.key, ctrl = m.control || m.platform;
+    const m = e.modifiers, k = e.key, idea = isIdea(), ctrl = idea ? m.platform : m.control || m.platform;
     const cur = this.anchor && this.flat.find((r) => r.path === this.anchor) ? this.anchor : null;
     const idx = cur ? this.flat.findIndex((r) => r.path === cur) : -1;
     const go = (i) => { const r = this.flat[Math.max(0, Math.min(this.flat.length - 1, i))]; if (r) { this.sel = new Set([r.path]); this.anchor = r.path; } };
-    if (ctrl && !m.alt && k === "c") request({ op: "copy", target: this.target() });
+    if (idea && ctrl && m.shift && !m.alt && k === "c") {
+      const t = this.target();
+      if (t) cx.write_to_clipboard((t.items.length ? t.items.map((i) => i.path) : [t.root]).join("\n"));
+    }
+    else if (idea && m.platform && !m.alt && k === "insert") request({ op: "copy", target: this.target() });
+    else if (idea && m.shift && !ctrl && !m.alt && k === "delete") request({ op: "cut", target: this.target() });
+    else if (idea && m.shift && !ctrl && !m.alt && k === "insert") request({ op: "paste", target: this.target() });
+    else if (ctrl && !m.alt && k === "c") request({ op: "copy", target: this.target() });
     else if (ctrl && !m.alt && k === "x") request({ op: "cut", target: this.target() });
     else if (ctrl && k === "v") request({ op: "paste", target: this.target() });
     else if (ctrl && m.alt && k === "c") { const t = this.target(); cx.write_to_clipboard((t.items.length ? t.items.map((i) => m.shift ? i.rel : i.path) : [m.shift ? "." : t.root]).join("\n")); }
     else if (ctrl && k === "a") { this.sel = new Set(this.flat.map((r) => r.path)); }
-    else if (k === "delete" && this.sel.size) openDialog("delete", this.target());
-    else if (k === "f2" && this.sel.size === 1) openDialog("rename", this.target());
+    else if ((k === "delete" || idea && (k === "backspace" || k === "back_space")) && this.sel.size) openDialog("delete", this.target());
+    else if ((k === "f2" || idea && m.shift && !ctrl && !m.alt && k === "f6") && this.sel.size === 1) openDialog("rename", this.target());
     else if (k === "down") go(idx + 1);
     else if (k === "up") go(idx < 0 ? this.flat.length - 1 : idx - 1);
     else if (k === "home") go(0);
@@ -367,7 +387,7 @@ export default class Files {
 
   rows(prefix, depth, out, t, openPath) {
     if (out.length >= TOTAL || depth > 40) return out;
-    const idea = shared("layout") === "idea";
+    const idea = isIdea();
     for (const entry of this.entries.get(prefix) ?? []) {
       if (out.length >= TOTAL) break;
       const path = prefix ? `${prefix}/${entry.name}` : entry.name, open = this.folders.has(path);
@@ -379,10 +399,15 @@ export default class Files {
       const abs = `${this.context.root}/${path}`, chosen = this.sel.has(path), current = openPath === abs;
       const cut = this.cut.has(abs);
       this.flat.push({ path, dir: entry.dir });
-      out.push(h_flex().id(`file-${path}`).h(24).flex_none().pl(6 + depth * 14).pr(10).gap(5).items_center().cursor_pointer()
-        .when(chosen, (el) => el.bg(t.selected)).when(!chosen && current, (el) => el.bg(t.hover)).hover((s) => s.bg(t.hover))
+      const row = idea ? uiListRow(`file-${path}`, [], {
+        selected: chosen, focused: this.focus.is_focused(), disabled: false, indent: depth * 14,
+        onClick: (e, cx) => this.click(entry, path, e, cx),
+      }).mx(4).when(!chosen && current, el => el.bg(t.hover))
+        : h_flex().id(`file-${path}`).h(24).flex_none().pl(6 + depth * 14).pr(10).gap(5).items_center().cursor_pointer()
+        .when(chosen, (el) => el.bg(t.selected)).when(!chosen && current, (el) => el.bg(t.hover)).when(!idea || !chosen, (el) => el.hover((s) => s.bg(t.hover)))
+        .on_click((e, cx) => this.click(entry, path, e, cx));
+      out.push(row
         .when(cut, (el) => el.opacity(0.5))
-        .on_click((e, cx) => this.click(entry, path, e, cx))
         .on_mouse_down("right", (_e, cx) => { cx.stop_propagation(); this.openMenu(path, cx); })
         .on_drop((e, cx) => { cx.stop_propagation(); this.drop(e.paths, path, cx); })
         .child(entry.dir ? icon(`chevron-${open ? "down" : "right"}`, 12).text_color(t.dim) : div().w(12).flex_none())
@@ -400,20 +425,20 @@ export default class Files {
     const clip = shared(CLIP);
     this.cut = new Set(clip?.cut && sameMachine(clip.items?.[0]?.on, this.context?.on) ? clip.items.map((i) => i.path) : []);
     this.flat = [];
-    const t = theme();
+    const t = theme(), idea = isIdea();
     const openPath = editorSpec()?.path;
     const root = this.context?.root ?? this.context?.cwd;
-    return v_flex().id("activity-files").size_full().min_h(0).bg(t.chrome).when(shared("layout") === "idea", (e) => e.rounded_b(10)).text_color(t.foreground).text_size(13)
-      .child(viewHeader(shared("layout") === "idea" ? "" : "Explorer", [
+    return ideaUI(v_flex().id("activity-files").size_full().min_h(0).bg(idea ? t.surface : t.chrome).text_color(t.foreground).text_size(13))
+      .when(!idea, el => el.child(viewHeader("Explorer", [
         iconButton("files-new", "file-plus", T("New File…"), () => { const t = this.target(); if (t) openDialog("new-file", t); }),
         iconButton("files-newdir", "folder-plus", T("New Folder…"), () => { const t = this.target(); if (t) openDialog("new-folder", t); }),
         iconButton("files-refresh", "refresh", T("Refresh"), (_e, cx) => this.refresh(cx)),
         iconButton("files-collapse", "collapse", T("Collapse folders"), (_e, cx) => this.collapseAll(cx)),
-      ]))
-      .child(h_flex().h(24).flex_none().px(8).gap(5).items_center()
+      ])))
+      .child(h_flex().h(idea ? IDEA.rowHeight : 24).flex_none().px(8).gap(5).items_center()
         .child(icon("chevron-down", 12).text_color(t.dim))
-        .child(div().flex_1().min_w(0).truncate().text_size(11).font_semibold().text_color(t.foreground)
-          .child((this.context?.on ? `${this.context.on}: ` : "") + (basename(root) || "No folder").toUpperCase())))
+        .child(div().flex_1().min_w(0).truncate().text_size(idea ? uiSize() : 11).font_semibold().text_color(t.foreground)
+          .child((this.context?.on ? `${this.context.on}: ` : "") + (idea ? basename(root) || T("No folder") : (basename(root) || "No folder").toUpperCase()))))
       .child(v_flex().id("files-tree").flex_1().min_h(0).overflow_y_scrollbar().pb(8)
         .track_focus(this.focus).on_key_down((e, cx) => { this.lastShift = 0; this.key(e, cx); })
         .on_modifiers_changed((e) => this.shiftTap(e))
@@ -421,12 +446,12 @@ export default class Files {
         .on_mouse_down("right", (_e, cx) => this.openMenu(null, cx))
         .on_drop((e, cx) => this.drop(e.paths, "", cx))
         .children(this.rows("", 0, [], t, openPath))
-        .when(Boolean(this.error) || !this.entries.get("")?.length, (el) => el.child(div().px(14).py(8).text_size(12).text_color(t.dim)
+        .when(Boolean(this.error) || !this.entries.get("")?.length, (el) => el.child(div().px(14).py(8).text_size(uiSize(12)).text_color(idea && this.error ? t.ansi1 : t.dim)
           .child(this.error || (this.loading ? "Loading files…" : root ? "Empty folder" : "Focus a terminal to browse its folder"))))
         // Room below the rows to right-click or drop on the folder itself.
         .child(div().h(48).flex_none())
-        .when(this.limited, (el) => el.child(div().px(14).py(8).text_size(11).text_color(t.dim).child(T("Limited to 500 entries per folder, 5,000 total")))))
-      .when(Boolean(this.busy || this.note), (el) => el.child(h_flex().flex_none().px(12).py(6).gap(6).items_center().border_t(1).border_color(t.border).text_size(11.5)
+        .when(this.limited, (el) => el.child(div().px(14).py(8).text_size(uiSize(11)).text_color(t.dim).child(T("Limited to 500 entries per folder, 5,000 total")))))
+      .when(Boolean(this.busy || this.note), (el) => el.child(h_flex().flex_none().px(12).py(6).gap(6).items_center().border_t(1).border_color(t.border).text_size(uiSize(11.5))
         .text_color(this.busy ? t.muted : t.ansi1)
         .child(div().flex_1().min_w(0).child(this.busy ?? this.note))
         .when(!this.busy, (el) => el.child(iconButton("files-note-x", "x", T("Dismiss"), (_e, cx) => { this.note = null; cx.notify(); }, { size: 18, icon: 11 })))));

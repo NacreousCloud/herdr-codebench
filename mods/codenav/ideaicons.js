@@ -61,4 +61,4 @@ export function symbolIcon(kind, path = "") {
   return `${DIR}/${kt || KIND[kind] || "unknown"}.svg`;
 }
 export const symbolImage = (kind, path, size = 16) => image(symbolIcon(kind, path)).size(size).flex_none();
-export const toolImage = (name, size = 18) => image(`${DIR}/${name}.svg`).size(size).flex_none();
+export const toolImage = (name, size = 18, selected = false) => image(`${DIR}/${name}${selected ? "Selected" : ""}.svg`).size(size).flex_none();

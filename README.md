@@ -108,6 +108,16 @@ herdr-app do layout.switch --name codebench     # 또는 Cmd+Shift+L
 - 제목 표시줄: 위아래/좌우 전환 버튼, 배치에 따라 바뀌는 편집기·패널 아이콘 (`titlebar.js`, `icons/`)
 - 한국어: 제목·툴팁·주요 안내 문구 번역 (`i18n.js`, 각 파일의 `T(...)`)
 
+## IntelliJ IDEA 모드와 공통 UI
+
+`idea`는 실제 IntelliJ Islands Dark의 compact 화면·설치 자원·사용자 키맵을 기준으로 구성합니다. 툴바/stripe/섬/탭/목록/입력/메뉴/설정은 공통 토큰과 컴포넌트를 사용합니다. 기존 패널 배치를 유지하며 설치합니다.
+
+- 기준과 분석: [선정 계획](design/idea/PARITY_PLAN.md), [세부 비교](design/idea/DETAIL_AUDIT.md)
+- 새 화면 개발: [컴포넌트 계약과 예제](design/idea/COMPONENTS.md), [개발 규칙](AGENTS.md)
+- 실제 예제: idea에서 ⌘⇧A → `design-system` → UI 컴포넌트 갤러리
+- 생성·검사: `python3 design/idea/sync_ui.py --check`, `node --experimental-vm-modules design/idea/check_system.mjs`
+- 변경 모드는 `herdr-app check mods/codenav` / `herdr-app check mods/activity`와 실제 화면 검증을 함께 수행합니다.
+
 ## 라이선스
 
 Apache-2.0 (`LICENSE`). `mods/activity/ficons/`와 `mods/open-vscode/`는 각 폴더의 라이선스를 따릅니다.

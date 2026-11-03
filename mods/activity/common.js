@@ -3,6 +3,7 @@ import { div, svg, image } from "gpui-kit";
 import { T } from "./i18n.js";
 import { h_flex } from "gpui-base";
 import { spaces, panes, focused, run, shared, setShared, layout, theme } from "herdr";
+import { isIdea, IDEA, uiSize, ideaUI, uiIconButton, uiToolHeader } from "./idea-design.js";
 
 export const MOD = "activity";
 export const STACK = "sidebar-views";
@@ -110,19 +111,23 @@ export function openInEditor(spec) {
 // A small square icon button.
 export function iconButton(id, name, tip, action, opts = {}) {
   const t = theme();
-  return div().id(id).size(opts.size ?? 22).flex_none().flex().items_center().justify_center().rounded(5)
+  if (isIdea()) return uiIconButton(id, icon(name, opts.icon ?? IDEA.iconSize), action,
+    { tip, size: opts.size ?? IDEA.toolbarButtonSize, active: opts.active, disabled: opts.disabled })
+    .when(!opts.disabled, el => el.text_color(opts.color ?? t.muted)).on_mouse_down("left", (_e, cx) => cx.stop_propagation());
+  return div().id(id).size(opts.size ?? (isIdea() ? 24 : 22)).flex_none().flex().items_center().justify_center().rounded(isIdea() ? IDEA.controlRadius : 5)
     .text_color(opts.color ?? t.muted).hover((s) => s.bg(t.hover).text_color(t.foreground)).cursor_pointer()
     .tooltip(T(tip))
     .on_mouse_down("left", (_e, cx) => cx.stop_propagation())
     .on_click((e, cx) => { cx.stop_propagation(); action(e, cx); })
-    .child(icon(name, opts.icon ?? 14));
+    .child(icon(name, opts.icon ?? (isIdea() ? IDEA.iconSize : 14)));
 }
 
-// The uppercase title row every view starts with, like VS Code's.
+// The Project selector / view actions sit below the shared tool-window header.
 export function viewHeader(title, actions = []) {
-  const t = theme();
-  return h_flex().h(34).flex_none().pl(14).pr(8).gap(2).items_center()
-    .child(div().flex_1().min_w(0).truncate().text_size(11).font_semibold().text_color(t.muted).child(title ? T(title).toUpperCase() : ""))
+  const t = theme(), idea = isIdea();
+  if (idea) return uiToolHeader(`view-${title || "actions"}`, title ? T(title) : "", { actions });
+  return ideaUI(h_flex()).h(idea ? IDEA.toolHeaderHeight : 34).flex_none().pl(idea ? 12 : 14).pr(8).gap(2).items_center()
+    .child(div().flex_1().min_w(0).truncate().text_size(idea ? uiSize() : 11).when(!idea, (e) => e.font_semibold()).text_color(idea ? t.foreground : t.muted).child(title ? idea ? T(title) : T(title).toUpperCase() : ""))
     .children(actions);
 }
 

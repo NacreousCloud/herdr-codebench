@@ -15,7 +15,7 @@ import { View, div } from "gpui-kit";
 import { props as herdrProps } from "herdr";
 import CodeView from "./code.js";
 import Review from "./review.js";
-import Tabs, { TabMenu } from "./tabs.js";
+import Tabs, { TabMenu, TabList } from "./tabs.js";
 import Status from "./status.js";
 import { TermMenu, TermFiles } from "./termfiles.js";
 import PaneHead from "./panehead.js";
@@ -23,10 +23,17 @@ import { Stripe, ToolMenu, ToolSettings, ToolEmpty, ToolHeader, IslandBottom, No
 import { Everywhere } from "./everywhere.js";
 import { RunMenu, RunConfigs } from "./run.js";
 import { HttpEnvMenu } from "./http.js";
+import IdeaSettings from "./settings.js";
+import Agents from "./agents.js";
+import NewTerminal from "./newterminal.js";
+import RecentFiles from "./recent.js";
+import DesignPreview from "./design-preview.js";
 
 const VIEWS = { code: CodeView, review: Review, tabs: Tabs, status: Status, tabmenu: TabMenu, termfiles: TermFiles, termmenu: TermMenu, panehead: PaneHead,
   stripe: Stripe, notifications: Notifications, toolmenu: ToolMenu, toolsettings: ToolSettings, toolempty: ToolEmpty, toolheader: ToolHeader, islandbottom: IslandBottom, toolbar: Toolbar, structure: Structure, problems: Problems, crumbs: Crumbs,
-  projects: Projects, everywhere: Everywhere, runmenu: RunMenu, runconfigs: RunConfigs, httpenv: HttpEnvMenu };
+  projects: Projects, everywhere: Everywhere, runmenu: RunMenu, runconfigs: RunConfigs, httpenv: HttpEnvMenu,
+  settings: IdeaSettings, agents: Agents, newterminal: NewTerminal, tablist: TabList,
+  recent: RecentFiles, designpreview: DesignPreview };
 
 export default class CodeNav extends View {
   init(initProps, cx) {

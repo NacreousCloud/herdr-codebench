@@ -9,11 +9,16 @@ Theme: the active look and feel (Islands Dark) merged over its parents
 editor scheme over its parent. Keymap: "Mac OS X 10.5+" over "$default", with
 the user's keymap on top. Fonts and sizes: the user's IDE options.
 """
-import json, os, re, sys, zipfile, glob
+import argparse, json, os, re, sys, zipfile, glob
 import xml.etree.ElementTree as ET  # local IntelliJ files only (no external entities are fetched)
 
-APP = sys.argv[1] if len(sys.argv) > 1 else "/Applications/IntelliJ IDEA.app"
-OUT = os.path.dirname(os.path.abspath(__file__))
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("app", nargs="?", default="/Applications/IntelliJ IDEA.app")
+parser.add_argument("--output-dir", default=os.path.dirname(os.path.abspath(__file__)))
+parser.add_argument("--keymap-only", action="store_true", help="Preserve independently maintained tokens.json")
+args = parser.parse_args()
+APP, OUT = args.app, args.output_dir
+os.makedirs(OUT, exist_ok=True)
 JAR = f"{APP}/Contents/lib/intellij.platform.ide.impl.jar"
 OPTS = sorted(glob.glob(os.path.expanduser("~/Library/Application Support/JetBrains/IntelliJIdea*")))[-1:]
 OPTS = OPTS[0] if OPTS else None
@@ -112,17 +117,21 @@ tokens = {
     "editor.attributes": editor_attrs,
     "descriptions": {k: descriptions[k] for k in list(colors_ui) + list(metrics) if k in descriptions},
 }
-json.dump(tokens, open(f"{OUT}/tokens.json", "w"), indent=2, ensure_ascii=False)
+if not args.keymap_only:
+    json.dump(tokens, open(f"{OUT}/tokens.json", "w"), indent=2, ensure_ascii=False)
 
 # Keymap.
+BUNDLED_KEYMAPS = set()
 def keymap_files():
     out = {}
     for n in names:
         if n.startswith("keymaps/") and n.endswith(".xml"):
             r = ET.fromstring(z.read(n)); out[r.get("name")] = r
+            BUNDLED_KEYMAPS.add(r.get("name"))
     if OPTS:
         for p in glob.glob(f"{OPTS}/keymaps/*.xml"):
             r = ET.parse(p).getroot(); out[r.get("name")] = r
+            BUNDLED_KEYMAPS.discard(r.get("name"))
     return out
 KM = keymap_files()
 active = None
@@ -132,17 +141,50 @@ if OPTS:
             m = re.search(r'active_keymap name="([^"]+)"', open(p).read())
             if m: active = m.group(1)
 active = active or "Mac OS X 10.5+"
-def keymap(name):
-    chain = []
-    while name in KM:
-        chain.append(KM[name]); name = KM[name].get("parent")
-    actions = {}
-    for k in reversed(chain):
-        for a in k.findall("action"):
-            ks = [s.get("first-keystroke") + (" , " + s.get("second-keystroke") if s.get("second-keystroke") else "") for s in a.findall("keyboard-shortcut")]
-            ms = [s.get("keystroke") for s in a.findall("mouse-shortcut")]
-            actions[a.get("id")] = {"keys": ks, **({"mouse": ms} if ms else {})}
-    return [k.get("name") for k in chain], actions
+def swap_parent_modifiers(stroke):
+    """MacOSDefaultKeymap.mapModifiers: swap Ctrl/Meta, never Alt/Shift.
+
+    Used only on inherited keyboard/mouse shortcuts. IntelliJ leaves modifier
+    gestures unchanged (MacOSDefaultKeymap.Companion.convertShortcutFromParent).
+    """
+    def convert(part):
+        words = part.split()
+        for i, word in enumerate(words[:-1]):
+            modifier = word.lower()
+            if modifier not in {"control", "ctrl", "meta", "alt", "shift", "altgraph"}:
+                break
+            if modifier in {"control", "ctrl", "meta"}:
+                words[i] = "control" if modifier == "meta" else "meta"
+        # The final key code can itself be CONTROL/META; it is not a modifier.
+        return " ".join(words)
+    return " , ".join(convert(part) for part in stroke.split(" , "))
+
+
+def keymap(name, maps=None, visiting=()):
+    maps = KM if maps is None else maps
+    if name in visiting:
+        raise ValueError(f"Cyclic keymap inheritance: {visiting + (name,)}")
+    if name not in maps:
+        raise ValueError(f"Missing keymap: {name}")
+    k = maps[name]
+    parent = k.get("parent")
+    chain, actions = keymap(parent, maps, visiting + (name,)) if parent else ([], {})
+    # Bundled names beginning with Mac OS X use MacOSDefaultKeymap. User
+    # schemes are regular KeymapImpl, even if a user chooses a similar name.
+    if name in BUNDLED_KEYMAPS and name.startswith("Mac OS X"):
+        actions = {id: {**a,
+                       "keys": [swap_parent_modifiers(s) for s in a["keys"]],
+                       **({"mouse": [swap_parent_modifiers(s) for s in a["mouse"]]} if "mouse" in a else {})}
+                   for id, a in actions.items()}
+    for a in k.findall("action"):
+        ks = [s.get("first-keystroke") + (" , " + s.get("second-keystroke") if s.get("second-keystroke") else "") for s in a.findall("keyboard-shortcut")]
+        ms = [s.get("keystroke") for s in a.findall("mouse-shortcut")]
+        gestures = [dict(s.attrib) for s in a.findall("keyboard-gesture-shortcut")]
+        # A local declaration replaces the whole inherited list, including
+        # empty removals; repeated declarations use the last list (Map.put).
+        actions[a.get("id")] = {"keys": ks, **({"mouse": ms} if ms else {}),
+                                **({"gestures": gestures} if gestures else {})}
+    return [name] + chain, actions
 km_chain, actions = keymap(active)
 json.dump({"keymap": km_chain, "actions": actions}, open(f"{OUT}/keymap.json", "w"), indent=2, ensure_ascii=False)
 print(f"theme {chain} scheme {scheme_chain} keymap {km_chain}")

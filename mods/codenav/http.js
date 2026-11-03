@@ -9,6 +9,7 @@ import { div } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
 import { theme, shared, setShared, props, closeOverlay, openOverlay, readTextFile, writeTextFile, exec } from "herdr";
 import { T } from "./i18n.js";
+import { IDEA, isIdea, uiSize, ideaUI, popupSurface, MenuController, uiMenu } from "./idea-design.js";
 import { basename } from "./common.js";
 import { toolImage } from "./ideaicons.js";
 import { runConfig } from "./run.js";
@@ -145,7 +146,8 @@ export function httpBar(t, view, cx) {
   const env = chosenEnv(view.shown.path, h.envs);
   const btn = (id, children, tip, action) => h_flex().id(id).h(26).px(7).gap(6).flex_none().items_center().rounded(5).cursor_pointer()
     .hover((s) => s.bg(t.hover)).tooltip(tip).on_mouse_down("left", (_e, cx) => cx.stop_propagation()).on_click(() => action()).children(children);
-  return h_flex().h(34).flex_none().px(10).gap(6).items_center().border_b(1).border_color(t.border).bg(t.chrome).text_size(12.5)
+  return h_flex().h(isIdea() ? IDEA.toolHeaderHeight : 34).flex_none().px(10).gap(6).items_center().border_b(1).border_color(t.border).bg(isIdea() ? t.surface : t.chrome).text_size(uiSize(12.5))
+    .when(isIdea(), (e) => ideaUI(e))
     .child(btn("http-all", [toolImage("runAll", 16)], T("Run All Requests in File"),
       () => runHttp(view.shown.path, view.lines, h.envs, null, () => view.showTerminal())))
     .child(div().w(1).h(16).mx(4).bg(t.input))
@@ -153,19 +155,22 @@ export function httpBar(t, view, cx) {
     .child(btn("http-env", [div().text_color(t.foreground).child(env ?? T("No environment")), toolImage("chevronDown", 14)], T("Environment"),
       () => openOverlay({ mod: "codenav", props: { view: "httpenv", dir: dirOf(view.shown.path), names: h.envs.names }, kind: "popup", width: 220, height: Math.min(300, 50 + h.envs.names.length * 30) })))
     .child(div().flex_1())
-    .child(div().text_size(11.5).text_color(t.dim).child(h.envs.pub ? basename(h.envs.pub) + (h.envs.priv ? ` + ${basename(h.envs.priv)}` : "") : T("No http-client.env.json")));
+    .child(div().text_size(uiSize(11.5)).text_color(t.dim).child(h.envs.pub ? basename(h.envs.pub) + (h.envs.priv ? ` + ${basename(h.envs.priv)}` : "") : T("No http-client.env.json")));
 }
 
 // The environment picker.
 export class HttpEnvMenu {
-  init() {}
-  render() {
-    const t = theme(), { dir, names, overlay } = props() ?? {};
-    const cur = store()[dir] ?? names?.[0];
-    return v_flex().size_full().p(4).gap(2).bg(t.popover).text_color(t.foreground)
-      .children((names ?? []).map((n) => h_flex().id(`he-${n}`).h(28).px(10).gap(8).items_center().rounded(5).text_size(12.5).cursor_pointer()
-        .hover((e) => e.bg(t.hover)).on_click(() => { closeOverlay(overlay); setShared("codenav.httpEnv", { ...store(), [dir]: n }); })
-        .child(div().w(14).child(n === cur ? toolImage("show", 12) : div())).child(div().child(n))))
-      .when(!names?.length, (e) => e.child(div().p(10).text_size(12).text_color(t.dim).child(T("No http-client.env.json"))));
+  init(_p, cx) {
+    const { dir, names = [] } = props() ?? {};
+    this.menu = new MenuController(cx, Math.max(0, names.indexOf(store()[dir] ?? names[0])));
+    this.menu.focus.focus();
+  }
+  release() { this.menu.release(); }
+  render(cx) {
+    const { dir, names = [], overlay } = props() ?? {}, cur = store()[dir] ?? names[0];
+    const rows = names.map((n, i) => ({ id: `he-${i}`, label: n, icon: () => n === cur ? toolImage("show", 12) : div().w(12),
+      action: () => setShared("codenav.httpEnv", { ...store(), [dir]: n }) }));
+    if (!rows.length) rows.push({ id: "he-empty", label: T("No http-client.env.json"), disabled: true });
+    return uiMenu("http-env-menu", rows, this.menu, cx, { width: 220, maxHeight: 300, onClose: () => closeOverlay(overlay) });
   }
 }

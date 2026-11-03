@@ -2,9 +2,10 @@
 // menu ("Open in code view" for the selected path, plus Herdr's own pane items)
 // and a picker of the paths in its screen and recent output (Cmd+Shift+O).
 import { div, svg } from "gpui-kit";
-import { v_flex, h_flex, InputState, Input } from "gpui-base";
+import { v_flex, h_flex, InputState, Input, v_virtual_list, VirtualListScrollHandle, Scrollbar } from "gpui-base";
 import { run, props, closeOverlay, openOverlay, theme, terminals, panes, exec, hc, notify } from "herdr";
 import { T } from "./i18n.js";
+import { IDEA, isIdea, uiSize, popupSurface, MenuController, uiMenu, uiInputBox, uiListRow } from "./idea-design.js";
 import { openPath, tilde, basename, uiFontFamily } from "./common.js";
 import { ideaImage, toolImage } from "./ideaicons.js";
 
@@ -110,9 +111,8 @@ async function openSelection(target, sleep) {
 // -- the terminal's right-click menu ----------------------------------------------
 export class TermMenu {
   init(_p, cx) {
-    this.at = 0;
-    this.handle = cx.focus_handle();
-    this.handle.focus();
+    this.menu = new MenuController(cx);
+    this.menu.focus.focus();
   }
 
   // An item is [label, icon, action(sleep), key hint]; null draws a separator.
@@ -149,33 +149,22 @@ export class TermMenu {
     });
   }
 
+  release() { this.menu.release(); }
   render(cx) {
-    const t = theme(), list = this.items(), real = list.filter(Boolean);
-    return v_flex().id("cn-termmenu").track_focus(this.handle).w_full().min_h(0).p(5).bg(t.popover).text_size(12.8)
-      .on_key_down((e, cx) => {
-        if (e.key === "down") this.at = (this.at + 1) % real.length;
-        else if (e.key === "up") this.at = (this.at + real.length - 1) % real.length;
-        else if (e.key === "enter") this.choose(real[this.at], cx);
-        else if (e.key === "escape") closeOverlay(props()?.overlay);
-        else return;
-        cx.notify();
-      })
-      .children(list.map((it, i) => !it ? div().mx(7).my(4).h(1).bg(t.border)
-        : h_flex().id(`cn-tm-${i}`).h(31).px(8).gap(9).rounded(7).items_center().text_color(t.foreground)
-          .when(real.indexOf(it) === this.at, (el) => el.bg(t.selected)).hover((s) => s.bg(t.hover))
-          .on_click((_e, cx) => this.choose(it, cx))
-          .child(svg(`mods/workspace-chrome/${it[1]}.svg`).size(14).flex_none().text_color(t.muted))
-          .child(div().flex_1().child(it[0]))
-          .child(div().text_size(11).text_color(t.dim).child(it[3] ?? ""))));
+    const rows = this.items().map((it, i) => !it ? { separator: true } : { id: `cn-tm-${i}`, label: it[0],
+      icon: () => svg(`mods/workspace-chrome/${it[1]}.svg`).size(14), shortcut: it[3], disabled: Boolean(this.busy), action: (_event, eventCx) => this.choose(it, eventCx) });
+    return uiMenu("cn-termmenu", rows, this.menu, cx, { width: 320, maxHeight: 400, closeOnActivate: false, onClose: () => closeOverlay(props()?.overlay) });
   }
 }
 
 // -- the picker of files named in a terminal ----------------------------------------
 export class TermFiles {
   init(_p, cx) {
+    this.focus = cx.focus_handle();
+    this.scroll = VirtualListScrollHandle.new();
     this.files = null; this.at = 0;
     this.filter = InputState.new({ placeholder: T("Filter files") });
-    this.filter.on("change", (_e, cx) => { this.at = 0; cx.notify(); });
+    this.filter.on("change", (_e, cx) => { this.at = 0; this.scroll.scroll_to_item(0, "center"); cx.notify(); });
     this.filter.on("submit", (_e, cx) => { const f = this.shown()[this.at]; if (f) this.open(f); });
     this.filter.focus();
     const terminal = props()?.terminal;
@@ -184,11 +173,15 @@ export class TermFiles {
         const place = await placeOf(terminal);
         this.place = place;
         const r = await hc(["read", terminal, "--lines", "800"]);
-        this.files = await resolve(pathsIn(r.stdout ?? "").slice(0, 400), place);
+        const files = await resolve(pathsIn(r.stdout ?? "").slice(0, 400), place);
+        if (this.released) return;
+        this.files = files;
       } catch (e) { this.error = String(e.message ?? e); this.files = []; }
+      if (this.released) return;
       cx.notify();
     });
   }
+  release() { this.released = true; this.scroll.release(); }
 
   shown() {
     const q = this.filter.value().toLowerCase();
@@ -206,37 +199,45 @@ export class TermFiles {
     const t = theme(), list = this.shown(), repo = this.place?.repo;
     const where = (abs) => repo && abs.startsWith(repo + "/") ? abs.slice(repo.length + 1).replace(/\/?[^/]*$/, "") : tilde(abs).replace(/\/[^/]*$/, "");
     const sel = list[this.at];
-    return v_flex().id("cn-termfiles").size_full().bg(t.popover).text_color(t.foreground).text_size(13).font_family(uiFontFamily())
+    const fileKey = f => JSON.stringify([f.abs, f.line ?? null, f.col ?? null]);
+    return v_flex().id("cn-termfiles").size_full().bg(t.popover).text_color(t.foreground).text_size(uiSize(13)).font_family(uiFontFamily())
+      .when(isIdea(), (e) => popupSurface(e).p(4))
+      .track_focus(this.focus)
       .on_key_down((e, cx) => {
-        if (e.key === "down") this.at = Math.min(this.at + 1, list.length - 1);
+        if (e.key === "down") this.at = Math.max(0, Math.min(this.at + 1, list.length - 1));
         else if (e.key === "up") this.at = Math.max(this.at - 1, 0);
         else if (e.key === "escape") closeOverlay(props()?.overlay);
         else return;
+        this.scroll.scroll_to_item(this.at, "center");
         cx.stop_propagation(); cx.notify();
       })
       .child(h_flex().h(40).flex_none().px(14).gap(10).items_center()
         .child(toolImage("terminal", 16))
         .child(div().flex_none().font_semibold().child(T("Files in this terminal")))
-        .child(div().flex_1().min_w(0).truncate().text_size(12).text_color(t.dim).child(this.place?.cwd ? tilde(this.place.cwd) : ""))
-        .child(div().flex_none().text_size(12).text_color(t.dim).child(this.files ? T("{n} files", { n: list.length }) : "")))
-      .child(h_flex().mx(10).h(36).flex_none().px(10).gap(8).items_center().rounded(6).border_2().border_color(t.accent).bg(t.background)
+        .child(div().flex_1().min_w(0).truncate().text_size(uiSize(12)).text_color(t.dim).child(this.place?.cwd ? tilde(this.place.cwd) : ""))
+        .child(div().flex_none().text_size(uiSize(12)).text_color(t.dim).child(this.files ? T("{n} files", { n: list.length }) : "")))
+      .child(uiInputBox(h_flex().w_full().min_w(0).gap(8).items_center()
         .child(toolImage("search", 15))
         .child(div().flex_1().min_w(0).child(Input.new(this.filter)))
-        .child(div().flex_none().text_size(11.5).text_color(t.dim).child(T("Newest first"))))
-      .child(div().id("cn-tf-list").flex_1().min_h(0).mt(6).overflow_y_scrollbar()
+        .child(div().flex_none().text_size(uiSize(11.5)).text_color(t.dim).child(T("Newest first"))), { focused: true }).mx(10).flex_none())
+      .child(v_flex().flex_1().min_h(0).mt(6).relative()
         .when(this.files === null, (e) => e.child(div().px(16).py(10).text_color(t.dim).child(T("Loading…"))))
         .when(this.files !== null && !list.length, (e) => e.child(div().px(16).py(10).text_color(t.dim).child(this.error ?? T("No file paths in this terminal's output"))))
-        .children(list.map((f, i) => h_flex().id(`cn-tf-${i}`).h(30).mx(4).px(10).gap(9).items_center().rounded(4).cursor_pointer()
-          .bg(i === this.at ? t.selected : "#00000000").hover((e) => e.bg(i === this.at ? t.selected : t.hover))
-          .on_click(() => this.open(f))
+        .when(Boolean(list.length), el => el.child(v_virtual_list("cn-tf-list", list.length, Math.max(IDEA.rowHeight, uiSize() + 8), i => fileKey(list[i]), range => list.slice(range.start, range.end).map((f, n) => {
+          const i = range.start + n;
+          return uiListRow(`cn-tf-${i}`, [], { selected: i === this.at, interactive: true }).mx(4)
           .child(ideaImage(f.abs, false, 16))
-          .child(div().flex_none().max_w(320).truncate().text_size(13.5).child(basename(f.abs)))
-          .when(Boolean(f.line), (e) => e.child(div().flex_none().text_size(12.5).text_color(t.accent).child(`:${f.line}`)))
-          .child(div().flex_1().min_w(0).truncate().text_size(12.5).text_color(t.dim).child(where(f.abs)))
+          .child(div().flex_none().max_w(320).truncate().text_size(uiSize(13.5)).child(basename(f.abs)))
+          .when(Boolean(f.line), (e) => e.child(div().flex_none().text_size(uiSize(12.5)).text_color(t.accent).child(`:${f.line}`)))
+          .child(div().flex_1().min_w(0).truncate().text_size(uiSize(12.5)).text_color(t.dim).child(where(f.abs)))
           .when(Boolean(repo) && f.abs.startsWith((repo ?? "") + "/"), (e) => e
-            .child(div().flex_none().max_w(200).truncate().text_size(12.5).text_color(t.dim).child(basename(repo)))
-            .child(ideaImage(repo, true, 14))))))
-      .child(h_flex().h(30).flex_none().px(14).gap(8).items_center().border_t(1).border_color(t.border).text_size(12)
+            .child(div().flex_none().max_w(200).truncate().text_size(uiSize(12.5)).text_color(t.dim).child(basename(repo)))
+            .child(ideaImage(repo, true, 14)));
+        })).size_full().track_scroll(this.scroll).on_item_click((key) => {
+          const index = list.findIndex(f => fileKey(f) === key); if (index < 0) return;
+          this.at = index; this.open(list[index]);
+        })).child(Scrollbar.vertical("cn-tf-list").absolute().inset_0())))
+      .child(h_flex().h(30).flex_none().px(14).gap(8).items_center().border_t(1).border_color(t.border).text_size(uiSize(12))
         .child(div().flex_1().min_w(0).truncate().text_color(t.dim).child(sel ? tilde(sel.abs) + (sel.line ? `:${sel.line}` : "") : ""))
         .child(div().flex_none().text_color(t.accent).child(T("Enter to open"))));
   }

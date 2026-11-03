@@ -8,27 +8,39 @@
 import { div } from "gpui-kit";
 import { T, lang, setLang } from "./i18n.js";
 import { h_flex } from "gpui-base";
-import { theme, nextCommand, focused, run, shared, setShared, agents, openOverlay } from "herdr";
+import { theme, nextCommand, focused, run, shared, setShared, agents, openOverlay, hc, layout, notify } from "herdr";
 import { showTerminalFiles } from "./termfiles.js";
 import { closeTab, tabBack, tabForward, stepTab } from "./tabs.js";
 import { toggleTool, toggleAllTools, hideActiveTool, moveTool, arrange, savedSides, openToolSettings, TOOLS } from "./tools.js";
 import { openEverywhere } from "./everywhere.js";
 import { restartPending, openRunConfigs, runStore, runConfig, stopConfig } from "./run.js";
-import { showReview, openPath } from "./common.js";
+import { showReview, openPath, find } from "./common.js";
 import { followSpace } from "./memory.js";
 import { peek } from "./lsp.js";
+import { isIdea, uiSize, ideaUI } from "./idea-design.js";
+import { openIdeaSettings } from "./settings.js";
+import { recordLocation } from "./locations.js";
 
 // Keys bound in keys.json's terminal section (programs in Kitty keyboard mode
 // would get them otherwise): what each does in the shown layout.
 const TERM_KEYS = {
-  // Cmd+Shift+O in a terminal: the files it names; elsewhere (layout:idea) Go to File.
-  idea: { "cmd-shift-o": "terminal-files", "cmd-o": "find-class", "cmd-alt-o": "find-symbol", "cmd-shift-a": "find-action" },
+  idea: { "cmd-shift-o": "find-file", "cmd-o": "find-class", "cmd-alt-o": "find-symbol", "cmd-shift-a": "find-action", "cmd-e": "find-recent", "cmd-shift-e": "find-locations", "cmd-,": "settings" },
   codebench: { "cmd-shift-o": "terminal-files" },
 };
-function termKey(key) {
+async function termKey(key) {
   const c = TERM_KEYS[shared("layout")]?.[key];
   if (c === "terminal-files") showTerminalFiles(focused()?.terminal);
-  else if (c?.startsWith("find-")) openEverywhere({ "find-file": "files", "find-class": "classes", "find-symbol": "symbols", "find-action": "actions", "find-recent": "recent" }[c]);
+  else if (c === "settings") openIdeaSettings();
+  else if (c?.startsWith("find-")) openEverywhere({ "find-file": "files", "find-class": "classes", "find-symbol": "symbols", "find-action": "actions", "find-recent": "recent", "find-locations": "locations" }[c]);
+  // Forward keys that only idea claims, preserving terminal input in the other
+  // layouts. hc encodes named keys for the program's negotiated keyboard mode.
+  else if (key === "cmd-,") run("app.settings");
+  else if (focused()?.terminal) {
+    try {
+      const r = await hc(["keys", focused().terminal, key.replace(/-/g, "+")]);
+      if (r.code) notify({ title: T("Could not send key"), body: r.stderr || key, level: "error" });
+    } catch (e) { notify({ title: T("Could not send key"), body: String(e), level: "error" }); }
+  }
 }
 
 // Herdr's agent notifications, kept for the Notifications tool window: an agent
@@ -61,9 +73,13 @@ export default class Status {
         else if (c === "close-tab") closeTab();
         else if (c === "tab-back") tabBack();
         else if (c === "tab-forward") tabForward();
-        // The idea layout: Cmd+[ / Cmd+] go back and forward, but stay agent.prev / agent.next in a terminal.
-        else if (c === "nav-back") focused()?.terminal ? run("agent.prev") : tabBack();
-        else if (c === "nav-forward") focused()?.terminal ? run("agent.next") : tabForward();
+        // IntelliJ's navigation uses locations, including while a terminal has focus.
+        else if (c === "nav-back" || c === "nav-forward") {
+          const forward = c === "nav-forward";
+          if (isIdea() && find(layout(), "editor-stack")?.active === "editor-code") run(forward ? "codenav.editor-forward" : "codenav.editor-back");
+          else if (!isIdea() && focused()?.terminal) run(forward ? "agent.next" : "agent.prev");
+          else forward ? tabForward() : tabBack();
+        }
         else if (c.startsWith("tool-") && TOOLS[c.slice(5)]) toggleTool(c.slice(5));
         else if (c === "hide-tools") toggleAllTools();
         else if (c === "hide-active") hideActiveTool();
@@ -73,15 +89,19 @@ export default class Status {
         else if (c === "stop") { const st = runStore(); stopConfig(st.configs[st.selected] ?? st.configs[0]); }
         else if (c === "run-choose") openOverlay({ mod: "codenav", props: { view: "runmenu" }, kind: "popup", width: 320, height: 240 });
         else if (c === "run-configs") openRunConfigs();
+        else if (c === "settings") openIdeaSettings();
+        else if (c === "design-system") openOverlay({ mod: "codenav", props: { view: "designpreview" }, kind: "dialog", frame: "none", width: 820, height: 680 });
+        else if (c.startsWith("settings:")) openIdeaSettings(c.slice(9));
+        else if (c === "new-terminal-menu") openOverlay({ mod: "codenav", props: { view: "newterminal" }, kind: "popup", frame: "none", width: 300, height: 400 });
         else if (c === "show-terminal") toggleTool("terminal", true);
         else if (c === "run-restart") restartPending(() => toggleTool("terminal", true));
-        else if (c.startsWith("key:")) termKey(c.slice(4));
+        else if (c.startsWith("key:")) await termKey(c.slice(4));
         else if (c.startsWith("move-")) { const [name, side] = c.slice(5).split(":"); if (TOOLS[name]) moveTool(name, side); }
         else if (c === "tool-settings") openToolSettings();
         else if (c === "tool-reset") arrange(savedSides());
         else if (c.startsWith("find-")) {
           const [kind, ...query] = c.slice(5).split(":");
-          openEverywhere({ all: "all", class: "classes", file: "files", symbol: "symbols", action: "actions", recent: "recent" }[kind] ?? "all", query.join(":"));
+          openEverywhere({ all: "all", class: "classes", file: "files", symbol: "symbols", action: "actions", recent: "recent", locations: "locations" }[kind] ?? "all", query.join(":"));
         }
         else if (c === "lang") setLang(lang() === "ko" ? "en" : "ko");
         else if (c.startsWith("lang:")) setLang(c.slice(5));
@@ -100,12 +120,13 @@ export default class Status {
   render(cx) {
     recordAgents(this, cx);
     followSpace(this, cx);
+    if (isIdea()) recordLocation(this, cx);
     const t = theme();
     const servers = this.servers ?? [];
     const busy = servers.some((s) => s.busy?.length || s.state === "starting");
     const tip = this.servers === null ? T("LSP bridge not running (starts when a source file opens)")
       : servers.length ? servers.map((s) => `${s.command} · ${s.state}${s.busy?.length ? ` (${s.busy.join(", ")})` : ""} · ${s.root}`).join("\n") : T("No language server running");
-    return h_flex().id("codenav-status").size_full().pl(8).pr(14).gap(10).items_center().justify_end().bg(t.chrome).border_t(1).border_color(t.border).text_size(11.8).text_color(t.muted)
+    return ideaUI(h_flex()).id("codenav-status").size_full().pl(8).pr(14).gap(10).items_center().justify_end().bg(isIdea() ? t.canvas : t.chrome).when(!isIdea(), (e) => e.border_t(1).border_color(t.border)).text_size(uiSize(12)).text_color(t.muted)
       .child(h_flex().id("cn-st-lsp").gap(5).items_center().tooltip(tip)
         .child(div().size(7).rounded_full().bg(this.servers === null ? t.dim : busy ? t.ansi3 : servers.length ? t.ansi2 : t.dim))
         .child(servers.length ? servers.map((s) => s.command).filter((v, i, a) => a.indexOf(v) === i).join(" · ") : "LSP"))

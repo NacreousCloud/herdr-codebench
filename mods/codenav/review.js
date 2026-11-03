@@ -5,6 +5,7 @@
 // the person to edit and send, or sent with Enter.
 import { div } from "gpui-kit";
 import { T } from "./i18n.js";
+import { IDEA, isIdea, uiSize, ideaUI } from "./idea-design.js";
 import { v_flex, h_flex, InputState, Input, TextView } from "gpui-base";
 import { Scroller } from "./scroller.js";
 import { openEverywhere } from "./everywhere.js";
@@ -210,7 +211,8 @@ export default class Review {
     const w = wordAt(r.text, col);
     if (!w) { this.lspSel = null; return; }
     this.lspSel = { i: item.i, line: r.b - 1, col: w.start, word: w.word, hover: null, refs: null };
-    if (mods?.platform || mods?.control) this.lspDefinition(cx);
+    if (isIdea() && mods?.platform && mods?.alt) this.lspDefinition(cx, "implementation");
+    else if (mods?.platform || !isIdea() && mods?.control) this.lspDefinition(cx);
     else this.lspHover(cx);
   }
 
@@ -225,14 +227,14 @@ export default class Review {
   }
 
   // The definition opens in the code view.
-  lspDefinition(cx) {
+  lspDefinition(cx, method = "definition") {
     const sel = this.lspSel;
-    sel.note = T("Looking for the definition…"); cx.notify();
+    sel.note = method === "implementation" ? T("Implementations") : T("Looking for the definition…"); cx.notify();
     cx.spawn(async (cx) => {
       try {
-        const r = await lsp("definition", this.lspArgs(), (ms) => cx.sleep(ms));
+        const r = await lsp(method, this.lspArgs(), (ms) => cx.sleep(ms));
         if (this.lspSel !== sel) return;
-        if (!r.length) sel.note = T("No {kind} found for {word}", { kind: T("definition"), word: sel.word });
+        if (!r.length) sel.note = T("No {kind} found for {word}", { kind: T(method === "implementation" ? "implementation" : "definition"), word: sel.word });
         else openPath(`${r[0].path}:${r[0].line + 1}:${r[0].col + 1}`);
       } catch (e) { sel.note = String(e.message ?? e); }
       cx.notify();
@@ -257,20 +259,20 @@ export default class Review {
     if (!sel) return null;
     const where = (p) => p.startsWith(this.root + "/") ? p.slice(this.root.length + 1) : p;
     const md = sel.hover?.markdown;
-    return v_flex().flex_none().max_h(240).border_t(1).border_color(t.border).bg(t.chrome)
+    return ideaUI(v_flex()).flex_none().max_h(240).border_t(1).border_color(t.border).bg(isIdea() ? t.background : t.chrome)
       .child(h_flex().h(30).flex_none().px(10).gap(6).items_center()
-        .child(div().flex_1().min_w(0).truncate().text_size(12).text_color(t.muted).child(sel.note ?? `${sel.word} · ${T("Ln {line}, Col {col}", { line: sel.line + 1, col: sel.col + 1 })}`))
-        .child(button("rv-l-def", T("Definition"), (_e, cx) => this.lspDefinition(cx), { tip: T("F12 or Cmd+click") }))
+        .child(div().flex_1().min_w(0).truncate().text_size(uiSize(12)).text_color(t.muted).child(sel.note ?? `${sel.word} · ${T("Ln {line}, Col {col}", { line: sel.line + 1, col: sel.col + 1 })}`))
+        .child(button("rv-l-def", T("Definition"), (_e, cx) => this.lspDefinition(cx), { tip: isIdea() ? "Cmd+click" : T("F12 or Cmd+click") }))
         .child(button("rv-l-refs", T("References"), (_e, cx) => this.lspReferences(cx)))
         .child(iconButton("rv-l-x", "x", T("Close (Esc)"), (_e, cx) => { this.lspSel = null; cx.notify(); })))
       .child(div().id("rv-l-body").flex_1().min_h(0).overflow_y_scrollbar().px(12).pb(8)
         .when(Boolean(sel.refs?.length), (e) => e.children(sel.refs.slice(0, 200).map((it, k) =>
-          h_flex().id(`rv-l-r-${k}`).h(22).gap(10).items_center().text_size(12).cursor_pointer().hover((s) => s.bg(t.hover))
+          h_flex().id(`rv-l-r-${k}`).h(isIdea() ? IDEA.rowHeight : 22).gap(10).items_center().text_size(uiSize(12)).cursor_pointer().hover((s) => s.bg(t.hover))
             .on_click(() => openPath(`${it.path}:${it.line + 1}:${it.col + 1}`))
             .child(div().flex_none().max_w(360).truncate().text_color(t.muted).child(`${where(it.path)}:${it.line + 1}`))
-            .child(div().flex_1().min_w(0).truncate().font_family(codeFont().family).child(it.text ?? "")))))
-        .when(!sel.refs?.length && Boolean(md), (e) => e.child(TextView.markdown("rv-l-hover", md).selectable().text_size(12.5)))
-        .when(!sel.refs?.length && Boolean(sel.hover?.error), (e) => e.child(div().text_size(12).text_color(t.dim).child(sel.hover.error))));
+            .child(div().flex_1().min_w(0).truncate().font_family(codeFont().family).when(isIdea(), (e) => e.text_size(codeFont().size)).child(it.text ?? "")))))
+        .when(!sel.refs?.length && Boolean(md), (e) => e.child(TextView.markdown("rv-l-hover", md).selectable().text_size(uiSize(12.5))))
+        .when(!sel.refs?.length && Boolean(sel.hover?.error), (e) => e.child(div().text_size(uiSize(12)).text_color(t.dim).child(sel.hover.error))));
   }
 
   watch(cx) {
@@ -388,6 +390,7 @@ export default class Review {
   // A click on a row: on its line numbers it starts a comment (Shift extends the
   // last one); on the code it only selects the row, for the Comment button.
   pressRow(item, e, cx) {
+    this.focus.focus();
     if (item.type === "comment") { this.comment.edit(item.c); cx.notify(); return; }
     if (item.r.kind === "@") return;
     const x = e.local_position?.x ?? 0, mods = e.modifiers ?? {};
@@ -483,16 +486,16 @@ export default class Review {
     const q = this.filter.value().toLowerCase();
     const side = this.part === "side";
     // Not a repository (or not read yet): only why, nothing from another one.
-    if (!this.root) return v_flex().when(side, (e) => e.size_full()).when(!side, (e) => e.w(300).flex_none().h_full().border_r(1).border_color(t.border)).bg(t.chrome)
+    if (!this.root) return v_flex().when(side, (e) => e.size_full()).when(!side, (e) => e.w(300).flex_none().h_full().border_r(1).border_color(t.border)).bg(isIdea() ? t.background : t.chrome)
       .child(sectionHeader(T("Review"), [iconButton("rv-refresh", "refresh", T("Refresh"), (_e, cx) => this.refresh(cx))]))
-      .child(div().px(12).py(4).text_size(12).text_color(t.dim).child(this.error ?? T("Loading…")));
-    return v_flex().when(side, (e) => e.size_full()).when(!side, (e) => e.w(300).flex_none().h_full().border_r(1).border_color(t.border)).bg(t.chrome)
+      .child(div().px(12).py(4).text_size(uiSize(12)).text_color(t.dim).child(this.error ?? T("Loading…")));
+    return v_flex().when(side, (e) => e.size_full()).when(!side, (e) => e.w(300).flex_none().h_full().border_r(1).border_color(t.border)).bg(isIdea() ? t.background : t.chrome)
       .child(sectionHeader(T("Review"), [
         iconButton("rv-refresh", "refresh", T("Refresh"), (_e, cx) => this.refresh(cx)),
         side ? iconButton("rv-show", "eye", T("Show the diff"), () => showReview()) : iconButton("rv-close", "x", T("Back to the editor"), () => showEditor()),
       ]))
       .child(v_flex().px(12).pb(8).gap(6).flex_none()
-        .child(h_flex().gap(4).items_center().text_size(12)
+        .child(h_flex().gap(4).items_center().text_size(uiSize(12))
           .child(refButton("rv-base", this.base ?? T("choose…"), T("Base branch"), this.picking === "base", (cx) => this.pick("base", cx), t))
           .child(div().id("rv-swap").flex_none().px(3).rounded(4).text_color(t.dim).cursor_pointer()
             .hover((e) => e.bg(t.hover).text_color(t.foreground)).tooltip(T("Swap the two sides"))
@@ -510,7 +513,7 @@ export default class Review {
             if (!g) groups.push((g = { title: r.remote, remote: r.remote, refs: [] }));
             g.refs.push(r);
           }
-          const row = (id, ref, label, extra) => h_flex().id(id).h(24).px(8).gap(6).items_center().text_size(12).cursor_pointer()
+          const row = (id, ref, label, extra) => h_flex().id(id).h(isIdea() ? IDEA.rowHeight : 24).mx(isIdea() ? 4 : 0).rounded(isIdea() ? IDEA.selectionRadius : 0).px(8).gap(6).items_center().text_size(uiSize(12)).cursor_pointer()
             .when(ref === chosen, (e) => e.bg(t.selected)).hover((e) => e.bg(t.hover))
             .on_click((_e, cx) => side === "head" ? this.setHead(ref, cx) : this.setBase(ref, cx))
             .child(div().flex_1().min_w(0).truncate().when(ref === null, (e) => e.text_color(t.muted)).child(label))
@@ -520,59 +523,59 @@ export default class Review {
           let n = 0;
           for (const g of groups) {
             if (!g.refs.length) continue;
-            rows.push(div().h(22).px(8).flex().items_center().text_size(10.5).font_semibold().text_color(t.dim).child(g.title.toUpperCase()));
+            rows.push(div().h(22).px(8).flex().items_center().text_size(uiSize(10.5)).font_semibold().text_color(t.dim).child(g.title.toUpperCase()));
             for (const r of g.refs.slice(0, 300)) {
               const label = r.remote ? r.name.slice(r.remote.length + 1) : r.name;
               rows.push(row(`rv-b-${n++}`, r.name, label, [
-                r.upstream ? div().flex_none().max_w(120).truncate().text_size(10.5).text_color(t.dim).child(`→ ${r.upstream}`) : null,
-                r.track ? div().flex_none().text_size(10.5).text_color(/gone/.test(r.track) ? t.ansi1 : t.ansi3).child(trackMark(r.track)) : null,
+                r.upstream ? div().flex_none().max_w(120).truncate().text_size(uiSize(10.5)).text_color(t.dim).child(`→ ${r.upstream}`) : null,
+                r.track ? div().flex_none().text_size(uiSize(10.5)).text_color(/gone/.test(r.track) ? t.ansi1 : t.ansi3).child(trackMark(r.track)) : null,
               ].filter(Boolean)));
             }
           }
           return e.child(v_flex().gap(4)
             .child(h_flex().gap(6).items_center()
-              .child(div().flex_1().text_size(11).text_color(t.muted).child(side === "head" ? T("Compare (right side)") : T("Base (left side)")))
+              .child(div().flex_1().text_size(uiSize(11)).text_color(t.muted).child(side === "head" ? T("Compare (right side)") : T("Base (left side)")))
               .child(iconButton("rv-fetch", "download", this.fetching ? T("Fetching…") : T("Fetch all remotes (git fetch --all --prune)"), (_e, cx) => this.fetch(cx), { color: this.fetching ? t.accent : undefined })))
             .child(Input.new(this.filter))
-            .child(div().id("rv-branches").max_h(280).overflow_y_scrollbar().rounded(5).border_1().border_color(t.border).bg(t.background)
+            .child(div().id("rv-branches").max_h(280).py(isIdea() ? 4 : 0).overflow_y_scrollbar().rounded(isIdea() ? IDEA.controlRadius : 5).border_1().border_color(t.border).bg(t.background)
               .children(rows)));
         })
         .child(h_flex().gap(4)
           .when(!this.head, (e) => e
             .child(segment("rv-m-wt", T("Working tree"), T("Committed, staged, unstaged and untracked changes"), this.mode === "worktree", (_e, cx) => this.setMode("worktree", cx), t))
             .child(segment("rv-m-head", T("Committed"), T("Commits only (merge base..HEAD)"), this.mode === "head", (_e, cx) => this.setMode("head", cx), t)))
-          .when(Boolean(this.head), (e) => e.child(div().text_size(11.5).text_color(t.dim).child(T("Committed changes on {head} · ", { head: this.head })))
-            .child(div().id("rv-head-reset").text_size(11.5).text_color(t.accent).cursor_pointer().on_click((_e, cx) => this.setHead(null, cx)).child(T("back to current checkout")))))
-        .child(div().text_size(11.5).text_color(t.dim).child(this.loading && !this.files.length ? "Loading…"
+          .when(Boolean(this.head), (e) => e.child(div().text_size(uiSize(11.5)).text_color(t.dim).child(T("Committed changes on {head} · ", { head: this.head })))
+            .child(div().id("rv-head-reset").text_size(uiSize(11.5)).text_color(t.accent).cursor_pointer().on_click((_e, cx) => this.setHead(null, cx)).child(T("back to current checkout")))))
+        .child(div().text_size(uiSize(11.5)).text_color(t.dim).child(this.loading && !this.files.length ? T("Loading…")
           : `${T("{n} files · +{add} −{del}", { n: this.files.length, add: adds, del: dels })}${this.mergeBase ? T(" · base {sha}", { sha: this.mergeBase.slice(0, 7) }) : ""}`)))
-      .when(side && Boolean(this.error), (e) => e.child(div().px(12).pb(8).text_size(12).text_color(t.dim).child(this.error)))
+      .when(side && Boolean(this.error), (e) => e.child(div().px(12).pb(8).text_size(uiSize(12)).text_color(t.dim).child(this.error)))
       .child(div().id("rv-files").flex_1().min_h(0).overflow_y_scrollbar()
         .children(this.files.map((f, i) => {
           const dir = f.path.includes("/") ? f.path.slice(0, f.path.lastIndexOf("/")) : "";
-          return h_flex().id(`rv-f-${i}`).h(24).px(12).gap(6).items_center().text_size(12).cursor_pointer()
+          return h_flex().id(`rv-f-${i}`).h(isIdea() ? IDEA.rowHeight : 24).mx(isIdea() ? 4 : 0).rounded(isIdea() ? IDEA.selectionRadius : 0).px(isIdea() ? 8 : 12).gap(6).items_center().text_size(uiSize(12)).cursor_pointer()
             .when(f.path === this.selected, (e) => e.bg(t.selected)).hover((e) => e.bg(t.hover))
             .on_click((_e, cx) => this.select(f.path, cx))
-            .child(div().w(12).flex_none().font_bold().text_size(11).text_color(statusColor(f.status, t)).child(f.status))
+            .child(div().w(12).flex_none().font_bold().text_size(uiSize(11)).text_color(statusColor(f.status, t)).child(f.status))
             .child(div().flex_none().max_w(150).truncate().child(basename(f.path)))
-            .child(div().flex_1().min_w(0).truncate().text_size(11).text_color(t.dim).child(dir))
-            .when(count.has(f.path), (e) => e.child(h_flex().gap(2).items_center().text_size(11).text_color(t.accent).child(icon("message", 11)).child(String(count.get(f.path)))))
-            .child(div().flex_none().text_size(11).text_color(t.ansi2).child(f.add === null ? "" : `+${f.add}`))
-            .child(div().flex_none().text_size(11).text_color(t.ansi1).child(f.del ? `−${f.del}` : ""));
+            .child(div().flex_1().min_w(0).truncate().text_size(uiSize(11)).text_color(t.dim).child(dir))
+            .when(count.has(f.path), (e) => e.child(h_flex().gap(2).items_center().text_size(uiSize(11)).text_color(t.accent).child(icon("message", 11)).child(String(count.get(f.path)))))
+            .child(div().flex_none().text_size(uiSize(11)).text_color(t.ansi2).child(f.add === null ? "" : `+${f.add}`))
+            .child(div().flex_none().text_size(uiSize(11)).text_color(t.ansi1).child(f.del ? `−${f.del}` : ""));
         })))
       .child(v_flex().flex_none().max_h(260).border_t(1).border_color(t.border)
         .child(sectionHeader(T("Comments ({n})", { n: comments.length }), comments.length ? [iconButton("rv-clear", "trash", T("Delete all comments"), (_e, cx) => { this.save({ comments: [] }); this.comment.close(); cx.notify(); })] : []))
         .child(div().id("rv-comments").flex_1().min_h(0).overflow_y_scrollbar()
-          .when(!comments.length, (e) => e.child(div().px(12).pb(8).text_size(11.5).text_color(t.dim).child(T("Click a line number in the diff to comment; drag over them for a range."))))
+          .when(!comments.length, (e) => e.child(div().px(12).pb(8).text_size(uiSize(11.5)).text_color(t.dim).child(T("Click a line number in the diff to comment; drag over them for a range."))))
           .children([...comments].sort((a, b) => a.path.localeCompare(b.path) || a.start - b.start).map((c, i) =>
-            h_flex().id(`rv-c-${i}`).px(12).py(4).gap(6).items_start().text_size(12).cursor_pointer().hover((e) => e.bg(t.hover))
+            h_flex().id(`rv-c-${i}`).px(12).py(4).gap(6).items_start().text_size(uiSize(12)).cursor_pointer().hover((e) => e.bg(t.hover))
               // On press: the delete button stops its press, so deleting doesn't open the comment.
-              .on_mouse_down("left", (_e, cx) => { this.select(c.path, cx); if (this.part === "side") this.save({ editing: c.id }); else { this.comment.edit(c); cx.notify(); } })
+              .on_mouse_down("left", (_e, cx) => { this.focus.focus(); this.select(c.path, cx); if (this.part === "side") this.save({ editing: c.id }); else { this.comment.edit(c); cx.notify(); } })
               .child(v_flex().flex_1().min_w(0)
-                .child(div().truncate().text_size(11).text_color(t.muted).child(`${basename(c.path)}:${c.start}${c.end !== c.start ? `-${c.end}` : ""}`))
+                .child(div().truncate().text_size(uiSize(11)).text_color(t.muted).child(`${basename(c.path)}:${c.start}${c.end !== c.start ? `-${c.end}` : ""}`))
                 .child(div().truncate().child(c.body.split("\n")[0])))
               .child(iconButton(`rv-cdel-${i}`, "x", T("Delete"), (_e, cx) => { this.comment.remove(this.rkey(), c.id); cx.notify(); }, { size: 18, icon: 12 }))))))
       .child(v_flex().flex_none().p(10).gap(8).border_t(1).border_color(t.border)
-        .child(h_flex().id("rv-target").h(26).px(8).gap(6).items_center().rounded(5).border_1().border_color(t.border).text_size(12).cursor_pointer()
+        .child(h_flex().id("rv-target").h(isIdea() ? IDEA.inputHeight : 26).px(8).gap(6).items_center().rounded(isIdea() ? IDEA.controlRadius : 5).border_1().border_color(t.border).text_size(uiSize(12)).cursor_pointer()
           .hover((e) => e.bg(t.hover)).tooltip(T("Where the review goes: click for the next terminal in this space"))
           .on_click((_e, cx) => { this.cycleTarget(); cx.notify(); })
           .child(icon("terminal", 13).text_color(t.muted))
@@ -582,12 +585,12 @@ export default class Review {
           .child(button("rv-paste", T("Paste to input"), (_e, cx) => this.deliver("paste", cx), { solid: true, tip: T("Puts the review in the terminal's input (uses the clipboard); you press Enter") }))
           .child(button("rv-send", T("Send ↵"), (_e, cx) => this.deliver("send", cx), { tip: T("Types it and presses Enter (hc send)") }))
           .child(iconButton("rv-copy", "copy", T("Copy the review"), (_e, cx) => this.deliver("copy", cx))))
-        .child(h_flex().id("rv-clear-after").gap(6).items_center().text_size(11.5).text_color(t.muted).cursor_pointer()
+        .child(h_flex().id("rv-clear-after").gap(6).items_center().text_size(uiSize(11.5)).text_color(t.muted).cursor_pointer()
           .on_click(() => setShared("codenav.clearAfterSend", !clearAfterSend()))
           .child(div().size(12).rounded(3).border_1().border_color(t.border).flex().items_center().justify_center()
             .when(clearAfterSend(), (e) => e.bg(t.accent).child(icon("check", 10).text_color(t.accent_foreground))))
           .child(T("Clear comments after sending")))
-        .when(Boolean(this.note), (e) => e.child(div().text_size(11.5).text_color(t.ansi1).child(this.note))));
+        .when(Boolean(this.note), (e) => e.child(div().text_size(uiSize(11.5)).text_color(t.ansi1).child(this.note))));
   }
 
   diff(t) {
@@ -604,11 +607,11 @@ export default class Review {
       return sideOf(r) === c.side && lineOf(r) >= c.start && lineOf(r) <= c.end;
     };
     const file = this.files.find((f) => f.path === this.selected);
-    const header = h_flex().h(34).flex_none().pl(12).pr(6).gap(8).items_center().border_b(1).border_color(t.border).bg(t.chrome)
+    const header = ideaUI(h_flex()).h(isIdea() ? IDEA.toolHeaderHeight : 34).flex_none().pl(12).pr(6).gap(8).items_center().border_b(1).border_color(t.border).bg(isIdea() ? t.background : t.chrome)
       .child(icon("file-text", 14).text_color(t.muted))
-      .child(div().flex_none().max_w(420).truncate().font_semibold().child(this.selected ?? T("No changes")))
-      .child(div().flex_1().min_w(0).truncate().text_size(11).text_color(t.dim)
-        .child(file ? `${T({ A: "Added", M: "Modified", D: "Deleted", U: "Untracked", T: "Type changed" }[file.status] ?? file.status)} · ${this.base}…${this.to() ?? T("working tree")}` : ""))
+      .when(!isIdea() || this.part !== "main", (e) => e.child(div().flex_none().max_w(420).truncate().font_semibold().child(this.selected ?? T("No changes"))))
+      .child(div().flex_1().min_w(0).truncate().text_size(uiSize(11)).text_color(t.dim)
+        .tooltip(this.selected ?? "").child(file ? `${T({ A: "Added", M: "Modified", D: "Deleted", U: "Untracked", T: "Type changed" }[file.status] ?? file.status)} · ${this.base}…${this.to() ?? T("working tree")}` : ""))
       .when(Number.isInteger(this.cur) && this.rows[this.cur] && this.rows[this.cur].kind !== "@", (e) => e.child(
         button("rv-comment", T("Comment"), (_e, cx) => this.selectRows(this.cur, this.cur, cx), { tip: T("Comment on the selected line (or drag over line numbers)") })))
       .child(iconButton("rv-full", "eye", this.full ? T("Show changes only") : T("Show the whole file"), (_e, cx) => { this.full = !this.full; cx.spawn(async (cx) => { await this.loadDiff(cx); cx.notify(); }); }, { color: this.full ? t.accent : undefined }))
@@ -620,11 +623,16 @@ export default class Review {
     else if (this.binary) body = div().p(16).text_color(t.dim).child(T("No text diff (binary, empty, or only a mode change)."));
     else {
       this.scroll.setHeights(sizes);
-      body = div().flex_1().min_h(0).flex().font_family(font).text_size(codeFont().size)
+      body = div().flex_1().min_h(0).flex().font_family(font).text_size(codeFont().size).when(isIdea(), (e) => e.text_color("#BCBEC4"))
         .child(this.scroll.view("rv-diff", t, this.width ?? 400, (k) => {
           const it = items[k];
           return this.item(it, t, inRange).id(it.type === "comment" ? `rv-c-${it.c.id}` : `rv-r-${it.i}`)
             .on_mouse_down("left", (e, cx) => this.pressRow(it, e, cx))
+            .when(isIdea() && it.type === "row" && it.r.kind !== "@", (e) => e.on_mouse_down("middle", (event, cx) => {
+              this.focus.focus();
+              this.pickWord(it, event.local_position?.x ?? 0, { platform: true }, cx);
+              cx.stop_propagation(); cx.notify();
+            }))
             .on_mouse_move((_e, cx) => this.dragRow(it, cx));
         }, () => { this.gutterDrag = null; }));
     }
@@ -671,12 +679,13 @@ export default class Review {
     }
     // Outside a repository the diff half has nothing to review: the editor's empty state.
     if (this.part === "main" && this.notRepo) {
-      return div().id("codenav-review").size_full().bg(t.background).text_color(t.foreground)
+      return ideaUI(islandBottom(div().id("codenav-review").size_full().bg(t.background))).text_color(t.foreground)
         .track_focus(this.focus).on_mouse_down("left", () => this.focus.focus())
         .on_modifiers_changed((this.shiftTaps ??= doubleShift(this, () => openEverywhere("all"))))
         .child(emptyEditor(t));
     }
-    return islandBottom(h_flex().id("codenav-review").size_full().min_h(0).bg(t.background)).text_color(t.foreground).text_size(13)
+    return ideaUI(islandBottom(h_flex().id("codenav-review").size_full().min_h(0).bg(t.background))).text_color(t.foreground).text_size(uiSize(13))
+      .track_focus(this.focus)
       .on_key_down((e, cx) => {
         if (this.comment.key(e, this.rkey())) this.anchor = null;
         else if (e.keystroke === "escape" && this.lspSel) this.lspSel = null;
@@ -696,7 +705,7 @@ const trackMark = (track) => /gone/.test(track) ? "gone"
 const clearAfterSend = () => shared("codenav.clearAfterSend") !== false;
 
 function refButton(id, label, tip, open, action, t) {
-  return h_flex().id(id).flex_1().min_w(0).h(24).px(6).gap(4).items_center().rounded(5).border_1().cursor_pointer()
+  return h_flex().id(id).flex_1().min_w(0).h(24).px(6).gap(4).items_center().rounded(isIdea() ? IDEA.controlRadius : 5).border_1().cursor_pointer()
     .border_color(open ? t.accent : t.border).hover((e) => e.bg(t.hover)).tooltip(tip)
     .on_click((_e, cx) => action(cx))
     .child(icon("git-branch", 12).text_color(t.muted))
@@ -705,7 +714,7 @@ function refButton(id, label, tip, open, action, t) {
 }
 
 function segment(id, label, tip, on, action, t) {
-  return div().id(id).flex_1().h(24).flex().items_center().justify_center().rounded(5).text_size(11.5).cursor_pointer().tooltip(tip)
+  return div().id(id).flex_1().h(24).flex().items_center().justify_center().rounded(isIdea() ? IDEA.controlRadius : 5).text_size(uiSize(11.5)).cursor_pointer().tooltip(tip)
     .when(on, (e) => e.bg(t.selected).text_color(t.foreground).font_semibold())
     .when(!on, (e) => e.text_color(t.muted).hover((s) => s.bg(t.hover)))
     .on_click((e, cx) => action(e, cx))

@@ -3,28 +3,41 @@
 //     Shift, Cmd+O, Cmd+Shift+O, Cmd+Alt+O, Cmd+Shift+A); Tab moves between them;
 //     an empty query lists the recent files; "Include non-project items" adds
 //     files git ignores
+//   locations — Recent Locations: recorded caret stops, newest first
 //   recent    — Recent Files (Cmd+E): the space's tabs, most recent first
 //   structure — File Structure (Cmd+F12): the shown file's symbols
 //   line      — Go to Line (Cmd+L): "line[:column]"
 // Files come from git (or find) in the repository of the focused folder;
 // classes and symbols from the language server's workspace/symbol.
 import { div } from "gpui-kit";
-import { v_flex, h_flex, InputState, Input } from "gpui-base";
+import { v_flex, h_flex, InputState, Input, v_virtual_list, VirtualListScrollHandle, Scrollbar } from "gpui-base";
 import { theme, props, closeOverlay, openOverlay, exec, run, commands, keys, shared, settings } from "herdr";
 import { T } from "./i18n.js";
+import { IDEA, isIdea, uiSize, popupSurface, uiInputBox, uiListRow, uiCaption, uiSeparator, uiTab } from "./idea-design.js";
 import { icon, location, openPath, editorSpec, editorKey, basename, tilde, uiFontFamily } from "./common.js";
 import { lsp } from "./lsp.js";
 import { ideaImage, symbolImage, toolImage } from "./ideaicons.js";
 
 const TABS = ["all", "classes", "files", "symbols", "actions", "text"];
-const LABEL = { all: "All", classes: "Classes", files: "Files", symbols: "Symbols", actions: "Actions", text: "Text", recent: "Recent Files", structure: "File Structure", line: "Go to Line" };
+const LABEL = { all: "All", classes: "Classes", files: "Files", symbols: "Symbols", actions: "Actions", text: "Text", recent: "Recent Files", locations: "Recent Locations", structure: "File Structure", line: "Go to Line" };
 const SIZE = { line: [420, 110] };
 
 const CLASSY = new Set(["class", "interface", "enum", "struct", "object"]);
 const CODE = /\.(kt|kts|java|ts|tsx|js|jsx|mjs|py|rs|go|swift)$/;
+const IDEA_ACTIONS = [
+  ["find-all", "Search Everywhere", "⇧ ⇧"], ["find-class", "Go to Class"], ["find-file", "Go to File"], ["find-symbol", "Go to Symbol"],
+  ["find-action", "Find Action"], ["find-recent", "Recent Files"], ["find-locations", "Recent Locations"], ["goto-line", "Go to Line"], ["file-structure", "File Structure", "⌘F12"],
+  ["definition", "Go to Declaration", "⌘B"], ["implementation", "Go to Implementation", "⌘⌥B"], ["usages", "Find Usages", "⌥F7"],
+  ["tool-project", "Project"], ["tool-commit", "Commit"], ["tool-structure", "Structure"], ["tool-find", "Find"], ["tool-terminal", "Terminal"], ["tool-problems", "Problems"],
+  ["run", "Run"], ["rerun", "Rerun"], ["stop", "Stop"], ["run-configs", "Edit Configurations…"], ["settings", "Settings"], ["hide-tools", "Hide All Tool Windows"], ["new-terminal-menu", "New Terminal or Agent"],
+  ["terminal-files", "Files in this terminal…"],
+  ["design-system", "UI Component Gallery"],
+];
+const shortcut = (value = "") => value.split(" ").map((stroke) => stroke.split("-").map((part) => ({ cmd: "⌘", ctrl: "⌃", alt: "⌥", shift: "⇧" })[part] ?? part.toUpperCase()).join("")).join(" ");
 
 export function openEverywhere(mode = "all", query = "") {
-  const [width, height] = SIZE[mode] ?? [860, 560];
+  if (isIdea() && mode === "recent") return openOverlay({ mod: "codenav", props: { view: "recent", query }, kind: "dialog", frame: "none", width: 500, height: 520 });
+  const [width, height] = SIZE[mode] ?? (isIdea() ? [700, 600] : [860, 560]);
   openOverlay({ mod: "codenav", props: { view: "everywhere", mode, query }, kind: "dialog", width, height });
 }
 
@@ -45,6 +58,8 @@ const low = (x) => (x ?? "").toLowerCase();
 
 export class Everywhere {
   init(_p, cx) {
+    this.focus = cx.focus_handle();
+    this.scroll = VirtualListScrollHandle.new();
     const p = props() ?? {};
     this.mode = p.mode ?? "all";
     this.at = 0; this.files = null; this.symbols = []; this.root = null; this.list = [];
@@ -53,33 +68,39 @@ export class Everywhere {
     this.input.on("submit", (_e, cx) => this.pick(this.list[this.at], cx));
     if (p.query) this.input.set_value(p.query);
     this.input.focus();
-    if (["all", "classes", "files", "symbols"].includes(this.mode)) this.loadFiles(cx);
+    if (["all", "classes", "files", "symbols", "text"].includes(this.mode)) this.loadFiles(cx);
     this.refresh(cx);
   }
 
+  release() { this.released = true; this.seq++; this.tseq++; this.rseq++; this.loadSeq++; this.scroll.release(); }
   setMode(mode, cx) { this.mode = mode; this.querySymbols(cx); this.queryText(cx); this.refresh(cx); }
 
   loadFiles(cx) {
+    const seq = this.loadSeq = (this.loadSeq ?? 0) + 1;
     const { cwd, on } = location();
     this.on = on;
     cx.spawn(async (cx) => {
       const top = await exec("git", ["rev-parse", "--show-toplevel"], { cwd, on }).catch(() => null);
+      if (this.released || seq !== this.loadSeq) return;
       this.root = top?.code === 0 ? top.stdout.trim() : cwd;
       const lsArgs = this.nonProject ? ["ls-files", "-co"] : ["ls-files", "-co", "--exclude-standard"];
       let r = top?.code === 0 ? await exec("git", lsArgs, { cwd: this.root, on }).catch(() => null) : null;
       if (r?.code !== 0) r = await exec("sh", ["-c", "find . -type f -not -path '*/.git/*' -not -path '*/node_modules/*' | head -20000 | sed 's|^./||'"], { cwd: this.root, on }).catch(() => null);
+      if (this.released || seq !== this.loadSeq) return;
       const paths = (r?.stdout ?? "").split("\n").filter(Boolean).slice(0, 60000);
       // Lowercased once: matching runs on every keystroke.
       this.files = paths.map((f) => ({ f, s: low(f), n: low(basename(f)) }));
       this.querySymbols(cx);
+      this.queryText(cx);
       this.refresh(cx);
     });
   }
 
   // The language server answers per project; one of its files picks the server.
   querySymbols(cx) {
-    if (!["all", "classes", "symbols"].includes(this.mode) || this.on) return;
     const q = this.input.value().trim(), seq = (this.seq = (this.seq ?? 0) + 1);
+    this.symbolsBusy = false;
+    if (!["all", "classes", "symbols"].includes(this.mode) || this.on) return;
     if (q.length < 2) { this.symbols = []; return; }
     cx.timer.after(250, (cx) => cx.spawn(async (cx) => {
       if (seq !== this.seq || !this.root) return;
@@ -96,8 +117,9 @@ export class Everywhere {
 
   // The Text tab: lines holding the query (git grep, else grep), 200 at most.
   queryText(cx) {
-    if (this.mode !== "text") return;
     const q = this.input.value(), seq = (this.tseq = (this.tseq ?? 0) + 1);
+    this.textBusy = false;
+    if (this.mode !== "text") return;
     if (q.trim().length < 2) { this.textHits = []; return; }
     cx.timer.after(300, (cx) => cx.spawn(async (cx) => {
       if (seq !== this.tseq || !this.root) return;
@@ -123,6 +145,7 @@ export class Everywhere {
       if (list === null || seq !== this.rseq) return;
       this.list = list;
       this.at = Math.max(0, list.findIndex((x) => x.kind !== "head"));
+      this.scroll.scroll_to_item(this.at, "center");
       cx.notify();
     });
   }
@@ -132,7 +155,17 @@ export class Everywhere {
     const q = low(this.input.value().trim()), mode = this.mode;
     if (mode === "line") {
       const m = /^(\d+)(?::(\d+))?$/.exec(q), spec = editorSpec();
-      return m && spec ? [{ kind: "line", title: T("Go to line {l}", { l: m[1] }), path: spec.path, line: +m[1], col: m[2] ? +m[2] : 1 }] : [];
+      return m && spec ? [{ kind: "line", title: T("Go to line {l}", { l: m[1] }), path: spec.path, on: spec.on ?? null, line: +m[1], col: m[2] ? +m[2] : 1 }] : [];
+    }
+    if (mode === "locations") {
+      const saved = (shared("codenav.locations") ?? {})[editorKey()];
+      return (Array.isArray(saved) ? saved : []).filter((p) => typeof p.path === "string" && Number.isInteger(p.line) && p.line >= 0)
+        .slice().sort((a, b) => b.at - a.at)
+        .map((p) => {
+          const scope = Array.isArray(p.scope) ? p.scope.join(" › ") : "";
+          return { kind: "location", title: `${basename(p.path)}:${p.line + 1}`, sub: `${p.on ? `${p.on}: ` : ""}${this.where(p.path, true)}${scope ? ` · ${scope}` : ""}`,
+            path: p.path, on: p.on ?? null, line: p.line, col: p.col ?? 0, s: score(q, low(`${p.path} ${scope}`), low(basename(p.path))) };
+        }).filter((p) => p.s >= 0).slice(0, 100);
     }
     const recent = () => {
       const h = (shared("codenav.history") ?? {})[editorKey()]?.list ?? [];
@@ -140,7 +173,7 @@ export class Everywhere {
       const order = [...h.map((x) => x.id).reverse(), ...tabs.map((x) => x.id).reverse()];
       const seen = new Set(), list = [];
       for (const id of order) { const tab = tabs.find((x) => x.id === id); if (tab?.type === "file" && !seen.has(id)) { seen.add(id); list.push(tab.spec); } }
-      return list.map((s) => ({ kind: "file", title: basename(s.path), sub: this.where(s.path, true), path: s.path, s: score(q, low(s.rel ?? s.path), low(basename(s.path))) }))
+      return list.map((s) => ({ kind: "file", title: basename(s.path), sub: this.where(s.path, true), path: s.path, on: s.on ?? null, s: score(q, low(s.rel ?? s.path), low(basename(s.path))) }))
         .filter((x) => x.s >= 0).slice(0, 50);
     };
     if (mode === "recent" || (!q && (mode === "all" || mode === "files"))) return recent();
@@ -168,10 +201,12 @@ export class Everywhere {
     const actions = () => {
       if (!q && mode !== "actions") return [];
       const bound = new Map(keys().map((k) => [k.action, k.keys]));
-      return commands().filter((c) => !c.args.some((a) => a.required))
-        .map((c) => ({ c, s: Math.max(score(q, low(c.name), low(c.name)), q && low(c.about).includes(q) ? 100 : -1) }))
+      const own = isIdea() ? IDEA_ACTIONS.map(([name, label, key]) => ({ name: `codenav.${name}`, title: T(label), searchTitle: label, about: T("Navigation and Tools"), key: bound.has(`codenav.${name}`) ? shortcut(bound.get(`codenav.${name}`)) : key, args: [] })) : [];
+      const native = commands().filter((c) => !c.args.some((a) => a.required)).map((c) => ({ ...c, title: isIdea() ? c.about || c.name.replace(/[._]/g, " ") : c.name, key: isIdea() ? shortcut(bound.get(c.name)) : bound.get(c.name) }));
+      return [...own, ...native]
+        .map((c) => { const s = Math.max(score(q, low(c.title), low(c.title)), score(q, low(c.searchTitle ?? ""), low(c.searchTitle ?? "")), score(q, low(c.name), low(c.name)), q && low(c.about).includes(q) ? 100 : -1); return { c, s: s >= 0 && c.name.startsWith("codenav.") ? s + 10 : s }; })
         .filter((x) => x.s >= 0).sort((a, b) => b.s - a.s).slice(0, mode === "all" ? 5 : 100)
-        .map(({ c }) => ({ kind: "action", title: c.name, sub: c.about, key: bound.get(c.name), name: c.name }));
+        .map(({ c }) => ({ kind: "action", title: c.title, sub: !isIdea() || c.name.startsWith("codenav.") ? c.about : "Herdr", key: c.key, name: c.name }));
     };
     if (mode === "files") return files;
     if (mode === "classes") return syms(true);
@@ -192,8 +227,9 @@ export class Everywhere {
   pick(r, cx) {
     if (!r || r.kind === "head") return;
     closeOverlay(props()?.overlay);
-    if (r.kind === "file") openPath(r.path, this.on ?? null);
-    else if (r.kind === "symbol" || r.kind === "line" || r.kind === "text") openPath(`${r.path}:${(r.line ?? 0) + (r.kind === "line" ? 0 : 1)}:${(r.col ?? 0) + (r.kind === "line" ? 0 : 1)}`, this.on ?? null);
+    const on = Object.hasOwn(r, "on") ? r.on : this.on ?? null;
+    if (r.kind === "file") openPath(r.path, on);
+    else if (r.kind === "symbol" || r.kind === "line" || r.kind === "text" || r.kind === "location") openPath(`${r.path}:${(r.line ?? 0) + (r.kind === "line" ? 0 : 1)}:${(r.col ?? 0) + (r.kind === "line" ? 0 : 1)}`, on);
     else if (r.kind === "action") run(r.name);
   }
 
@@ -208,64 +244,75 @@ export class Everywhere {
     const t = theme(), list = this.list, tabbed = TABS.includes(this.mode);
     const project = this.root ? basename(this.root) : "";
     const badge = (r) => {
-      if (r.kind === "file" || r.kind === "text") return ideaImage(r.path, false, 16);
+      if (r.kind === "file" || r.kind === "text" || r.kind === "location") return ideaImage(r.path, false, 16);
       if (r.kind === "action") return toolImage("settings", 15);
       if (r.kind === "line") return icon("arrow-down", 14).text_color(t.muted);
       return symbolImage(r.symKind, r.path, 16);
     };
     const row = (r, i) => {
-      if (r.kind === "head") return div().px(14).pt(8).pb(3).text_size(11.5).text_color(t.dim).child(r.title);
+      if (r.kind === "head") return uiCaption(r.title).h(IDEA.rowHeight);
       const on = i === this.at;
-      return h_flex().id(`ev-${i}`).h(30).mx(4).px(10).gap(9).flex_none().items_center().rounded(4).cursor_pointer()
-        .bg(on ? t.selected : "#00000000").hover((s) => s.bg(on ? t.selected : t.hover))
-        .when(r.depth > 0, (e) => e.pl(10 + r.depth * 14))
-        .on_click((_e, cx) => this.pick(r, cx))
+      return uiListRow(`ev-${i}`, [], { selected: on, indent: (r.depth ?? 0) * 14, interactive: true }).mx(4)
         .child(badge(r))
-        .child(div().flex_none().max_w(420).truncate().text_size(13.5).text_color(t.foreground).child(r.title))
-        .child(div().flex_1().min_w(0).truncate().text_size(12.5).text_color(t.dim).child(r.sub ?? ""))
-        .when(Boolean(r.key), (e) => e.child(div().flex_none().text_size(12).text_color(t.muted).child(r.key)))
+        .child(div().flex_none().max_w(isIdea() ? 300 : 420).truncate().text_size(isIdea() ? uiSize() : 13.5).text_color(t.foreground).child(r.title))
+        .child(div().flex_1().min_w(0).truncate().text_size(uiSize(12.5)).text_color(t.dim).child(r.sub ?? ""))
+        .when(Boolean(r.key), (e) => e.child(div().flex_none().text_size(uiSize(12)).text_color(t.muted).child(r.key)))
         .when((r.kind === "file" || r.kind === "symbol") && this.inProject(r.path) && Boolean(project), (e) => e
-          .child(div().flex_none().max_w(200).truncate().text_size(12.5).text_color(t.dim).child(project))
+          .child(div().flex_none().max_w(200).truncate().text_size(uiSize(12.5)).text_color(t.dim).child(project))
           .child(icon("folder", 13).text_color(t.dim)));
     };
     const busy = (this.files === null && tabbed && this.mode !== "actions") || this.symbolsBusy || this.textBusy;
+    const resultKey = r => JSON.stringify([r.kind, r.path ?? "", r.on ?? this.on ?? "", r.line ?? null, r.col ?? null, r.name ?? "", r.title]);
     const sel = list[this.at];
-    const tab = (m) => div().id(`ev-tab-${m}`).px(12).py(4).rounded(5).text_size(13).cursor_pointer()
-      .bg(m === this.mode ? t.selected : "#00000000").border_1().border_color(m === this.mode ? t.accent + "88" : "#00000000")
-      .text_color(m === this.mode ? t.foreground : t.muted).hover((e) => e.text_color(t.foreground))
-      .on_click((_e, cx) => { this.setMode(m, cx); this.input.focus(); }).child(T(LABEL[m]));
-    return v_flex().id("cn-everywhere").size_full().bg(t.popover).text_color(t.foreground).text_size(13)
+    const tab = m => uiTab(`ev-tab-${m}`, T(LABEL[m]), { selected: m === this.mode, onSelect: (_e, cx) => { this.setMode(m, cx); this.input.focus(); } });
+    return v_flex().id("cn-everywhere").size_full().bg(t.popover).text_color(t.foreground).text_size(uiSize(13))
       .font_family(uiFontFamily())
+      .when(isIdea(), (e) => popupSurface(e).p(4))
+      .track_focus(this.focus)
       .on_key_down((e, cx) => {
-        if (e.key === "down") this.move(list, 1);
+        if (e.key === "pagedown" || (e.key === "down" && e.modifiers?.platform)) {
+          const next = list.findIndex((r, i) => i > this.at && r.kind === "head");
+          this.at = Math.max(0, next >= 0 ? Math.min(next + 1, list.length - 1) : Math.min(this.at + 10, list.length - 1));
+        }
+        else if (e.key === "pageup" || (e.key === "up" && e.modifiers?.platform)) {
+          const heads = list.map((r, i) => r.kind === "head" && i < this.at - 1 ? i : -1).filter((i) => i >= 0);
+          this.at = heads.length ? heads[heads.length - 1] + 1 : Math.max(0, this.at - 10);
+        }
+        else if (e.key === "down") this.move(list, 1);
         else if (e.key === "up") this.move(list, -1);
         else if (e.key === "tab" && tabbed) this.setMode(TABS[(TABS.indexOf(this.mode) + (e.modifiers?.shift ? TABS.length - 1 : 1)) % TABS.length], cx);
         else if (e.key === "escape") closeOverlay(props()?.overlay);
         else return;
+        this.scroll.scroll_to_item(this.at, "center");
         cx.stop_propagation(); cx.notify();
       })
       // tabs, and the non-project switch
-      .child(h_flex().h(42).flex_none().px(10).gap(4).items_center()
+      .child(h_flex().h(isIdea() ? 32 : 42).flex_none().px(6).gap(2).items_center()
         .when(tabbed, (e) => e.children(TABS.map(tab)))
-        .when(!tabbed, (e) => e.child(div().px(6).text_size(13).font_semibold().child(T(LABEL[this.mode]))))
+        .when(!tabbed, (e) => e.child(div().px(6).text_size(uiSize(13)).font_semibold().child(T(LABEL[this.mode]))))
         .child(div().flex_1())
-        .when(busy, (e) => e.child(div().mr(10).text_size(11.5).text_color(t.dim).child(T("Searching…"))))
-        .when(tabbed, (e) => e.child(h_flex().id("ev-nonproject").gap(7).items_center().cursor_pointer()
+        .when(busy, (e) => e.child(div().mr(10).text_size(uiSize(11.5)).text_color(t.dim).child(T("Searching…")))))
+      .child(uiSeparator())
+      .when(tabbed, (e) => e.child(h_flex().id("ev-nonproject").h(24).flex_none().px(12).gap(7).items_center().cursor_pointer()
           .on_click((_e, cx) => { this.nonProject = !this.nonProject; this.files = null; this.loadFiles(cx); cx.notify(); })
           .child(div().size(15).rounded(3).border_1().border_color(this.nonProject ? t.accent : t.input).bg(this.nonProject ? t.accent : "#00000000")
             .flex().items_center().justify_center().when(Boolean(this.nonProject), (el) => el.child(icon("check", 11).text_color(t.accent_foreground))))
-          .child(div().text_size(12.5).text_color(t.muted).child(T("Include non-project items"))))))
+          .child(div().text_size(uiSize(12.5)).text_color(t.muted).child(T("Include non-project items")))))
       // the query
-      .child(h_flex().mx(10).h(36).flex_none().px(10).gap(8).items_center().rounded(6).border_2().border_color(t.accent).bg(t.background)
+      .child(uiInputBox(h_flex().w_full().min_w(0).gap(8).items_center()
         .child(icon("search", 15).text_color(t.muted))
         .child(div().flex_1().min_w(0).child(Input.new(this.input)))
-        .child(div().flex_none().text_size(11.5).text_color(t.dim).child(T("↑↓ to move · Enter to open"))))
-      .when(this.mode !== "line", (e) => e.child(div().id("ev-list").flex_1().min_h(0).mt(6).overflow_y_scrollbar()
-        .children(list.length ? list.map(row) : [div().px(16).py(10).text_size(12.5).text_color(t.dim)
-          .child(this.mode === "structure" && !shared("codenav.symbols") ? T("Waiting for the language server…") : T("Nothing found"))])))
+        .child(div().flex_none().text_size(uiSize(11.5)).text_color(t.dim).child(T("↑↓ to move · Enter to open"))), { focused: true }).mx(10).flex_none())
+      .when(this.mode !== "line", (e) => e.child(v_flex().flex_1().min_h(0).mt(6).relative()
+        .when(Boolean(list.length), el => el.child(v_virtual_list("ev-list", list.length, Math.max(IDEA.rowHeight, uiSize() + 8), i => resultKey(list[i]),
+          range => list.slice(range.start, range.end).map((r, n) => row(r, range.start + n))).h_full().track_scroll(this.scroll)
+          .on_item_click((key, eventCx) => { const index = list.findIndex(r => resultKey(r) === key); if (index < 0 || list[index].kind === "head") return; this.at = index; this.pick(list[index], eventCx); }))
+          .child(Scrollbar.vertical("ev-list").absolute().inset_0()))
+        .when(!list.length, el => el.child(div().px(16).py(10).text_size(uiSize(12.5)).text_color(t.dim)
+          .child(this.mode === "structure" && !shared("codenav.symbols") ? T("Waiting for the language server…") : this.mode === "locations" && !this.input.value().trim() ? T("No recent locations") : T("Nothing found"))))))
       .when(this.mode === "line", (e) => e.child(div().flex_1()))
       // where the selected item is
-      .child(h_flex().h(30).flex_none().px(14).gap(8).items_center().border_t(1).border_color(t.border).text_size(12)
+      .child(h_flex().h(30).flex_none().px(14).gap(8).items_center().border_t(1).border_color(t.border).text_size(uiSize(12))
         .child(div().flex_1().min_w(0).truncate().text_color(t.dim).child(sel && sel.path ? tilde(sel.path) + (sel.kind !== "file" && sel.line != null ? `:${sel.line + 1}` : "") : ""))
         .when(Boolean(sel) && sel.kind !== "head", (e) => e.child(div().flex_none().text_color(t.accent).child(T("Enter to open")))));
   }

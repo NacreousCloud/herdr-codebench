@@ -3,6 +3,7 @@
 // cache first). PDFs are drawn page by page with poppler's pdftoppm, only the
 // pages on screen, at the width they're shown.
 import { div, image } from "gpui-kit";
+import { IDEA, isIdea, uiSize, ideaUI } from "./idea-design.js";
 import { T } from "./i18n.js";
 import { v_flex, h_flex, Scrollbar, v_virtual_list } from "gpui-base";
 import { exec } from "herdr";
@@ -168,7 +169,7 @@ export class Viewer {
     if (this.kind === "image" || this.kind === "pdf") {
       const z = this.zoom;
       out.push(iconButton("v-zoom-out", "minus", T("Zoom out"), (_e, cx) => { this.zoom = step(this.currentZoom(), -1); cx.notify(); }));
-      out.push(div().id("v-zoom").px(6).h(22).flex().items_center().rounded(5).text_size(11).text_color(t.muted).cursor_pointer()
+      out.push(div().id("v-zoom").px(6).h(isIdea() ? IDEA.inputHeight : 22).flex().items_center().rounded(isIdea() ? IDEA.controlRadius : 5).text_size(uiSize(11)).text_color(t.muted).cursor_pointer()
         .hover((s) => s.bg(t.hover)).tooltip(z === null ? "Fitted: click for 100%" : "Click to fit")
         .on_click((_e, cx) => { this.zoom = this.zoom === null ? 1 : null; cx.notify(); })
         .child(z === null ? "Fit" : `${Math.round(this.currentZoom() * 100)}%`));
@@ -233,7 +234,7 @@ export class Viewer {
   renderImage(t) {
     if (!this.src) return div().flex_1().p(16).text_color(t.dim).child(T("Loading…"));
     const s = this.currentZoom(), w = Math.max(1, Math.round(this.w * s)), h = Math.max(1, Math.round(this.h * s));
-    return this.measured(div().id("v-image-box").flex_1().min_h(0).relative().bg(t.raised))
+    return this.measured(div().id("v-image-box").flex_1().min_h(0).relative().bg(isIdea() ? t.surface : t.raised))
       .child(div().id("v-image-scroll").size_full().overflow_scroll()
         .child(this.wheelZoom(div().id("v-image-content").min_w_full().min_h_full().w(w + 32).h(h + 32).flex().items_center().justify_center())
           .child(image(this.src).w(w).h(h).flex_none())));
@@ -244,14 +245,14 @@ export class Viewer {
     const width = this.pageWidth(), height = Math.round(width * this.ph / this.pw), gap = 12;
     const page = (n) => {
       const d = this.drawn.get(n);
-      return this.wheelZoom(div().id(`v-page-${n}`).w_full().h(height + gap).flex_none().flex().justify_center().pt(gap))
+      return div().id(`v-page-${n}`).w_full().h(height + gap).flex_none().flex().justify_center().pt(gap)
         .child(div().w(width).h(height).flex_none().bg("#ffffff").shadow_sm().relative()
           .when(Boolean(d?.src), (el) => el.child(image(d.src).w(width).h(height)))
-          .when(Boolean(d?.error), (el) => el.child(div().p(12).text_color("#b00020").text_size(12).child(d.error)))
-          .child(div().absolute().bottom(4).right(8).text_size(10).text_color("#00000066").child(`${n + 1}`)));
+          .when(Boolean(d?.error), (el) => el.child(div().p(12).text_color("#b00020").text_size(uiSize(12)).child(d.error)))
+          .child(div().absolute().bottom(4).right(8).text_size(uiSize(10)).text_color("#00000066").child(`${n + 1}`)));
     };
     const contentW = Math.max(width + 48, this.box.width || 0);
-    return this.measured(div().id("v-pdf-box").flex_1().min_h(0).relative().bg(t.raised))
+    return this.wheelZoom(this.measured(div().id("v-pdf-box").flex_1().min_h(0).relative().bg(isIdea() ? t.surface : t.raised)))
       .child(div().id("v-pdf-x").size_full().overflow_x_scrollbar()
         .child(div().w(contentW).h_full().child(v_virtual_list("v-pdf", this.pages, height + gap, (i) => `p${i}`, (range) => {
           if (range.start !== this.want.start || range.end !== this.want.end) this.want = { start: range.start, end: range.end };
@@ -266,9 +267,9 @@ export class Viewer {
     const name = this.spec.path.split("/").pop();
     const line = (k, v) => h_flex().gap(12).child(div().w(80).flex_none().text_color(t.dim).child(k)).child(div().flex_1().min_w(0).child(v));
     const dur = this.duration ? `${Math.floor(this.duration / 60)}:${String(Math.round(this.duration % 60)).padStart(2, "0")}` : null;
-    return v_flex().id("v-info").flex_1().min_h(0).overflow_y_scrollbar().p(24).gap(10).text_size(13)
+    return ideaUI(v_flex().id("v-info").flex_1().min_h(0).overflow_y_scrollbar().p(24).gap(10).text_size(13))
       .when(Boolean(this.src), (el) => el.child(image(this.src).w(Math.min(640, this.w)).h(Math.min(640, this.w) * this.h / this.w).flex_none().rounded(6)))
-      .child(div().text_size(15).font_semibold().child(name))
+      .child(div().text_size(uiSize(15)).font_semibold().child(name))
       .when(Boolean(this.reason), (el) => el.child(div().text_color(t.dim).child(this.reason)))
       .child(line("Size", this.info ? human(this.info.size) : "—"))
       .when(Boolean(this.type), (el) => el.child(line("Type", this.type)))
@@ -276,7 +277,7 @@ export class Viewer {
       .when(Boolean(this.streams?.length), (el) => el.child(line("Streams", this.streams.join(", "))))
       .when(this.kind === "media" && Boolean(this.spec.on), (el) => el.child(div().text_color(t.dim).child(T("Open it with the system's app to play it (it's downloaded first)."))))
       .child(h_flex().pt(6).gap(8)
-        .child(div().id("v-open-ext").px(10).py(4).rounded(5).bg(t.solid).text_color(t.solid_foreground).cursor_pointer()
+        .child(div().id("v-open-ext").px(10).py(4).when(isIdea(), (e) => e.h(IDEA.inputHeight).flex().items_center()).rounded(isIdea() ? IDEA.controlRadius : 5).bg(t.solid).text_color(t.solid_foreground).cursor_pointer()
           .on_click(() => openExternally(this.spec.path, this.spec.on).catch(() => {}))
           .child(this.spec.on ? "Download and open" : "Open with system app")));
   }

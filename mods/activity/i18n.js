@@ -3,6 +3,11 @@
 import { shared } from "herdr";
 
 const KO = {
+  "No folder": "폴더 없음", "Search (Enter)": "검색 (Enter)",
+  "Focus a terminal to search its folder": "검색할 프로젝트의 터미널을 선택하세요",
+  "{n} results in {files} files": "파일 {files}개에서 결과 {n}개", "No results found": "검색 결과가 없습니다",
+  "Searching…": "찾는 중…", "Match case": "대소문자 구분", "Whole word": "단어 단위", "Regular expression": "정규식",
+  "Open a file from Project or Search.": "프로젝트 또는 검색에서 파일을 여세요.",
   "Spaces": "스페이스", "Agents": "에이전트", "Explorer": "탐색기", "Search": "검색", "Source Control": "소스 제어", "Review": "리뷰",
   "Add Machine…": "머신 추가…", "Project": "프로젝트", "Add machine": "머신 추가", "Settings": "설정", "Cancel": "취소", "Clear results": "결과 지우기", "Close editor": "편집기 닫기",
   "Collapse folders": "폴더 모두 접기", "Dismiss": "닫기", "Hide Panel (Ctrl+`)": "패널 숨기기 (Ctrl+`)",

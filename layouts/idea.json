@@ -5,7 +5,7 @@
   "titlebar": "none",
   "traffic_lights": [
     12,
-    13
+    9
   ],
   "theme": "idea",
   "terminal_padding": [
@@ -19,7 +19,7 @@
       "id": "main-toolbar",
       "type": "block",
       "size": {
-        "px": 40
+        "px": 32
       },
       "window_drag": true,
       "content": {
@@ -38,7 +38,7 @@
           "id": "stripe",
           "type": "block",
           "size": {
-            "px": 40
+            "px": 32
           },
           "content": {
             "mod": "codenav",
@@ -47,8 +47,8 @@
               "side": "left"
             }
           },
-          "min": 40,
-          "max": 40,
+          "min": 32,
+          "max": 32,
           "background": "canvas"
         },
         {
@@ -58,13 +58,13 @@
             "px": 300
           },
           "min": 120,
-          "background": "surface",
+          "background": "canvas",
           "children": [
             {
               "id": "left-bar",
               "type": "block",
               "size": {
-                "px": 32
+                "px": 31
               },
               "content": {
                 "mod": "codenav",
@@ -73,7 +73,8 @@
                   "side": "left"
                 }
               },
-              "radius": 10
+              "radius": 8,
+              "background": "canvas"
             },
             {
               "id": "sidebar-views",
@@ -143,10 +144,10 @@
               "id": "island-left-bottom",
               "type": "block",
               "size": {
-                "px": 10
+                "px": 8
               },
-              "min": 10,
-              "max": 10,
+              "min": 8,
+              "max": 8,
               "background": "canvas",
               "content": {
                 "mod": "codenav",
@@ -156,7 +157,12 @@
               }
             }
           ],
-          "radius": 10
+          "radius": 8,
+          "gap": 0,
+          "padding": [
+            2,
+            2
+          ]
         },
         {
           "id": "work-body",
@@ -176,9 +182,9 @@
                     }
                   },
                   "size": {
-                    "px": 38
+                    "px": 32
                   },
-                  "radius": 10
+                  "radius": 8
                 },
                 {
                   "id": "editor-stack",
@@ -222,18 +228,35 @@
                     }
                   ],
                   "active": "editor-code"
+                },
+                {
+                  "id": "island-editor-bottom",
+                  "type": "block",
+                  "size": {
+                    "px": 8
+                  },
+                  "min": 8,
+                  "max": 8,
+                  "background": "canvas",
+                  "content": {
+                    "mod": "codenav",
+                    "props": {
+                      "view": "islandbottom"
+                    }
+                  }
                 }
               ],
               "size": {
                 "weight": 3
               },
               "min": 30,
-              "background": "surface",
-              "border": {
-                "width": 1,
-                "color": "border"
-              },
-              "radius": 10
+              "background": "canvas",
+              "radius": 8,
+              "gap": 0,
+              "padding": [
+                2,
+                2
+              ]
             },
             {
               "id": "terminal-panel",
@@ -246,7 +269,7 @@
                   "id": "bottom-bar",
                   "type": "block",
                   "size": {
-                    "px": 32
+                    "px": 31
                   },
                   "content": {
                     "mod": "codenav",
@@ -255,7 +278,8 @@
                       "side": "bottom"
                     }
                   },
-                  "radius": 10
+                  "radius": 8,
+                  "background": "canvas"
                 },
                 {
                   "id": "bottom-stack",
@@ -277,8 +301,8 @@
                             "width": 0,
                             "color": "surface"
                           },
-                          "radius": 10,
-                          "gap": 6
+                          "radius": 8,
+                          "gap": 4
                         }
                       },
                       "radius": 10
@@ -298,7 +322,10 @@
                       "id": "bottom-agents",
                       "type": "block",
                       "content": {
-                        "mod": "agents"
+                        "mod": "codenav",
+                        "props": {
+                          "view": "agents"
+                        }
                       },
                       "radius": 10
                     },
@@ -320,10 +347,10 @@
                   "id": "island-bottom-bottom",
                   "type": "block",
                   "size": {
-                    "px": 10
+                    "px": 8
                   },
-                  "min": 10,
-                  "max": 10,
+                  "min": 8,
+                  "max": 8,
                   "background": "canvas",
                   "content": {
                     "mod": "codenav",
@@ -334,12 +361,21 @@
                 }
               ],
               "min": 60,
-              "background": "surface",
-              "radius": 10
+              "background": "canvas",
+              "radius": 8,
+              "gap": 0,
+              "padding": [
+                2,
+                2
+              ]
             }
           ],
           "min": 80,
-          "gap": 6
+          "gap": 0,
+          "padding": [
+            0,
+            0
+          ]
         },
         {
           "id": "tool-right",
@@ -349,13 +385,13 @@
           },
           "min": 120,
           "hidden": true,
-          "background": "surface",
+          "background": "canvas",
           "children": [
             {
               "id": "right-bar",
               "type": "block",
               "size": {
-                "px": 32
+                "px": 31
               },
               "content": {
                 "mod": "codenav",
@@ -364,7 +400,8 @@
                   "side": "right"
                 }
               },
-              "radius": 10
+              "radius": 8,
+              "background": "canvas"
             },
             {
               "id": "right-views",
@@ -389,10 +426,10 @@
               "id": "island-right-bottom",
               "type": "block",
               "size": {
-                "px": 10
+                "px": 8
               },
-              "min": 10,
-              "max": 10,
+              "min": 8,
+              "max": 8,
               "background": "canvas",
               "content": {
                 "mod": "codenav",
@@ -402,13 +439,18 @@
               }
             }
           ],
-          "radius": 10
+          "radius": 8,
+          "gap": 0,
+          "padding": [
+            2,
+            2
+          ]
         },
         {
           "id": "stripe-right",
           "type": "block",
           "size": {
-            "px": 40
+            "px": 32
           },
           "content": {
             "mod": "codenav",
@@ -417,12 +459,12 @@
               "side": "right"
             }
           },
-          "min": 40,
-          "max": 40,
+          "min": 32,
+          "max": 32,
           "background": "canvas"
         }
       ],
-      "gap": 6,
+      "gap": 0,
       "padding": [
         0,
         0
@@ -432,7 +474,7 @@
       "id": "status-row",
       "type": "row",
       "size": {
-        "px": 26
+        "px": 24
       },
       "children": [
         {
@@ -467,5 +509,9 @@
     }
   ],
   "ui_font": ".AppleSystemUIFont",
-  "gap": 6
+  "gap": 0,
+  "padding": [
+    0,
+    0
+  ]
 }

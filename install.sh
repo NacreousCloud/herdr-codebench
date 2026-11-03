@@ -4,6 +4,7 @@
 set -eu
 HOME_DIR="${HERDR_APP_HOME:-$HOME/.config/herdr-app}"
 REPO="$(cd "$(dirname "$0")" && pwd)"
+python3 "$REPO/design/idea/sync_ui.py" --check
 for d in "$REPO"/mods/*/; do
   name=$(basename "$d"); dest="$HOME_DIR/mods/$name"
   [ -L "$dest" ] && rm "$dest"

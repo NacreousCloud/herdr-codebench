@@ -13,6 +13,7 @@
 // Scroller's (scroller.js), so they take presses and drags.
 import { div } from "gpui-kit";
 import { T } from "./i18n.js";
+import { IDEA, isIdea, uiSize, ideaUI } from "./idea-design.js";
 import { v_flex, h_flex, v_virtual_list, Scrollbar, TextView, InputState, Input } from "gpui-base";
 import { readTextFile, watchFolder, theme, settings, run, exec, nextCommand, notify, layout, setShared } from "herdr";
 import { lsp } from "./lsp.js";
@@ -216,7 +217,7 @@ export default class CodeView {
   // Kept until the file's lines or its comments change: renders come often.
   items() {
     const comments = this.fileComments();
-    const key = JSON.stringify(comments.map((c) => [c.id, c.end, c.body]));
+    const key = JSON.stringify([uiSize(), comments.map((c) => [c.id, c.end, c.body])]);
     const rowH = codeFont().row;
     if (this.itemsCache?.lines === this.lines && this.itemsCache.key === key && this.itemsCache.rowH === rowH) return this.itemsCache.items;
     const after = new Map();
@@ -306,7 +307,8 @@ export default class CodeView {
     if (!d || d.moved) return;
     this.selection = null;
     this.pick(line, d.x, cx);
-    if (d.mods.platform || d.mods.control) this.definition(cx);
+    if (isIdea() && d.mods.platform && d.mods.alt) this.definition(cx, "implementation");
+    else if (d.mods.platform || !isIdea() && d.mods.control) this.definition(cx);
     else this.hoverAt(cx);
     cx.notify();
   }
@@ -393,6 +395,8 @@ export default class CodeView {
 
   command(c, cx) {
     if (c === "focus") this.focus.focus();
+    else if (c === "editor-back") this.back.length ? this.goBack(cx) : tabBack();
+    else if (c === "editor-forward") this.fwd.length ? this.goForward(cx) : tabForward();
     else if (c === "definition") this.definition(cx);
     else if (c === "implementation") this.definition(cx, "implementation");
     else if (c === "type-definition") this.definition(cx, "typeDefinition");
@@ -422,7 +426,7 @@ export default class CodeView {
     const s = this.shown;
     if (!s || !find(layout(), "view-structure")) return;
     const scope = this.sel ? this.scope(this.sel.line).map((x) => x.name) : [];
-    const caret = this.sel ? { path: s.path, line: this.sel.line, col: this.sel.col, scope } : null;
+    const caret = this.sel ? { path: s.path, on: s.on ?? null, line: this.sel.line, col: this.sel.col, scope } : null;
     const want = [["codenav.caret", caret, JSON.stringify(caret)], ["codenav.symbols", { path: s.path, items: this.symbols.slice(0, 1500) }, this.symbols],
       ["codenav.problems", { path: s.path, items: this.diags }, this.diags]];
     this.published ??= {};
@@ -455,7 +459,16 @@ export default class CodeView {
     if (p) this.rich.has(p) ? this.rich.delete(p) : this.rich.add(p);
   }
 
+  closeInfo() { this.sel = null; this.selection = null; this.hover = null; this.note = null; }
+
+  findKey(e, cx) {
+    if (this.comment.typing || (e.keystroke !== "cmd-g" && e.keystroke !== "cmd-shift-g")) return false;
+    this.findNext(e.keystroke === "cmd-shift-g" ? -1 : 1);
+    cx.stop_propagation(); cx.notify(); return true;
+  }
+
   keyDown(e, cx) {
+    if (this.findKey(e, cx)) return;
     const k = e.keystroke;
     if (this.comment.typing || this.finding && k !== "escape") {
       // Typing a comment (or a search): only its own keys.
@@ -464,27 +477,27 @@ export default class CodeView {
       cx.stop_propagation(); cx.notify(); return;
     }
     this.lastShift = 0;
-    const idea = Boolean(find(layout(), "view-structure"));
-    if (k === "f12" || k === "cmd-b") this.definition(cx);
-    else if (k === "shift-f12" || k === "alt-shift-f12" || k === "alt-f7") this.references(cx);
-    else if (k === "cmd-alt-b" || k === "ctrl-alt-b") this.definition(cx, "implementation");
-    else if (k === "ctrl-alt-f7") this.references(cx);
+    const idea = isIdea();
+    if ((k === "f12" && !isIdea()) || k === "cmd-b") this.definition(cx);
+    else if ((k === "shift-f12" && !isIdea()) || k === "alt-shift-f12" || k === "alt-f7") this.references(cx);
+    else if (k === "cmd-alt-b" || !idea && k === "ctrl-alt-b") this.definition(cx, "implementation");
+    else if (idea ? k === "cmd-alt-f7" : k === "ctrl-alt-f7") this.references(cx);
     else if ((k === "f1" || k === "ctrl-j") && idea) this.hoverAt(cx);
-    else if (k === "ctrl-f12" && idea) openEverywhere("structure");
-    else if (k === "cmd-shift-b") this.definition(cx, "typeDefinition");
+    else if (k === "cmd-shift-b" || k === "ctrl-shift-b") this.definition(cx, "typeDefinition");
     else if (k === "cmd-f12") idea ? openEverywhere("structure") : this.definition(cx, "implementation");
     else if (k === "cmd-l") openEverywhere("line");
     else if (k === "f2") this.nextProblem(1);
     else if (k === "shift-f2") this.nextProblem(-1);
-    else if (k === "cmd-f" || k === "ctrl-f") { this.finding = true; this.find.focus(); }
-    else if (k === "cmd-shift-o") this.outline = !this.outline;
-    else if (k === "cmd-c" || k === "ctrl-c") this.copy();
+    else if (k === "cmd-f" || !idea && k === "ctrl-f") { this.finding = true; this.find.focus(); }
+    else if (k === "cmd-shift-o") { if (isIdea()) openEverywhere("files"); else this.outline = !this.outline; }
+    else if (k === "cmd-shift-e" && idea) openEverywhere("locations");
+    else if (k === "cmd-c" || !idea && k === "ctrl-c") this.copy();
     else if (k === "ctrl-shift-v" && this.isMarkdown()) this.toggleRich();
     else if (k === "ctrl--") tabBack();
     else if (k === "ctrl-shift--" || k === "ctrl-_") tabForward();
     else if (k === "alt-left") this.goBack(cx);
     else if (k === "alt-right") this.goForward(cx);
-    else if (k === "escape") { this.refs = null; this.hover = null; this.selection = null; this.finding = false; this.focus.focus(); }
+    else if (k === "escape") { this.refs = null; this.closeInfo(); this.finding = false; this.focus.focus(); }
     else if (k === "pageup" || k === "pagedown") this.scroll.page(k === "pageup" ? -1 : 1);
     else if (k === "up" || k === "down") {
       const line = Math.min(Math.max((this.sel?.line ?? 0) + (k === "up" ? -1 : 1), 0), this.lines.length - 1);
@@ -570,7 +583,7 @@ export default class CodeView {
     const current = this.sel?.line === i;
     const c = this.comment.draft, picked = c && c.path === this.rel() && i + 1 >= c.start && i + 1 <= c.end;
     return h_flex().h(codeFont().row).w_full().flex_none().whitespace_nowrap()
-      .when(current, (e) => e.bg(t.hover))
+      .when(current, (e) => e.bg(isIdea() ? "#1F2024" : t.hover))
       .when(this.flash === i && !current, (e) => e.bg(t.accent + "22"))
       .when(Boolean(picked), (e) => e.bg(t.accent + "33"))
       .child(h_flex().w(this.gutter()).h_full().flex_none().items_center().pr(12).cursor_pointer()
@@ -580,13 +593,16 @@ export default class CodeView {
           .tooltip(T("Run request")).on_mouse_down("left", (_e, cx) => { cx.stop_propagation(); this.runRequest(i); })
           .child(toolImage("runAction", 14)) : div().w(18).flex_none().flex().justify_center()
           .when(worst > 0, (e) => e.id(`cn-dg-${i}`).tooltip(problemText(diags)).child(div().size(7).rounded_full().bg(worst === 1 ? t.ansi1 : worst === 2 ? t.ansi3 : t.ansi4))))
-        .child(div().flex_1().text_right().text_color(current ? t.foreground : t.dim).child(String(i + 1))))
+        .child(div().flex_1().text_right().text_color(isIdea() ? (current ? "#A1A3AB" : "#4B5059") : current ? t.foreground : t.dim).child(String(i + 1))))
       .child(h_flex().pl(PAD).h_full().items_center().flex_none().children(children.length ? children : [div().child(" ")]));
   }
 
   header(t) {
     const s = this.shown;
+    if (!s && isIdea()) return null;
     const crumbs = (s?.rel ?? tilde(s?.path ?? "")).split("/").filter(Boolean);
+    // Editor tabs already carry the filename; breadcrumbs describe its context.
+    if (isIdea()) crumbs.pop();
     const scope = this.sel ? this.scope(this.sel.line) : [];
     const sep = () => div().flex_none().text_color(t.dim).child("›");
     const info = this.info;
@@ -600,16 +616,16 @@ export default class CodeView {
       : chip(`${info.command}${(info.busy?.length || this.busy?.length) ? T(" · indexing") : info.state === "ready" ? "" : ` · ${info.state}`}`,
         info.state === "ready" ? t.ansi2 : t.ansi3, `${info.lang} · ${tilde(info.root)}${info.busy?.length ? ` · ${info.busy.join(", ")}` : ""}`);
     const errors = this.diags.filter((d) => d.severity === 1).length, warnings = this.diags.filter((d) => d.severity === 2).length;
-    return h_flex().h(34).flex_none().pl(8).pr(6).gap(4).items_center().border_b(1).border_color(t.border).bg(t.chrome)
-      .child(h_flex().flex_1().min_w(0).gap(5).items_center().overflow_hidden().text_size(12).text_color(t.muted)
+    return ideaUI(h_flex()).h(isIdea() ? IDEA.toolHeaderHeight : 34).flex_none().pl(8).pr(6).gap(4).items_center().border_b(1).border_color(t.border).bg(isIdea() ? t.background : t.chrome)
+      .child(h_flex().flex_1().min_w(0).gap(5).items_center().overflow_hidden().text_size(uiSize(12)).text_color(t.muted)
         .children(crumbs.flatMap((c, i) => [i ? sep() : null, div().flex_none().when(i === crumbs.length - 1, (e) => e.text_color(t.foreground).font_semibold()).child(c)]).filter(Boolean))
-        .children(scope.flatMap((sym, i) => [sep(), div().id(`cn-crumb-${i}`).flex_none().cursor_pointer().hover((e) => e.text_color(t.foreground))
+        .children(scope.flatMap((sym, i) => [crumbs.length || i ? sep() : div(), div().id(`cn-crumb-${i}`).flex_none().cursor_pointer().hover((e) => e.text_color(t.foreground))
           .on_click((_e, cx) => { this.reveal(sym.line + 1, sym.col); cx.notify(); }).child(`${KIND[sym.kind] ?? ""} ${sym.name}`)])))
       .when(errors + warnings > 0, (e) => e.child(chip(`${errors ? `✕ ${errors}` : ""}${errors && warnings ? "  " : ""}${warnings ? `⚠ ${warnings}` : ""}`, errors ? t.ansi1 : t.ansi3, T("Problems in this file"))))
       .when(Boolean(lspChip), (e) => e.child(lspChip))
       .when(this.isMarkdown(), (e) => e.child(iconButton("cn-md", "eye", T("Rich view (Ctrl+Shift+V)"), (_e, cx) => { this.toggleRich(); cx.notify(); }, { color: this.richView() ? t.accent : undefined })))
       .child(iconButton("cn-find", "search", T("Find (Cmd+F)"), (_e, cx) => { this.finding = !this.finding; if (this.finding) this.find.focus(); else this.focus.focus(); cx.notify(); }, { color: this.finding ? t.accent : undefined }))
-      .child(iconButton("cn-outline", "layers", T("Outline (Cmd+Shift+O)"), (_e, cx) => { this.outline = !this.outline; cx.notify(); }, { color: this.outline ? t.accent : undefined }))
+      .child(iconButton("cn-outline", "layers", (isIdea() ? `${T("File Structure")} (Cmd+F12)` : T("Outline (Cmd+Shift+O)")), (_e, cx) => { if (isIdea()) openEverywhere("structure"); else this.outline = !this.outline; cx.notify(); }, { color: this.outline ? t.accent : undefined }))
       .child(iconButton("cn-edit", "pencil", T("Edit this file"), () => this.edit()));
   }
 
@@ -620,26 +636,26 @@ export default class CodeView {
     const diags = sel ? this.diags.filter((d) => d.line <= sel.line && sel.line <= d.end_line) : [];
     const md = this.hover?.markdown;
     const can = this.lspReady() && sel?.word;
-    return v_flex().flex_none().max_h(220).border_t(1).border_color(t.border).bg(t.chrome)
+    return ideaUI(v_flex()).flex_none().max_h(220).border_t(1).border_color(t.border).bg(isIdea() ? t.background : t.chrome)
       .child(h_flex().h(30).flex_none().px(10).gap(6).items_center()
-        .child(div().flex_1().min_w(0).truncate().text_size(12).text_color(t.muted)
+        .child(div().flex_1().min_w(0).truncate().text_size(uiSize(12)).text_color(t.muted)
           .child(this.note ?? (r ? T("Lines {from}-{to} selected", { from: r[0].line + 1, to: r[1].line + 1 })
             : sel ? `${sel.word?.trim() ? `${sel.word} · ` : ""}${T("Ln {line}, Col {col}", { line: sel.line + 1, col: sel.col + 1 })}` : "")))
         .when(Boolean(can) && !r, (e) => e.children([
-          button("cn-a-def", T("Definition"), (_e, cx) => this.definition(cx), { tip: T("F12 or Cmd+click") }),
+          button("cn-a-def", T("Definition"), (_e, cx) => this.definition(cx), { tip: isIdea() ? T("Cmd+B or Cmd+click") : T("F12 or Cmd+click") }),
           button("cn-a-type", T("Type"), (_e, cx) => this.definition(cx, "typeDefinition"), { tip: T("Go to type definition") }),
-          button("cn-a-impl", T("Implementations"), (_e, cx) => this.definition(cx, "implementation"), { tip: "Cmd+F12" }),
-          button("cn-a-refs", T("References"), (_e, cx) => this.references(cx), { tip: "Shift+F12" }),
+          button("cn-a-impl", T("Implementations"), (_e, cx) => this.definition(cx, "implementation"), { tip: isIdea() ? "Cmd+Alt+B" : "Cmd+F12" }),
+          button("cn-a-refs", T("References"), (_e, cx) => this.references(cx), { tip: isIdea() ? "Alt+F7" : "Shift+F12" }),
         ]))
         .when(Boolean(sel || r), (e) => e.child(button("cn-a-copy", T("Copy"), () => this.copy(), { tip: "Cmd+C" })))
         .when(Boolean(sel || r) && Boolean(this.rel()), (e) => e.child(button("cn-a-comment", T("Comment"), (_e, cx) => this.commentSelection(cx), { tip: T("Comment on the selected lines (or drag over their line numbers)") })))
-        .child(iconButton("cn-info-x", "x", T("Close (Esc)"), (_e, cx) => { this.sel = null; this.selection = null; this.hover = null; this.note = null; cx.notify(); })))
+        .child(iconButton("cn-info-x", "x", T("Close (Esc)"), (_e, cx) => { this.closeInfo(); cx.notify(); })))
       .when(diags.length > 0 || Boolean(md) || Boolean(this.hover?.error), (e) => e.child(div().id("cn-info").flex_1().min_h(0).overflow_y_scrollbar().px(12).pb(10)
-        .children(diags.map((d, i) => h_flex().gap(6).items_start().py(2).text_size(12)
+        .children(diags.map((d, i) => h_flex().gap(6).items_start().py(2).text_size(uiSize(12))
           .child(div().flex_none().text_color(d.severity === 1 ? t.ansi1 : t.ansi3).child(d.severity === 1 ? "✕" : "⚠"))
           .child(div().flex_1().min_w(0).child(`${d.message}${d.source ? `  (${d.source})` : ""}`))))
-        .when(Boolean(md), (e) => e.child(TextView.markdown("cn-hover", md).selectable().text_size(12.5)))
-        .when(Boolean(this.hover?.error), (e) => e.child(div().text_size(12).text_color(t.dim).child(this.hover.error)))));
+        .when(Boolean(md), (e) => e.child(TextView.markdown("cn-hover", md).selectable().text_size(uiSize(12.5))))
+        .when(Boolean(this.hover?.error), (e) => e.child(div().text_size(uiSize(12)).text_color(t.dim).child(this.hover.error)))));
   }
 
   refsPanel(t) {
@@ -648,15 +664,16 @@ export default class CodeView {
     const items = r.items ?? [];
     const root = this.shown?.root;
     const where = (p) => root && p.startsWith(root + "/") ? p.slice(root.length + 1) : tilde(p);
-    return v_flex().flex_none().h(220).border_t(1).border_color(t.border).bg(t.chrome)
+    return ideaUI(v_flex()).flex_none().h(220).border_t(1).border_color(t.border).bg(isIdea() ? t.background : t.chrome)
       .child(sectionHeader(r.title, [iconButton("cn-refs-x", "x", T("Close (Esc)"), (_e, cx) => { this.refs = null; cx.notify(); })]))
-      .child(r.items === null ? div().px(12).text_size(12).text_color(t.dim).child(T("Searching…"))
-        : r.error ? div().px(12).text_size(12).text_color(t.ansi1).child(r.error)
+      .child(r.items === null ? div().px(12).text_size(uiSize(12)).text_color(t.dim).child(T("Searching…"))
+        : r.error ? div().px(12).text_size(uiSize(12)).text_color(t.ansi1).child(r.error)
+        : isIdea() && !items.length ? div().px(12).py(8).text_color(t.dim).child(T("No results"))
         : div().flex_1().min_h(0).relative()
-          .child(v_virtual_list("cn-refs", items.length, 22, (i) => String(i), (range) => items.slice(range.start, range.end).map((it) =>
-            h_flex().h(22).w_full().px(12).gap(10).items_center().text_size(12).whitespace_nowrap()
+          .child(v_virtual_list("cn-refs", items.length, isIdea() ? IDEA.rowHeight : 22, (i) => String(i), (range) => items.slice(range.start, range.end).map((it) =>
+            h_flex().h(isIdea() ? IDEA.rowHeight : 22).w_full().px(12).gap(10).items_center().text_size(uiSize(12)).whitespace_nowrap()
               .child(div().flex_none().max_w(360).truncate().text_color(t.muted).child(`${where(it.path)}:${it.line + 1}`))
-              .child(div().flex_1().min_w(0).truncate().font_family(codeFont().family).child(it.text ?? ""))))
+              .child(div().flex_1().min_w(0).truncate().font_family(codeFont().family).when(isIdea(), (e) => e.text_size(codeFont().size)).child(it.text ?? ""))))
             .size_full().on_item_click((k, cx) => { const it = items[+k]; if (it) this.open(it, cx); cx.notify(); }))
           .child(Scrollbar.vertical("cn-refs").absolute().inset_0()));
   }
@@ -664,17 +681,17 @@ export default class CodeView {
   outlinePanel(t) {
     if (!this.outline || !this.symbols.length) return null;
     const current = this.sel ? this.scope(this.sel.line).pop() : null;
-    return v_flex().w(240).flex_none().h_full().border_l(1).border_color(t.border).bg(t.chrome)
+    return ideaUI(v_flex()).w(240).flex_none().h_full().border_l(1).border_color(t.border).bg(isIdea() ? t.background : t.chrome)
       .child(sectionHeader(T("Outline")))
       .child(div().id("cn-outline-list").flex_1().min_h(0).overflow_y_scrollbar().pb(8)
         .children(this.symbols.filter((s) => s.kind !== "variable" || s.depth === 0).slice(0, 2000).map((s, i) =>
-          h_flex().id(`cn-sym-${i}`).h(22).pl(10 + s.depth * 12).pr(8).gap(6).items_center().text_size(12).cursor_pointer()
+          h_flex().id(`cn-sym-${i}`).h(isIdea() ? IDEA.rowHeight : 22).mx(isIdea() ? 4 : 0).rounded(isIdea() ? IDEA.selectionRadius : 0).pl(10 + s.depth * 12).pr(8).gap(6).items_center().text_size(uiSize(12)).cursor_pointer()
             .when(current === s, (e) => e.bg(t.selected))
             .hover((e) => e.bg(t.hover))
             .on_click((_e, cx) => { const cur = this.here(); if (cur) this.back.push(cur); this.reveal(s.line + 1, s.col); this.hoverAt(cx); cx.notify(); })
-            .child(div().w(14).flex_none().text_center().text_size(11).font_bold().text_color(kindColor(s.kind, t)).child(KIND[s.kind] ?? "·"))
+            .child(div().w(14).flex_none().text_center().text_size(uiSize(11)).font_bold().text_color(kindColor(s.kind, t)).child(KIND[s.kind] ?? "·"))
             .child(div().flex_none().max_w(150).truncate().child(s.name))
-            .child(div().flex_1().min_w(0).truncate().text_size(11).text_color(t.dim).child(s.detail ?? "")))));
+            .child(div().flex_1().min_w(0).truncate().text_size(uiSize(11)).text_color(t.dim).child(s.detail ?? "")))));
   }
 
   findBar(t) {
@@ -684,9 +701,9 @@ export default class CodeView {
     if (this.findCount?.q !== q || this.findCount.lines !== this.lines)
       this.findCount = { q, lines: this.lines, n: q ? this.lines.reduce((n, l) => n + (l.split(q).length - 1), 0) : 0 };
     const count = this.findCount.n;
-    return h_flex().h(34).flex_none().px(8).gap(6).items_center().border_b(1).border_color(t.border).bg(t.chrome)
-      .child(div().w(260).child(Input.new(this.find)))
-      .child(div().text_size(12).text_color(t.dim).child(q ? T("{n} found", { n: count }) : ""))
+    return ideaUI(h_flex()).h(isIdea() ? IDEA.toolHeaderHeight : 34).flex_none().px(8).gap(6).items_center().border_b(1).border_color(t.border).bg(isIdea() ? t.background : t.chrome)
+      .child(ideaUI(div()).w(260).when(isIdea(), (e) => e.h(IDEA.inputHeight).rounded(IDEA.controlRadius)).child(Input.new(this.find).on_key_down((e, cx) => this.findKey(e, cx))))
+      .child(div().text_size(uiSize(12)).text_color(t.dim).child(q ? T("{n} found", { n: count }) : ""))
       .child(iconButton("cn-find-prev", "arrow-up", T("Previous (Shift+Enter)"), (_e, cx) => { this.findNext(-1); cx.notify(); }))
       .child(iconButton("cn-find-next", "arrow-down", T("Next (Enter)"), (_e, cx) => { this.findNext(1); cx.notify(); }))
       .child(div().flex_1())
@@ -702,6 +719,11 @@ export default class CodeView {
       .on_mouse_down("left", (e, cx) => this.press(i, e, cx))
       .on_mouse_move((e, cx) => this.dragTo(i, e, cx))
       .on_mouse_up("left", (_e, cx) => this.release(i, cx))
+      .when(isIdea(), (e) => e.on_mouse_down("middle", (event, cx) => {
+        this.focus.focus(); this.selection = null; this.dragging = null; this.gutterDrag = null;
+        this.pick(i, event.local_position?.x ?? 0, cx); this.definition(cx);
+        cx.stop_propagation(); cx.notify();
+      }))
       .on_mouse_down("right", (e, cx) => { this.pick(i, e.local_position?.x ?? 0, cx); this.hoverAt(cx); cx.notify(); });
   }
 
@@ -722,16 +744,16 @@ export default class CodeView {
     if (s && !this.error && !(this.loading && !this.lines.length)) body = h_flex().flex_1().min_h(0)
       .child(v_flex().flex_1().min_w(0).h_full()
         .when(this.richView(), (e) => e.child(div().id("cn-rich").flex_1().min_h(0).overflow_y_scrollbar().bg(t.background).px(32).py(20)
-          .child(div().max_w(900).child(TextView.markdown("cn-rich-md", this.text ?? "").selectable().text_size(14)))))
-        .when(!this.richView(), (e) => e.child(div().flex_1().min_h(0).flex().font_family(font).text_size(codeFont().size).bg(t.background)
+          .child(div().max_w(900).child(TextView.markdown("cn-rich-md", this.text ?? "").selectable().text_size(uiSize(14))))))
+        .when(!this.richView(), (e) => e.child(div().flex_1().min_h(0).flex().font_family(font).text_size(codeFont().size).when(isIdea(), (e) => e.text_color("#BCBEC4")).bg(t.background)
           .child(this.scroll.view("cn-view", t, this.gutter() + PAD + this.width * this.cw + 40, (k) => this.item(items[k], t, colors),
             () => { this.dragging = null; this.gutterDrag = null; }))))
         .child(this.comment.panel(t, this.rkey(), (cx) => cx.notify(), T("Comments go to the Review list, sent to the agent together")) ?? this.refsPanel(t) ?? this.infoBar(t) ?? div()))
       .child(this.outlinePanel(t) ?? div());
-    return islandBottom(v_flex().id("codenav-code").size_full().min_h(0).relative().bg(t.background)).text_color(t.foreground).text_size(13)
+    return ideaUI(islandBottom(v_flex().id("codenav-code").size_full().min_h(0).relative().bg(t.background))).text_color(t.foreground).text_size(uiSize(13))
       .track_focus(this.focus).on_key_down((e, cx) => this.keyDown(e, cx)).on_modifiers_changed((e) => this.modifiers(e))
       .child(measure)
-      .child(this.header(t))
+      .child(this.header(t) ?? div())
       .child((this.http && httpBar(t, this, cx)) ?? div())
       .child(this.findBar(t) ?? div())
       .child(body);
@@ -744,8 +766,8 @@ function problemText(diags) {
 }
 
 function chip(label, color, tip, action) {
-  return div().id(`cn-chip-${label}`).flex_none().h(20).px(7).flex().items_center().rounded(10).text_size(11)
-    .border_1().border_color(color + "66").text_color(color).bg(color + "14").tooltip(tip)
+  return div().id(`cn-chip-${label}`).flex_none().h(20).px(7).flex().items_center().rounded(isIdea() ? IDEA.controlRadius : 10).text_size(uiSize(11))
+    .when(!isIdea(), (e) => e.border_1().border_color(color + "66").bg(color + "14")).text_color(color).tooltip(tip)
     .when(Boolean(action), (e) => e.cursor_pointer().on_click((_e, cx) => action(cx)))
     .child(label);
 }
