@@ -10,8 +10,10 @@ Lines and columns are 0-based UTF-16 offsets, as in LSP and JavaScript strings.
 Every request carries X-Codenav-Token: the token the bridge writes at start to
 ~/.cache/herdr-codenav/bridge.json (mode 0600) with its port and pid.
 Methods: health, status, tokens, info, hover, definition, references, symbols,
-diagnostics. Servers are chosen by servers.json next to this file.
-The bridge stops itself after an hour without requests; the mod starts it again.
+diagnostics. Servers are chosen by servers.json next to this file, which also
+caps the Java servers' heap ("env", "--jvm-arg"). A server unused for 10 minutes
+stops, at most 3 run at once, and the bridge stops itself after an hour without
+requests; the mod starts it again.
 """
 import argparse
 import fnmatch
@@ -31,7 +33,8 @@ from urllib.parse import quote, unquote, urlparse
 HERE = os.path.dirname(os.path.abspath(__file__))
 CACHE = os.path.join(os.path.expanduser("~"), ".cache", "herdr-codenav")
 REQUEST_TIMEOUT = 20
-SERVER_IDLE = 30 * 60
+SERVER_IDLE = 10 * 60   # a server unused this long stops (memory back; it starts again on use)
+MAX_SERVERS = 3         # more than this running: the least recently used one stops
 BRIDGE_IDLE = 60 * 60
 
 LANGUAGE_IDS = {
@@ -194,7 +197,7 @@ def expand(value, root):
 
 
 class LspServer:
-    def __init__(self, lang, root, argv, init=None):
+    def __init__(self, lang, root, argv, init=None, env=None):
         self.lang, self.root, self.argv, self.init = lang, root, argv, init or {}
         self.lock = threading.Lock()
         self.next_id = 0
@@ -208,7 +211,8 @@ class LspServer:
         self.used = time.time()
         os.makedirs(CACHE, exist_ok=True)
         self.stderr = open(os.path.join(CACHE, f"{lang}-{hashlib.sha1(root.encode()).hexdigest()[:10]}.log"), "ab")
-        self.proc = subprocess.Popen(argv, cwd=root, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=self.stderr)
+        self.proc = subprocess.Popen(argv, cwd=root, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=self.stderr,
+                                     env={**os.environ, **(env or {})})
         threading.Thread(target=self.read_loop, daemon=True).start()
         threading.Thread(target=self.initialize, daemon=True).start()
 
@@ -400,8 +404,14 @@ def server_for(path, retry=False):
                 names = " or ".join(c[0] for c in entry.get("commands", []))
                 raise LookupError(f"{lang}: {names} is not installed")
             argv = expand(argv, root)
+            # Room for it: the least recently used servers stop.
+            live = sorted((s for s in servers.values() if s.state != "stopped"), key=lambda s: s.used)
+            for old in live[:max(0, len(live) - MAX_SERVERS + 1)]:
+                log("stop (limit)", old.lang, old.root)
+                servers.pop((old.lang, old.root), None)
+                threading.Thread(target=old.stop, daemon=True).start()
             log("start", lang, root, argv)
-            srv = servers[key] = LspServer(lang, root, argv, expand(entry.get("init", {}), root))
+            srv = servers[key] = LspServer(lang, root, argv, expand(entry.get("init", {}), root), expand(entry.get("env", {}), root))
     try:
         srv.wait_ready()
     except Exception as e:

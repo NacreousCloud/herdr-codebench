@@ -55,6 +55,7 @@ Herdr는 터미널 링크의 Cmd+클릭을 macOS 기본 앱으로 넘기고 이�
 
 - bridge는 켜질 때마다 무작위 토큰을 `~/.cache/herdr-codenav/bridge.json`(권한 0600)에 쓰고, 그 토큰이 없는 요청과 브라우저발 요청(Origin 헤더, 다른 Host)은 거부합니다.
 - Java 기반 서버(jdtls, kotlin-lsp)는 `java.awt.headless`, `apple.awt.UIElement` 옵션으로 띄워 macOS 독에 나타나지 않습니다.
+- 메모리: Java 기반 서버는 힙 시작 64MB·상한 1GB로 띄우고, 쉬는 동안 G1 주기 GC로 메모리를 돌려줍니다(kotlin-lsp는 `IJ_JAVA_OPTIONS`, jdtls는 `--jvm-arg`, `servers.json`에서 조정). 10분 동안 쓰지 않은 서버는 내리고, 동시에 최대 3개까지만 띄웁니다. 대형 프로젝트에서 힙이 모자라면 `-Xmx` 값을 올리세요.
 
 | 언어 | 서버 | 설치 |
 | --- | --- | --- |

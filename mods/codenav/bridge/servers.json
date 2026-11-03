@@ -128,6 +128,10 @@
     "commands": [
       [
         "jdtls",
+        "--jvm-arg=-Xms64m",
+        "--jvm-arg=-Xmx1g",
+        "--jvm-arg=-XX:+UseG1GC",
+        "--jvm-arg=-XX:G1PeriodicGCInterval=30000",
         "-data",
         "{cache}/jdtls/{root_hash}"
       ]
@@ -159,6 +163,9 @@
       [
         "kotlin-language-server"
       ]
-    ]
+    ],
+    "env": {
+      "IJ_JAVA_OPTIONS": "-Xms64m -Xmx1g -XX:+UseG1GC -XX:G1PeriodicGCInterval=30000"
+    }
   }
 }
