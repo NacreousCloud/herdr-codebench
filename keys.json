@@ -23,11 +23,11 @@
     "cmd-shift-o": "codenav.terminal-files",
     "ctrl-alt-2": "activity.view-files",
     "ctrl-alt-5": "activity.view-graph",
-    "cmd-1": "layout.toggle:sidebar",
-    "alt-1": "layout.toggle:tools",
-    "alt-2": "layout.toggle:editor-area",
-    "alt-3": "layout.toggle:terminal-panel",
-    "shift shift": "codenav.find-all",
+    "alt-1": "layout.toggle:sidebar",
+    "alt-2": "layout.toggle:tools",
+    "alt-3": "layout.toggle:editor-area",
+    "alt-4": "layout.toggle:terminal-panel",
+    "shift": "codenav.shift-tap",
     "cmd-o": "codenav.find-class",
     "cmd-alt-o": "codenav.find-symbol",
     "cmd-shift-a": "codenav.find-action",
@@ -46,7 +46,7 @@
     "ctrl-left": "codenav.tab-prev"
   },
   "layout:idea": {
-    "shift shift": "codenav.find-all",
+    "shift": "codenav.shift-tap",
     "cmd-1": "codenav.tool-project",
     "cmd-0": "codenav.tool-commit",
     "cmd-7": "codenav.tool-structure",
@@ -77,7 +77,7 @@
     "shift-f12": "codenav.tool-reset"
   },
   "terminal": {
-    "shift shift": "codenav.key:shift shift",
+    "shift": "codenav.shift-tap",
     "cmd-shift-o": "codenav.key:cmd-shift-o",
     "cmd-o": "codenav.key:cmd-o",
     "cmd-alt-o": "codenav.key:cmd-alt-o",

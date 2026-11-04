@@ -72,7 +72,9 @@ export default class IdeaSettings {
 
   bindings() {
     const rows = new Map();
-    for (const binding of [...keys().filter(k => editableSection(k.section)), ...this.pendingBindings.map(p => ({ section: p.section, keys: p.chord, action: p.action }))]) {
+    // The Shift-tap binding is what opens Search Everywhere on a double Shift.
+    const shown = keys().filter(k => editableSection(k.section)).map(k => k.action === "codenav.shift-tap" ? { ...k, action: "codenav.find-all", keys: "shift shift" } : k);
+    for (const binding of [...shown, ...this.pendingBindings.map(p => ({ section: p.section, keys: p.chord, action: p.action }))]) {
       const id = `${binding.section}:${binding.action}`;
       const row = rows.get(id) ?? { id, action: binding.action, section: binding.section, label: actionLabel(binding.action), chords: [], group: bindingGroup(binding.action) };
       if (!row.chords.includes(binding.keys)) row.chords.push(binding.keys);

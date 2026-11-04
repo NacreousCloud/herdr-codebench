@@ -101,12 +101,11 @@ Herdr를 한 번 실행한 뒤 설치하세요. `install.sh`는 `keys.json`의 �
 | --- | --- |
 | Ctrl+Alt+1 | 스페이스 목록 열기/닫기 (Herdr 줄의 사이드바 버튼은 좁은 목록으로 접기/펼치기) |
 | Ctrl+Alt+2…4 | 탐색기 / 검색 / 리뷰 |
-| Cmd+1 | 스페이스 목록 열기/닫기 (codebench에서는 Herdr 기본의 Cmd+1 탭 선택 대신) |
-| Option+1 / Option+2 / Option+3 | 사이드바 / 편집기 영역 / 터미널 패널 토글 (Option+숫자로 입력되던 ¡ ™ £ 같은 문자는 입력되지 않음) |
+| Option+1 / 2 / 3 / 4 | 스페이스 목록 / 사이드바 / 편집기 영역 / 터미널 패널 토글 (Option+숫자로 입력되던 ¡ ™ £ ¢ 문자는 입력되지 않음) |
 | Ctrl+Alt+R | 리뷰 열기 |
 | Ctrl+Alt+5 | Git 그래프 |
 | Cmd+Shift+O | 포커스된 터미널에 나온 파일 목록 |
-| Shift Shift | 어디서나 검색 (파일·클래스·심볼·텍스트·액션, Tab으로 전환) |
+| Shift Shift | 어디서나 검색 (파일·클래스·심볼·텍스트·액션, Tab으로 전환). 두 번 사이 200ms 이내 |
 | Cmd+O / Cmd+Alt+O | 클래스 / 심볼로 이동 (LSP) |
 | Cmd+Shift+A | 액션 찾기 |
 | Cmd+E | 최근 파일 |
@@ -138,7 +137,7 @@ git switch idea-ux           # IDEA 모드 변경은 이 브랜치에 있습니�
 herdr-app do layout.switch --name idea
 ```
 
-Shift를 눌렀다 놓는 동작을 두 번 하면 **어디서나 검색**이 열립니다. Herdr 0.1.12의 기본 `shift shift` 키 시퀀스를 사용하므로 터미널·파일 탐색기·에디터·리뷰 등 포커스 위치와 관계없이 IDEA 레이아웃에서 동작합니다. 설정 → 키맵 → 탐색에서도 `어디서나 검색` / `⇧ ⇧`를 볼 수 있습니다. 다른 컴퓨터에서도 `idea-ux` 브랜치에서 설치하세요.
+Shift를 눌렀다 놓는 동작을 두 번 하면 **어디서나 검색**이 열립니다. Shift를 뗄 때마다 오는 `shift` 키 입력을 codenav가 받아 두 번 사이가 200ms 이내일 때만 엽니다(`codenav.doubleShiftMs`로 조정). Herdr의 `shift shift` 시퀀스는 두 번째 Shift를 시간 제한 없이 기다려서 쓰지 않습니다. 그래서 터미널·파일 탐색기·에디터·리뷰 등 포커스 위치와 관계없이 IDEA 레이아웃에서 동작합니다. 설정 → 키맵 → 탐색에서도 `어디서나 검색` / `⇧ ⇧`를 볼 수 있습니다. 다른 컴퓨터에서도 `idea-ux` 브랜치에서 설치하세요.
 
 - 기준과 분석: [선정 계획](design/idea/PARITY_PLAN.md), [세부 비교](design/idea/DETAIL_AUDIT.md)
 - 새 화면 개발: [컴포넌트 계약과 예제](design/idea/COMPONENTS.md), [개발 규칙](AGENTS.md)

@@ -8,22 +8,30 @@ import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
 
 const bindings=JSON.parse(await readFile(new URL('../../keys.json',import.meta.url),'utf8'));
-assert.equal(bindings['layout:idea']['shift shift'],'codenav.find-all');
-assert.equal(bindings.terminal['shift shift'],'codenav.key:shift shift');
-assert.equal(bindings.global['shift shift'],undefined,'other layouts keep their own search behavior');
+// Double Shift: one "shift" binding per tap (dispatched at once); codenav times the pair.
+for (const section of ['layout:idea','layout:codebench','terminal']) assert.equal(bindings[section].shift,'codenav.shift-tap',section);
+assert.equal(bindings.global.shift,undefined,'other layouts keep their own search behavior');
+assert.ok(Object.values(bindings).every(s=>!('shift shift' in s)),'no GPUI shift sequence: it waits for the second Shift without a time limit');
 const source=await readFile(new URL('../../mods/codenav/status.js',import.meta.url),'utf8');
 const start=source.indexOf('const TERM_KEYS ='), end=source.indexOf('// Herdr\'s agent notifications',start);
 assert.ok(start>=0 && end>start);
 let layout='idea';const opened=[],sent=[];
-const context=vm.createContext({shared:()=>layout,openEverywhere:mode=>opened.push(mode),
+const store={};
+const context=vm.createContext({shared:key=>key==='layout'?layout:store[key],openEverywhere:mode=>opened.push(mode),
   focused:()=>({terminal:'test'}),hc:async args=>{sent.push(args);return {code:0}},
   notify(){throw Error('unexpected failure')},run(){throw Error('unexpected command')},T:s=>s});
-vm.runInContext(source.slice(start,end)+';globalThis.termKey=termKey;',context);
-await context.termKey('shift shift');assert.deepEqual(opened,['all']);assert.equal(sent.length,0);
-await context.termKey('cmd-shift-o');assert.deepEqual(opened,['all','files']);
-layout='codebench';await context.termKey('shift shift');assert.equal(opened.length,2);assert.equal(sent.length,0);
+vm.runInContext(source.slice(start,end)+';globalThis.termKey=termKey;globalThis.shiftTap=shiftTap;',context);
+let taps={};
+assert.equal(context.shiftTap(taps,1000),false);assert.equal(context.shiftTap(taps,1150),true);assert.deepEqual(opened,['all'],'two taps 150 ms apart open search');
+assert.equal(context.shiftTap(taps,2000),false);assert.equal(context.shiftTap(taps,2300),false);assert.equal(opened.length,1,'300 ms apart is two single taps');
+assert.equal(context.shiftTap(taps,2450),true);assert.equal(opened.length,2,'the slow tap starts a new pair');
+store['codenav.doubleShiftMs']=400;taps={};context.shiftTap(taps,0);assert.equal(context.shiftTap(taps,350),true,'the interval is adjustable');delete store['codenav.doubleShiftMs'];
+await context.termKey('cmd-shift-o');assert.deepEqual(opened.at(-1),'files');
+const before=opened.length;
+layout='codebench';taps={};context.shiftTap(taps,0);assert.equal(context.shiftTap(taps,100),true);assert.equal(opened.length,before+1);assert.equal(sent.length,0);
+layout='main';taps={};context.shiftTap(taps,0);assert.equal(context.shiftTap(taps,100),false,'other layouts ignore Shift taps');
 await context.termKey('ctrl-e');assert.deepEqual(Array.from(sent[0]),['keys','test','ctrl+e']);
-console.log('PASS native sequence bindings, terminal routing and other-layout/terminal-input preservation');
+console.log('PASS double Shift timing (200 ms, adjustable), terminal routing and other-layout/terminal-input preservation');
 
 const directory=await mkdtemp(join(tmpdir(),'herdr-shortcut-install-'));
 try {
@@ -37,8 +45,8 @@ try {
   let installed=JSON.parse(await readFile(target,'utf8'));
   assert.equal(installed.global['cmd-t'],'tab.new');
   assert.equal(installed['layout:idea']['cmd-o'],'personal.action','existing shortcuts win');
-  assert.equal(installed['layout:idea']['shift shift'],'codenav.find-all');
-  assert.equal(installed.terminal['shift shift'],'codenav.key:shift shift');
+  assert.equal(installed['layout:idea'].shift,'codenav.shift-tap');
+  assert.equal(installed.terminal.shift,'codenav.shift-tap');
   assert.ok(result.stdout.includes('Kept your existing shortcut: layout:idea: cmd-o'));
   assert.equal((await stat(target)).mode&0o777,0o600);
   let backups=(await readdir(directory)).filter(name=>name.startsWith('keys.json.backup-'));

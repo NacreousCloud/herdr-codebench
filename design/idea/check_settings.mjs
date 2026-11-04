@@ -38,7 +38,7 @@ assert.deepEqual([...sharedState['codenav.toolHidden']],['future','project','ter
 view=create();handlers.get('settings-tool-restore')(null,cx);assert.equal(changes.length,1,'restore remains staged');view.apply(cx);await Promise.all(tasks.splice(0));
 assert.deepEqual(changes[1],{project:'right',terminal:'right'});assert.equal(view.restoreToolLayout,false);
 console.log('PASS staged/cancel, changed-tool-only Apply, concurrent preference preservation, visibility-only Apply, staged restore');
-keyBindings=[{section:'layout:idea',keys:'shift shift',action:'codenav.find-all'}, {section:'terminal',keys:'shift shift',action:'codenav.key:shift shift'}];
+keyBindings=[{section:'layout:idea',keys:'shift',action:'codenav.shift-tap'}, {section:'terminal',keys:'shift',action:'codenav.shift-tap'}];
 view=create();view.keyQuery='shift shift';view.keymapBody({});
 assert.equal(view.bindings().length,1,'terminal forwarding does not duplicate the editable action');
 assert.equal(view.bindings()[0].label,'Search Everywhere');

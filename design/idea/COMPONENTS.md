@@ -105,7 +105,7 @@ openOverlay({ mod: "codenav", props: { view: "designpreview" },
 
 ## 레이아웃 공통 키맵
 
-Shift 두 번은 Herdr/GPUI의 modifier-release 시퀀스 `shift shift`를 `keys.json`의 `layout:idea`에 등록한다. `terminal` override는 `codenav.key:shift shift`로 전달하고 Status가 IDEA에서만 전체 검색을 연다. 다른 레이아웃에서는 modifier 시퀀스를 터미널에 재전송하지 않는다. 개별 뷰의 `on_modifiers_changed`로 중복 감지하지 않는다. 설정 키맵은 실제 `keys()` 바인딩의 `Search Everywhere`를 `⇧ ⇧`로 표시한다.
+Shift 두 번은 GPUI가 Shift를 다른 키 없이 뗄 때 만드는 `shift` 키 입력을 `keys.json`의 `layout:idea`·`layout:codebench`·`terminal`에 `codenav.shift-tap`으로 등록하고, Status가 두 입력 사이가 200ms(`codenav.doubleShiftMs`) 이내일 때 전체 검색을 연다. GPUI의 `shift shift` 시퀀스는 단일 `shift` 바인딩이 없으면 대기 타이머가 없어 두 번째 Shift를 시간 제한 없이 기다리므로 쓰지 않는다. 개별 뷰의 `on_modifiers_changed`로 중복 감지하지 않는다. 설정 키맵은 이 바인딩을 `Search Everywhere` / `⇧ ⇧`로 표시한다.
 
 설치 시 빠진 바인딩만 병합하며 기존 키 충돌은 보존·출력하고 변경 전 파일을 백업한다. Herdr 최초 실행 전에는 기본 키맵을 대신 생성하지 않고 최초 실행을 안내한다.
 

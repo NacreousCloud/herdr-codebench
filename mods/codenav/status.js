@@ -25,9 +25,22 @@ import { syncCaffeinate, stopCaffeinate, caffeinateMode, setCaffeinateMode, awak
 // Keys bound in keys.json's terminal section (programs in Kitty keyboard mode
 // would get them otherwise): what each does in the shown layout.
 const TERM_KEYS = {
-  idea: { "shift shift": "find-all", "cmd-shift-o": "find-file", "cmd-o": "find-class", "cmd-alt-o": "find-symbol", "cmd-shift-a": "find-action", "cmd-e": "find-recent", "cmd-shift-e": "find-locations", "cmd-,": "settings" },
-  codebench: { "shift shift": "find-all", "cmd-shift-o": "terminal-files", "cmd-o": "find-class", "cmd-alt-o": "find-symbol", "cmd-shift-a": "find-action", "cmd-e": "find-recent", "cmd-shift-e": "find-locations" },
+  idea: { "cmd-shift-o": "find-file", "cmd-o": "find-class", "cmd-alt-o": "find-symbol", "cmd-shift-a": "find-action", "cmd-e": "find-recent", "cmd-shift-e": "find-locations", "cmd-,": "settings" },
+  codebench: { "cmd-shift-o": "terminal-files", "cmd-o": "find-class", "cmd-alt-o": "find-symbol", "cmd-shift-a": "find-action", "cmd-e": "find-recent", "cmd-shift-e": "find-locations" },
 };
+// Search Everywhere on Shift pressed and released twice within this many ms
+// (shared "codenav.doubleShiftMs"). Each bare Shift release arrives as
+// `shift-tap`: a single "shift" binding is dispatched at once, where GPUI's
+// "shift shift" sequence would wait for the second Shift without a time limit.
+const DOUBLE_SHIFT_MS = 200;
+function shiftTap(self, now = Date.now()) {
+  if (!["idea", "codebench"].includes(shared("layout"))) return false;
+  const gap = Number(shared("codenav.doubleShiftMs")) || DOUBLE_SHIFT_MS;
+  if (self.lastShift != null && now - self.lastShift <= gap) { self.lastShift = null; openEverywhere("all"); return true; }
+  self.lastShift = now;
+  return false;
+}
+
 async function termKey(key) {
   const c = TERM_KEYS[shared("layout")]?.[key];
   if (c === "terminal-files") showTerminalFiles(focused()?.terminal);
@@ -35,7 +48,6 @@ async function termKey(key) {
   else if (c?.startsWith("find-")) openEverywhere({ "find-all": "all", "find-file": "files", "find-class": "classes", "find-symbol": "symbols", "find-action": "actions", "find-recent": "recent", "find-locations": "locations" }[c]);
   // Forward keys that only idea claims, preserving terminal input in the other
   // layouts. hc encodes named keys for the program's negotiated keyboard mode.
-  else if (key === "shift shift") return; // Modifier taps have no terminal text to replay in other layouts.
   else if (key === "cmd-,") run("app.settings");
   else if (focused()?.terminal) {
     try {
@@ -88,6 +100,7 @@ export default class Status {
     cx.spawn(async (cx) => {
       for (;;) {
         const c = await nextCommand();
+        if (c === "shift-tap") { shiftTap(this); continue; }
         if (c === "review") showReview();
         else if (c.startsWith("open:")) openPath(c.slice(5));
         else if (c === "terminal-files") showTerminalFiles(focused()?.terminal);
