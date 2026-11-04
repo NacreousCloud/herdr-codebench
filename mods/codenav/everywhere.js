@@ -11,12 +11,14 @@
 // classes and symbols from the language server's workspace/symbol.
 import { div } from "gpui-kit";
 import { v_flex, h_flex, InputState, Input, v_virtual_list, VirtualListScrollHandle, Scrollbar } from "gpui-base";
-import { theme, props, closeOverlay, openOverlay, exec, run, commands, keys, shared, settings } from "herdr";
+import { theme, props, closeOverlay, openOverlay, exec, run, commands, keys, shared, settings, focused, spaces } from "herdr";
 import { T } from "./i18n.js";
 import { IDEA, isIdea, uiSize, popupSurface, uiInputBox, uiListRow, uiCaption, uiSeparator, uiTab } from "./idea-design.js";
 import { icon, location, openPath, editorSpec, editorKey, basename, tilde, uiFontFamily } from "./common.js";
 import { lsp } from "./lsp.js";
 import { ideaImage, symbolImage, toolImage } from "./ideaicons.js";
+import { listActions, getAction, actionPresentation, effectiveShortcuts, formatShortcut } from "./actions.js";
+import { runStore, isRunning } from "./run.js";
 
 const TABS = ["all", "classes", "files", "symbols", "actions", "text"];
 const LABEL = { all: "All", classes: "Classes", files: "Files", symbols: "Symbols", actions: "Actions", text: "Text", recent: "Recent Files", locations: "Recent Locations", structure: "File Structure", line: "Go to Line" };
@@ -24,21 +26,12 @@ const SIZE = { line: [420, 110] };
 
 const CLASSY = new Set(["class", "interface", "enum", "struct", "object"]);
 const CODE = /\.(kt|kts|java|ts|tsx|js|jsx|mjs|py|rs|go|swift)$/;
-const IDEA_ACTIONS = [
-  ["find-all", "Search Everywhere", "⇧ ⇧"], ["find-class", "Go to Class"], ["find-file", "Go to File"], ["find-symbol", "Go to Symbol"],
-  ["find-action", "Find Action"], ["find-recent", "Recent Files"], ["find-locations", "Recent Locations"], ["goto-line", "Go to Line"], ["file-structure", "File Structure", "⌘F12"],
-  ["definition", "Go to Declaration", "⌘B"], ["implementation", "Go to Implementation", "⌘⌥B"], ["usages", "Find Usages", "⌥F7"],
-  ["tool-project", "Project"], ["tool-commit", "Commit"], ["tool-structure", "Structure"], ["tool-find", "Find"], ["tool-terminal", "Terminal"], ["tool-problems", "Problems"],
-  ["run", "Run"], ["rerun", "Rerun"], ["stop", "Stop"], ["run-configs", "Edit Configurations…"], ["settings", "Settings"], ["hide-tools", "Hide All Tool Windows"], ["new-terminal-menu", "New Terminal or Agent"],
-  ["terminal-files", "Files in this terminal…"],
-  ["design-system", "UI Component Gallery"],
-];
-const shortcut = (value = "") => value.split(" ").map((stroke) => stroke.split("-").map((part) => ({ cmd: "⌘", ctrl: "⌃", alt: "⌥", shift: "⇧" })[part] ?? part.toUpperCase()).join("")).join(" ");
+const shortcut = formatShortcut;
 
 export function openEverywhere(mode = "all", query = "") {
   if (isIdea() && mode === "recent") return openOverlay({ mod: "codenav", props: { view: "recent", query }, kind: "dialog", frame: "none", width: 500, height: 520 });
   const [width, height] = SIZE[mode] ?? (isIdea() ? [700, 600] : [860, 560]);
-  openOverlay({ mod: "codenav", props: { view: "everywhere", mode, query }, kind: "dialog", width, height });
+  openOverlay({ mod: "codenav", props: { view: "everywhere", mode, query, context: { ...location(), terminal: focused()?.terminal ?? null } }, kind: "dialog", width, height });
 }
 
 // A loose match, IntelliJ-like, on lowercased text and name: the name holding
@@ -61,6 +54,7 @@ export class Everywhere {
     this.focus = cx.focus_handle();
     this.scroll = VirtualListScrollHandle.new();
     const p = props() ?? {};
+    this.context = p.context ?? location();
     this.mode = p.mode ?? "all";
     this.at = 0; this.files = null; this.symbols = []; this.root = null; this.list = [];
     this.input = InputState.new({ placeholder: this.mode === "line" ? T("Line[:column]") : T("Type to search") });
@@ -77,7 +71,7 @@ export class Everywhere {
 
   loadFiles(cx) {
     const seq = this.loadSeq = (this.loadSeq ?? 0) + 1;
-    const { cwd, on } = location();
+    const { cwd, on } = this.context;
     this.on = on;
     cx.spawn(async (cx) => {
       const top = await exec("git", ["rev-parse", "--show-toplevel"], { cwd, on }).catch(() => null);
@@ -200,13 +194,23 @@ export class Everywhere {
     // Actions match on their name; the description only by the whole query.
     const actions = () => {
       if (!q && mode !== "actions") return [];
-      const bound = new Map(keys().map((k) => [k.action, k.keys]));
-      const own = isIdea() ? IDEA_ACTIONS.map(([name, label, key]) => ({ name: `codenav.${name}`, title: T(label), searchTitle: label, about: T("Navigation and Tools"), key: bound.has(`codenav.${name}`) ? shortcut(bound.get(`codenav.${name}`)) : key, args: [] })) : [];
-      const native = commands().filter((c) => !c.args.some((a) => a.required)).map((c) => ({ ...c, title: isIdea() ? c.about || c.name.replace(/[._]/g, " ") : c.name, key: isIdea() ? shortcut(bound.get(c.name)) : bound.get(c.name) }));
+      const bindings = keys(), context = this.actionContext();
+      const bound = new Map(bindings.map((k) => [k.action, k.keys]));
+      const own = isIdea() ? listActions(context).map(action => {
+        const presentation = actionPresentation(action, context);
+        return { name: action.command, title: T(action.label), searchTitle: action.label, about: T(action.category),
+          key: effectiveShortcuts(action.id, bindings, context).map(shortcut).join(" / "), icon: action.icon,
+          disabled: !presentation.enabled, reason: presentation.reason, args: [] };
+      }) : [];
+      const ownIds = new Set(own.map(action => action.name));
+      const native = commands().filter((c) => !ownIds.has(c.name) && !(c.args ?? []).some((a) => a.required))
+        .map((c) => ({ ...c, title: isIdea() ? c.about || c.name.replace(/[._]/g, " ") : c.name,
+          key: isIdea() ? effectiveShortcuts(c.name, bindings, context).map(shortcut).join(" / ") : bound.get(c.name) }));
       return [...own, ...native]
         .map((c) => { const s = Math.max(score(q, low(c.title), low(c.title)), score(q, low(c.searchTitle ?? ""), low(c.searchTitle ?? "")), score(q, low(c.name), low(c.name)), q && low(c.about).includes(q) ? 100 : -1); return { c, s: s >= 0 && c.name.startsWith("codenav.") ? s + 10 : s }; })
         .filter((x) => x.s >= 0).sort((a, b) => b.s - a.s).slice(0, mode === "all" ? 5 : 100)
-        .map(({ c }) => ({ kind: "action", title: c.title, sub: !isIdea() || c.name.startsWith("codenav.") ? c.about : "Herdr", key: c.key, name: c.name }));
+        .map(({ c }) => ({ kind: "action", title: c.title, sub: c.disabled ? T(c.reason) : !isIdea() || ownIds.has(c.name) ? c.about : "Herdr",
+          key: c.key, name: c.name, icon: c.icon, disabled: c.disabled }));
     };
     if (mode === "files") return files;
     if (mode === "classes") return syms(true);
@@ -224,8 +228,19 @@ export class Everywhere {
   }
   inProject(path) { return Boolean(this.root && path?.startsWith(this.root + "/")); }
 
+  actionContext() {
+    const store = runStore(), config = store.configs[store.selected] ?? store.configs[0];
+    const document = editorSpec();
+    return { layout: shared("layout"), mod: this.context?.terminal ? null : document?.edit ? "activity" : "codenav", document,
+      workspace: spaces().find(space => space.active), cwd: this.context?.cwd,
+      on: this.on ?? this.context?.on ?? null, terminal: this.context?.terminal,
+      area: shared("codenav.area"), runConfig: config, running: Boolean(config && isRunning(config)),
+      problemsOptions: shared("codenav.problemsOptions") ?? {} };
+  }
+
   pick(r, cx) {
-    if (!r || r.kind === "head") return;
+    if (!r || r.kind === "head" || r.disabled) return;
+    if (r.kind === "action" && isIdea() && getAction(r.name) && !actionPresentation(r.name, this.actionContext()).enabled) return;
     closeOverlay(props()?.overlay);
     const on = Object.hasOwn(r, "on") ? r.on : this.on ?? null;
     if (r.kind === "file") openPath(r.path, on);
@@ -245,16 +260,16 @@ export class Everywhere {
     const project = this.root ? basename(this.root) : "";
     const badge = (r) => {
       if (r.kind === "file" || r.kind === "text" || r.kind === "location") return ideaImage(r.path, false, 16);
-      if (r.kind === "action") return toolImage("settings", 15);
+      if (r.kind === "action") return toolImage(r.icon ?? "settings", 15);
       if (r.kind === "line") return icon("arrow-down", 14).text_color(t.muted);
       return symbolImage(r.symKind, r.path, 16);
     };
     const row = (r, i) => {
       if (r.kind === "head") return uiCaption(r.title).h(IDEA.rowHeight);
       const on = i === this.at;
-      return uiListRow(`ev-${i}`, [], { selected: on, indent: (r.depth ?? 0) * 14, interactive: true }).mx(4)
+      return uiListRow(`ev-${i}`, [], { selected: on, disabled: Boolean(r.disabled), indent: (r.depth ?? 0) * 14, interactive: true }).mx(4)
         .child(badge(r))
-        .child(div().flex_none().max_w(isIdea() ? 300 : 420).truncate().text_size(isIdea() ? uiSize() : 13.5).text_color(t.foreground).child(r.title))
+        .child(div().flex_none().max_w(isIdea() ? 300 : 420).truncate().text_size(isIdea() ? uiSize() : 13.5).text_color(r.disabled ? t.dim : t.foreground).child(r.title))
         .child(div().flex_1().min_w(0).truncate().text_size(uiSize(12.5)).text_color(t.dim).child(r.sub ?? ""))
         .when(Boolean(r.key), (e) => e.child(div().flex_none().text_size(uiSize(12)).text_color(t.muted).child(r.key)))
         .when((r.kind === "file" || r.kind === "symbol") && this.inProject(r.path) && Boolean(project), (e) => e

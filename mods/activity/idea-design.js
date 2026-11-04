@@ -2,7 +2,7 @@
 // Canonical IntelliJ components; generate deployable copies with sync_ui.py.
 import { div } from "gpui-kit";
 import { h_flex, v_flex, v_virtual_list, VirtualListScrollHandle, Scrollbar } from "gpui-base";
-import { shared, settings, theme } from "herdr";
+import { shared, setShared, settings, theme, notify as nativeNotify, playSound, openOverlay, closeOverlay } from "herdr";
 import { IDEA_TOKENS } from "./idea-tokens.js";
 
 export const isIdea = () => shared("layout") === "idea";
@@ -11,6 +11,7 @@ const density = (normal, compact) => isCompact() ? compact : normal;
 const metric = (name, normal, compact = normal) => Number(isCompact()
   ? IDEA_TOKENS["ui.metrics"]?.[`${name}.compact`] ?? compact
   : IDEA_TOKENS["ui.metrics"]?.[name] ?? normal);
+const editorMetrics = IDEA_TOKENS["herdr.editor.metrics"];
 export const IDEA = Object.freeze({
   get islandRadius() { return metric("Island.arc", 20, 16) / 2; },
   get islandGap() { return metric("Island.borderWidth", 6, 4); },
@@ -29,6 +30,13 @@ export const IDEA = Object.freeze({
   get stripeButtonWidth() { return density(37, 32); },
   get stripeButtonHeight() { return density(40, 32); },
   get statusHeight() { return 24; },
+  get progressCycle() { return IDEA_TOKENS["herdr.progress"].cycleMs; },
+  get editorBreadcrumbHeight() { return density(editorMetrics.breadcrumbHeight.normal, editorMetrics.breadcrumbHeight.compact); },
+  get editorTextInset() { return density(editorMetrics.textInset.normal, editorMetrics.textInset.compact); },
+  get editorGutterInset() { return editorMetrics.gutterInset; },
+  get editorMarkerWidth() { return editorMetrics.markerWidth; },
+  get editorChangeMarkerWidth() { return editorMetrics.changeMarkerWidth; },
+  get editorChangeMarkerRadius() { return editorMetrics.changeMarkerRadius; },
 });
 export const uiSize = (base = 13) => isIdea() ? base * (Number(shared("codenav.appearance")?.uiSize) || 13) / 13 : base;
 export const ideaUI = el => isIdea() ? el.font_family(shared("codenav.appearance")?.uiFont ?? settings().ui_font_family ?? IDEA_TOKENS.fonts?.fontFace ?? ".AppleSystemUIFont").text_size(uiSize()) : el;
@@ -49,7 +57,21 @@ export function uiColors() {
     lineNumber: isIdea() ? e.LINE_NUMBERS_COLOR ?? t.dim : t.dim,
     currentLine: isIdea() ? e.CARET_ROW_COLOR ?? t.hover : t.hover,
     guide: isIdea() ? e.INDENT_GUIDE ?? t.border : t.border,
+    lineAdded: isIdea() ? e.ADDED_LINES_COLOR ?? t.ansi2 : t.ansi2,
+    lineModified: isIdea() ? e.MODIFIED_LINES_COLOR ?? t.ansi4 : t.ansi4,
+    lineDeleted: isIdea() ? e.DELETED_LINES_COLOR ?? t.ansi1 : t.ansi1,
   };
+}
+// Source viewer, native editor and diff use the same category palette.
+export function uiEditorSyntax() {
+  const t = theme();
+  return isIdea() ? {
+    keyword: "#CF8E6D", type: "#BCBEC4", constant: "#C77DBB", builtin: "#CF8E6D", function: "#56A8F5",
+    decorator: "#B3AE60", namespace: "#BCBEC4", property: "#C77DBB", escape: "#CF8E6D",
+    string: "#6AAB73", number: "#2AACB8", comment: "#7A7E85", operator: "#BCBEC4", punctuation: "#BCBEC4",
+  } : { keyword: t.ansi5, type: t.ansi3, constant: t.ansi6, builtin: t.ansi6, function: t.ansi4,
+    decorator: t.ansi3, namespace: t.foreground, property: t.ansi6, escape: t.ansi3,
+    string: t.ansi2, number: t.ansi3, comment: t.dim, operator: t.foreground, punctuation: t.foreground };
 }
 export function popupSurface(el, dialog = false) {
   if (!isIdea()) return el;
@@ -73,6 +95,13 @@ export function uiIconButton(id, graphic, action, { tip = "", active = false, di
   if (!disabled) el = el.cursor_pointer().hover(s => s.bg(c.hover)).on_click((event, cx) => { cx.stop_propagation(); action?.(event, cx); });
   return el;
 }
+// A fresh SVG factory keeps native elements owned by their current row. GPUI
+// rotates only while drawn; no JavaScript timers or redraw loop are needed.
+export function uiSpinner(graphic, { size = 16, tip = "" } = {}) {
+  let el = graphic().size(size).flex_none().text_color(uiColors().secondary).spin(IDEA.progressCycle);
+  if (tip) el = el.tooltip(tip);
+  return el;
+}
 export function uiInputBox(input, { focused = false, error = false, mono = false } = {}) {
   const c = uiColors();
   let el = ideaUI(h_flex()).min_h(Math.max(IDEA.inputHeight, uiSize() + 8)).items_center().px(6).rounded(IDEA.controlRadius)
@@ -91,12 +120,50 @@ export function uiListRow(id, children, { selected = false, focused = true, disa
 }
 export const uiSeparator = () => div().h(1).my(4).mx(6).flex_none().bg(uiColors().separator);
 export const uiCaption = text => ideaUI(div()).px(8).py(4).flex_none().text_size(uiSize(11)).text_color(uiColors().secondary).child(text);
+
+export const NOTIFICATION_GROUPS = [
+  { id: "codenav.general", label: "General", defaults: { popup: true, log: true, sound: true } },
+  { id: "codenav.files", label: "File Operations", defaults: { popup: true, log: true, sound: true } },
+  { id: "codenav.run", label: "Run", defaults: { popup: true, log: true, sound: true } },
+  { id: "codenav.review", label: "Version Control", defaults: { popup: true, log: true, sound: true } },
+  { id: "codenav.http", label: "HTTP Client", defaults: { popup: true, log: true, sound: true } },
+  { id: "herdr.agents", label: "Agents", defaults: { popup: false, log: true, sound: false } },
+];
+export function notificationPolicy(group) {
+  const defaults = NOTIFICATION_GROUPS.find(item => item.id === group)?.defaults ?? NOTIFICATION_GROUPS[0].defaults;
+  return { ...defaults, ...(shared("codenav.notificationPolicy")?.groups?.[group] ?? {}) };
+}
+export function uiNotify(note) {
+  if (!isIdea()) return nativeNotify(note);
+  const group = note.group ?? "codenav.general", policy = notificationPolicy(group), now = Date.now();
+  const recent = [...(shared("codenav.notifications") ?? []), ...(shared("codenav.noticeQueue") ?? [])];
+  if (note.dedupeKey) {
+    const duplicate = recent.find(item => item.group === group && item.dedupeKey === note.dedupeKey && now - item.at < 2000);
+    if (duplicate) return duplicate.id;
+  }
+  const item = { ...note, group, id: `${now}-${Math.random()}`, at: now };
+  if (policy.sound && settings().sounds?.enabled !== false && note.silent !== true) playSound(note.level === "error" || note.level === "warning" || note.level === "blocked" ? "blocked" : "done");
+  if (policy.log) setShared("codenav.notifications", [item, ...(shared("codenav.notifications") ?? [])].slice(0, 100));
+  if (policy.popup) setShared("codenav.noticeQueue", [...(shared("codenav.noticeQueue") ?? []), item].slice(-3));
+  return item.id;
+}
+export function uiNoticeCard(id, note, { graphic, trailing, onClick } = {}) {
+  const c = uiColors();
+  return ideaUI(h_flex()).id(id).min_h(42).p(10).gap(8).items_start().rounded(7)
+    .bg(isIdea() ? "#212325" : c.popup).text_color(c.foreground)
+    .when(Boolean(onClick), el => el.cursor_pointer().on_click(onClick))
+    .child(graphic ?? div().mt(3).size(12).rounded_full().bg(c.accent))
+    .child(v_flex().flex_1().min_w(0).gap(10)
+      .child(h_flex().gap(8).items_center().child(div().flex_1().min_w(0).child(note.title ?? "")).child(trailing ?? div()))
+      .when(Boolean(note.body), el => el.child(div().child(note.body)))) ;
+}
 export function uiEmptyEditor(hints, footer) {
   const c = uiColors();
   return ideaUI(h_flex()).size_full().items_center().justify_center().bg(c.editor)
-    .child(v_flex().gap(10).text_size(uiSize()).text_color(c.disabled)
-      .children(hints.map(([label, shortcut]) => h_flex().gap(6).items_center().child(label).child(shortcut)))
-      .child(footer));
+    .child(v_flex().id("empty-editor-hints").flex_none().gap(12).text_size(uiSize()).text_color(c.secondary)
+      .children(hints.map(([label, shortcut]) => h_flex().gap(24).items_center()
+        .child(div().flex_1().child(label)).child(div().flex_none().child(shortcut))))
+      .when(Boolean(footer), el => el.child(div().mt(8).text_size(uiSize(12)).text_color(c.disabled).child(footer))));
 }
 export const uiToolbar = (id, children) => ideaUI(h_flex()).id(id).h(Math.max(IDEA.toolbarHeight, uiSize() + 12)).flex_none().items_center().gap(4).px(4).children(children);
 export function uiToolHeader(id, title, { actions = [], content } = {}) {
@@ -264,12 +331,21 @@ export function uiDialog(id, { title, body, footer }) {
 }
 export const uiIslandBottom = () => div().h(IDEA.islandRadius).flex_none().bg(uiColors().surface).rounded_b(IDEA.islandRadius);
 
+// Editor-local modes (such as Markdown preview) share the editor's lower chrome.
+export const uiEditorFooter = children => ideaUI(h_flex()).w_full().h(IDEA.editorBreadcrumbHeight).flex_none()
+  .px(8).gap(6).items_center().justify_end().bg(uiColors().editor).border_t(1).border_color(uiColors().separator)
+  .children(Array.isArray(children) ? children : children ? [children] : []);
+
 // Keep the stripe's hit area separate from its inset selection fill. The fill
 // must never reach the window edge, even at compact density.
-export function uiStripeButton(id, graphic, action, { active = false, tip = "" } = {}) {
+export function uiStripeButton(id, graphic, action, { active = false, tip = "", side } = {}) {
   const c = uiColors(), inset = 2;
+  // The adjoining island contributes half its gap on the inside of a stripe.
+  // Move only the fill/icon by half that inset, keeping the hit target fixed:
+  // both visible margins then include the same share of the shell's spacing.
+  const offset = (side === "left" ? 1 : side === "right" ? -1 : 0) * IDEA.islandGap / 4;
   const fill = h_flex().w(IDEA.stripeButtonWidth - inset * 2).h(IDEA.stripeButtonHeight - inset * 2)
-    .items_center().justify_center().rounded(6).bg(active ? c.accent : "#00000000")
+    .relative().left(offset).items_center().justify_center().rounded(6).bg(active ? c.accent : "#00000000")
     .hover(s => s.bg(active ? c.accent : c.hover)).child(graphic);
   let button = h_flex().id(id).w(IDEA.stripeButtonWidth).h(IDEA.stripeButtonHeight).flex_none()
     .items_center().justify_center().cursor_pointer().on_mouse_down("left", (_e, cx) => cx.stop_propagation())
@@ -285,7 +361,7 @@ export function uiCheckbox(id, label, action, { checked = false, disabled = fals
     .child(h_flex().size(14).flex_none().items_center().justify_center().rounded(3).border_1()
       .border_color(disabled ? c.disabled : checked ? c.accent : c.border).bg(checked ? c.accent : c.surface)
       .text_size(12).text_color(c.accentForeground).child(checked ? "✓" : ""))
-    .child(div().child(label));
+    .child(div().min_w(0).truncate().child(label));
   if (!disabled) checkbox = checkbox.cursor_pointer().on_click(action);
   return checkbox;
 }

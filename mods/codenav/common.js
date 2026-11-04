@@ -3,8 +3,12 @@
 import { div, svg } from "gpui-kit";
 import { h_flex } from "gpui-base";
 import { T } from "./i18n.js";
-import { spaces, panes, focused, run, shared, setShared, layout, theme, home, exec, writeTextFile, appHome, settings } from "herdr";
-import { isIdea, IDEA, uiSize, ideaUI, uiButton, uiIconButton, uiToolHeader, uiEmptyEditor } from "./idea-design.js";
+import { spaces, panes, focused, run, shared, setShared, layout, theme, home, exec, writeTextFile, appHome, settings, keys } from "herdr";
+import { isIdea, IDEA, uiSize, ideaUI, uiButton, uiIconButton, uiToolHeader, uiEmptyEditor, uiEditorSyntax } from "./idea-design.js";
+import { find } from "./layout-tree.js";
+import { fileTabId } from "./editor-history.js";
+import { effectiveShortcuts, formatShortcut } from "./actions.js";
+export { find };
 
 const MOD = "codenav";
 export const icon = (name, size = 16) => svg(`mods/${MOD}/icons/${name}.svg`).size(size).flex_none();
@@ -15,14 +19,6 @@ export const AREA = "editor-area";
 export const STACK = "editor-stack";
 export const CHILD = { text: "editor-text", code: "editor-code", review: "editor-review" };
 
-export function find(node, id) {
-  if (node?.id === id) return node;
-  for (const child of node?.children ?? []) {
-    const found = find(child, id);
-    if (found) return found;
-  }
-  return null;
-}
 export const hasArea = () => Boolean(find(layout(), STACK));
 
 // The editor area and the terminal panel sit in "work-body": a column puts
@@ -59,6 +55,12 @@ export function editorKey() {
   return focused()?.tab ?? null;
 }
 export const editorSpec = (key = editorKey()) => (shared("activity.editor") ?? {})[key] ?? null;
+// Caret/outline/diagnostics belong to the exact editor workspace and machine.
+export function editorSnapshot(key) {
+  const value = shared(key), spec = editorSpec();
+  return value && spec && value.path === spec.path && (value.on ?? null) === (spec.on ?? null)
+    && (!value.space || value.space === editorKey()) ? value : null;
+}
 export function setEditorSpec(key, spec) {
   const all = { ...(shared("activity.editor") ?? {}) };
   if (spec) all[key] = { ...spec, at: Date.now() }; else delete all[key];
@@ -73,12 +75,15 @@ const isCode = (spec) => spec?.kind === "file" && !spec.edit && !VIEWER.test(spe
 
 // Which child of the editor stack should show now.
 export function wantedChild() {
+  const spec = editorSpec();
+  const native = (shared("activity.editorState") ?? {})[editorKey()];
+  const pendingClose = (shared("activity.closeRequest") ?? {})[editorKey()];
+  if (isIdea() && (spec || pendingClose?.status === "pending") && (native?.dirty || native?.saving) && (shared("codenav.area") !== "review" || pendingClose?.status === "pending")) return CHILD.text;
   if (shared("codenav.area") === "review") {
     const review = shared("codenav.review.current"), { cwd, on, space } = location();
     const at = review?.rkey?.indexOf(":") ?? -1, root = review?.rkey?.slice(at + 1);
     if (!isIdea() || (review?.path && review.space === space && review.rkey.slice(0, at) === (on ?? "") && cwd && (cwd + "/").startsWith(root + "/"))) return CHILD.review;
   }
-  const spec = editorSpec();
   return isCode(spec) || (!spec && isIdea()) ? CHILD.code : CHILD.text;
 }
 
@@ -104,6 +109,21 @@ export function openPath(arg, on = null) {
   if (find(layout(), AREA)?.hidden) run("layout.show", { id: AREA });
 }
 
+// Register every dropped file together; deferred current-file registration
+// must not discard the intermediate files in a multi-file gesture.
+export function openFiles(paths, on = null) {
+  const specs = [...new Set(paths.filter(path => typeof path === "string" && path.length))].map(path => ({ kind: "file", path, root: path.replace(/\/[^/]*$/, ""), rel: basename(path), on }));
+  if (!specs.length) return;
+  const key = editorKey(), all = { ...(shared("codenav.tabs") ?? {}) }, list = all[key] ?? [];
+  const added = specs.map(spec => ({ id: fileTabId(spec), type: "file", spec }));
+  all[key] = [...list.filter(tab => !added.some(item => item.id === tab.id)), ...added].slice(-100);
+  setShared("codenav.tabs", all);
+  if (shared("codenav.area")) setShared("codenav.area", null);
+  setEditorSpec(key, specs[specs.length - 1]);
+  showEditor();
+  if (find(layout(), AREA)?.hidden) run("layout.show", { id: AREA });
+}
+
 // The idea layout's islands: a view at an island's bottom (or top) rounds its own corners.
 export const islandBottom = (el) => isIdea() ? ideaUI(el).overflow_hidden() : el;
 export const islandTop = (el) => isIdea() ? ideaUI(el).rounded_t(IDEA.islandRadius) : el;
@@ -111,8 +131,9 @@ export const islandTop = (el) => isIdea() ? ideaUI(el).rounded_t(IDEA.islandRadi
 // What an editor area with nothing open says: IntelliJ's hints in the idea layout.
 export function emptyEditor(t) {
   if (shared("layout") !== "idea") return div().p(16).text_color(t.dim).child(T("Open a file from the Explorer or Search view."));
-  const rows = [["Search Everywhere", "⇧ ⇧"], ["Go to File", "⇧⌘O"], ["Recent Files", "⌘E"], ["Project", "⌘1"]];
-  return uiEmptyEditor(rows.map(([label, key]) => [T(label), key]), T("Drop files here to open"));
+  const searchKeys = effectiveShortcuts("find-all", keys(), { layout: "idea", mod: "codenav" }).map(formatShortcut).join(" / ");
+  const rows = [["Search Everywhere", searchKeys], ["Go to File", "⇧⌘O"], ["Recent Files", "⌘E"], ["Project", "⌘1"]];
+  return uiEmptyEditor(rows.map(([label, key]) => [T(label), key]));
 }
 
 export const tilde = (p) => { const h = home(); return p?.startsWith(h + "/") ? "~" + p.slice(h.length) : p; };
@@ -127,15 +148,10 @@ export function codeFont() {
 }
 export const uiFontFamily = () => isIdea() ? shared("codenav.appearance")?.uiFont ?? settings().ui_font_family ?? ".AppleSystemUIFont" : settings().ui_font_family ?? "Geist";
 
-// Syntax categories (bridge/lsp_bridge.py `tokens`) to theme colors.
+// Syntax categories from the Go engine's `tokens` endpoint to theme colors.
 // The idea layout: IntelliJ's dark editor colors.
-const IDEA_SYNTAX = {
-  keyword: "#cf8e6d", type: "#bcbec4", constant: "#c77dbb", builtin: "#cf8e6d", function: "#56a8f5",
-  decorator: "#b3ae60", namespace: "#bcbec4", property: "#c77dbb", escape: "#cf8e6d",
-  string: "#6aab73", number: "#2aacb8", comment: "#7a7e85", operator: "#bcbec4", punctuation: "#bcbec4",
-};
 export function syntaxColors(t) {
-  if (shared("layout") === "idea") return IDEA_SYNTAX;
+  if (shared("layout") === "idea") return uiEditorSyntax();
   return {
     keyword: t.ansi5, type: t.ansi3, constant: t.ansi6, builtin: t.ansi6, function: t.ansi4,
     decorator: t.ansi3, namespace: t.ansi4, property: t.ansi12 ?? t.ansi4, escape: t.ansi6,

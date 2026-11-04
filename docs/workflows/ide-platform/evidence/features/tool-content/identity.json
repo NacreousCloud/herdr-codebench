@@ -1,0 +1,83 @@
+{
+  "method": "Python zipfile + javap -constants -p -c; static observation; not REA Evidence; no target class execution",
+  "app": "/Applications/IntelliJ IDEA.app",
+  "version": "2026.2.4",
+  "build": "262.11879.100",
+  "productInfoSha256": "b971e964344c0fcfbd2729e6c90ab016d00f596fba80ef0057758b206eab9d6a",
+  "jars": {
+    "intellij.platform.lang.impl.jar": "a1f3ac7bc6b265a8e1a8562f51def7e32ccb9bc454bbe523a91f5f1c523fd3ea",
+    "intellij.platform.ide.impl.jar": "5a19d56e6ff99866f413af64200954a2e61c6dc8258014de0811a08e4312e026",
+    "intellij.platform.execution.jar": "22316205deaca8fcb5396f2ad564dfedb911bfc82b6c174d5b69225e41b02363",
+    "intellij.platform.execution.impl.jar": "89c5130187058ff59df84c225cd64ae7b4e1274317c22c33ad03713370e5b834"
+  },
+  "classes": [
+    {
+      "class": "com.intellij.analysis.problemsView.toolWindow.ProblemsView",
+      "jar": "intellij.platform.lang.impl.jar",
+      "member": "com/intellij/analysis/problemsView/toolWindow/ProblemsView.class",
+      "sha256": "e31df12c390ff8e504d2a71909a05be679cd798813d7fcbea8dd1fba4b5cb0d4",
+      "excerpt": "ProblemsView.excerpt.txt",
+      "fullDumpSha256": "dc4d5dbce1851f0a92826a6f2fc2f783ab3fc98ae202a8e72092a44e5bf42ba8"
+    },
+    {
+      "class": "com.intellij.analysis.problemsView.toolWindow.ProblemsViewPanel",
+      "jar": "intellij.platform.lang.impl.jar",
+      "member": "com/intellij/analysis/problemsView/toolWindow/ProblemsViewPanel.class",
+      "sha256": "2a98502dcce2dd352bdcbbd17d5eb9d74ae2b78a76625b4de740ae50c873936d",
+      "excerpt": "ProblemsViewPanel.excerpt.txt",
+      "fullDumpSha256": "c76c9f717635b0de4b4fb76ad9c180b1015c4e147e29e935d77b3fcf4065eff7"
+    },
+    {
+      "class": "com.intellij.notification.impl.NotificationSettings",
+      "jar": "intellij.platform.ide.impl.jar",
+      "member": "com/intellij/notification/impl/NotificationSettings.class",
+      "sha256": "4622543dd7adad88e96d97335b89f0df913d9aa86ec2023f908ee70f497b638d",
+      "excerpt": "NotificationSettings.excerpt.txt",
+      "fullDumpSha256": "7ca047cd0b441b1be041f9b6ce3d975e883d584fc19f593722bda2c9117b8dc1"
+    },
+    {
+      "class": "com.intellij.notification.impl.NotificationsConfigurationImpl",
+      "jar": "intellij.platform.ide.impl.jar",
+      "member": "com/intellij/notification/impl/NotificationsConfigurationImpl.class",
+      "sha256": "06a85f96a251667fe1c664337e85295b93e90c081798e2597601216ebca5c2c6",
+      "excerpt": "NotificationsConfigurationImpl.excerpt.txt",
+      "fullDumpSha256": "976bb65b3f10e6f371e916cad65f3dcd51dcc6d352f340d9b51d030d6b8c774c"
+    },
+    {
+      "class": "com.intellij.execution.ui.RunContentDescriptor",
+      "jar": "intellij.platform.execution.jar",
+      "member": "com/intellij/execution/ui/RunContentDescriptor.class",
+      "sha256": "5f23c36ea2c568d293a68f0490adcf57d211950c38aae0cd2b8d449fa3363c91",
+      "excerpt": "RunContentDescriptor.excerpt.txt",
+      "fullDumpSha256": "e367e97567456c43108fb0d369aeab5152e874eb8101d1d3725415c25e5361e7"
+    },
+    {
+      "class": "com.intellij.execution.ui.RunContentManagerImpl",
+      "jar": "intellij.platform.execution.impl.jar",
+      "member": "com/intellij/execution/ui/RunContentManagerImpl.class",
+      "sha256": "9a679df6e961d3daeab2c307868bc396ca771e03c22f8926257700b55586b78d",
+      "excerpt": "RunContentManagerImpl.excerpt.txt",
+      "fullDumpSha256": "d63df85c51f527c352c5f2f0263fc7a997de9b5f43c9f1a062cd7a3625aaa936"
+    }
+  ],
+  "resources": [
+    {
+      "jar": "intellij.platform.ide.impl.jar",
+      "member": "idea/ProblemsViewActions.xml",
+      "sha256": "94a5360fb26a680581e3ae8e4065679eb46af18e9f3cd7f3fcd225ea1d341587",
+      "output": "problem-action-groups.json"
+    }
+  ],
+  "jarsAfter": {
+    "intellij.platform.lang.impl.jar": "a1f3ac7bc6b265a8e1a8562f51def7e32ccb9bc454bbe523a91f5f1c523fd3ea",
+    "intellij.platform.ide.impl.jar": "5a19d56e6ff99866f413af64200954a2e61c6dc8258014de0811a08e4312e026",
+    "intellij.platform.execution.jar": "22316205deaca8fcb5396f2ad564dfedb911bfc82b6c174d5b69225e41b02363",
+    "intellij.platform.execution.impl.jar": "89c5130187058ff59df84c225cd64ae7b4e1274317c22c33ad03713370e5b834"
+  },
+  "limitations": [
+    "Six selected classes and one XML only, not the full feature implementation.",
+    "Calls and branches are static observations, not observed execution.",
+    "Notifications delivery/balloon painting, ProblemsTreeModel internals and process stopping policy were not traced.",
+    "References/programmatic action groups remain unresolved; no runtime enabled/visible state was executed."
+  ]
+}

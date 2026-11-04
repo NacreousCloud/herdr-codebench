@@ -1,0 +1,249 @@
+# Focused javap excerpts. [...] = omitted original lines. Numbers are original dump lines.
+1: Compiled from "EditorWindow.kt"
+2: public final class com.intellij.openapi.fileEditor.impl.EditorWindow {
+[...]
+652:   public final void addComposite$intellij_platform_ide_impl(com.intellij.openapi.fileEditor.impl.EditorComposite, com.intellij.openapi.vfs.VirtualFile, com.intellij.openapi.fileEditor.impl.FileEditorOpenOptions, boolean);
+[...]
+663:       21: iload         4
+664:       23: ifne          33
+665:       26: aload_1
+666:       27: invokevirtual #571                // Method com/intellij/openapi/fileEditor/impl/EditorComposite.isPreview:()Z
+667:       30: ifeq          58
+668:       33: aload_1
+669:       34: invokevirtual #243                // Method com/intellij/openapi/fileEditor/impl/EditorComposite.getFile:()Lcom/intellij/openapi/vfs/VirtualFile;
+[...]
+672:       39: getfield      #23                 // Field owner:Lcom/intellij/openapi/fileEditor/impl/EditorsSplitters;
+673:       42: invokevirtual #116                // Method com/intellij/openapi/fileEditor/impl/EditorsSplitters.getManager:()Lcom/intellij/openapi/fileEditor/impl/FileEditorManagerImpl;
+674:       45: invokevirtual #577                // Method com/intellij/openapi/fileEditor/impl/FileEditorManagerImpl.getProject:()Lcom/intellij/openapi/project/Project;
+675:       48: invokestatic  #581                // Method com/intellij/openapi/fileEditor/impl/EditorWindowKt.access$shouldReservePreview:(Lcom/intellij/openapi/vfs/VirtualFile;Lcom/intellij/openapi/fileEditor/impl/FileEditorOpenOptions;Lcom/intellij/openapi/project/Project;)Z
+676:       51: ifeq          58
+677:       54: iconst_1
+678:       55: goto          59
+[...]
+680:       59: istore        5
+681:       61: aload_1
+682:       62: iload         5
+683:       64: invokevirtual #584                // Method com/intellij/openapi/fileEditor/impl/EditorComposite.setPreview:(Z)V
+684:       67: iload         4
+685:       69: ifeq          428
+686:       72: aload_0
+[...]
+688:       76: aload_2
+689:       77: invokevirtual #588                // Method com/intellij/openapi/fileEditor/impl/EditorsSplitters.scheduleUpdateFileIcon$intellij_platform_ide_impl:(Lcom/intellij/openapi/vfs/VirtualFile;)V
+690:       80: aload_3
+691:       81: getfield      #590                // Field com/intellij/openapi/fileEditor/impl/FileEditorOpenOptions.index:I
+692:       84: istore        6
+693:       86: iload         6
+694:       88: iconst_m1
+[...]
+722:      155: iconst_0
+723:      156: istore        14
+724:      158: aload         13
+725:      160: invokevirtual #571                // Method com/intellij/openapi/fileEditor/impl/EditorComposite.isPreview:()Z
+726:      163: ifeq          170
+727:      166: iload         10
+728:      168: istore        9
+[...]
+771:      268: checkcast     #641                // class com/intellij/openapi/Disposable
+772:      271: aload_1
+773:      272: invokedynamic #651,  0            // InvokeDynamic #4:invoke:(Lcom/intellij/openapi/fileEditor/impl/EditorComposite;)Lkotlin/jvm/functions/Function1;
+774:      277: invokevirtual #655                // Method com/intellij/openapi/fileEditor/impl/EditorTabbedContainer.insertTab$intellij_platform_ide_impl:(Lcom/intellij/openapi/vfs/VirtualFile;Ljavax/swing/Icon;Ljavax/swing/JComponent;Lcom/intellij/openapi/util/text/HtmlChunk;ILcom/intellij/openapi/fileEditor/FileEditor;Lcom/intellij/openapi/Disposable;Lkotlin/jvm/functions/Function1;)Lcom/intellij/ui/tabs/TabInfo;
+775:      280: astore        8
+776:      282: aload_0
+777:      283: aload_1
+[...]
+816:      374: aload_1
+817:      375: aload         11
+818:      377: invokevirtual #687                // Method java/lang/Boolean.booleanValue:()Z
+819:      380: invokevirtual #690                // Method com/intellij/openapi/fileEditor/impl/EditorComposite.setPinned:(Z)V
+820:      383: goto          398
+821:      386: aload_1
+822:      387: invokevirtual #693                // Method com/intellij/openapi/fileEditor/impl/EditorComposite.isPinned:()Z
+823:      390: ifeq          398
+824:      393: aload_1
+825:      394: iconst_1
+826:      395: invokevirtual #690                // Method com/intellij/openapi/fileEditor/impl/EditorComposite.setPinned:(Z)V
+827:      398: aload_2
+828:      399: getstatic     #663                // Field DRAG_START_LOCATION_HASH_KEY:Lcom/intellij/openapi/util/Key;
+829:      402: aconst_null
+[...]
+845:      432: aload_2
+846:      433: invokevirtual #703                // Method com/intellij/openapi/fileEditor/impl/EditorsSplitters.scheduleUpdateFileColor$intellij_platform_ide_impl:(Lcom/intellij/openapi/vfs/VirtualFile;)V
+847:      436: aload_3
+848:      437: getfield      #706                // Field com/intellij/openapi/fileEditor/impl/FileEditorOpenOptions.pin:Z
+849:      440: ifeq          449
+850:      443: aload_0
+851:      444: aload_1
+852:      445: iconst_1
+853:      446: invokespecial #709                // Method setFilePinned:(Lcom/intellij/openapi/fileEditor/impl/EditorComposite;Z)V
+854:      449: aload_3
+855:      450: getfield      #712                // Field com/intellij/openapi/fileEditor/impl/FileEditorOpenOptions.selectAsCurrent:Z
+856:      453: ifeq          554
+857:      456: aload_0
+858:      457: aload_1
+859:      458: invokevirtual #716                // Method setCurrentCompositeAndSelectTab$intellij_platform_ide_impl:(Lcom/intellij/openapi/fileEditor/impl/EditorComposite;)V
+860:      461: aload_0
+861:      462: getfield      #23                 // Field owner:Lcom/intellij/openapi/fileEditor/impl/EditorsSplitters;
+862:      465: aload_0
+[...]
+939:   public final void setCurrentCompositeAndSelectTab$intellij_platform_ide_impl(com.intellij.openapi.fileEditor.impl.EditorComposite);
+[...]
+967:       64: aload         5
+968:       66: invokestatic  #515                // Method kotlin/jvm/internal/Intrinsics.checkNotNull:(Ljava/lang/Object;)V
+969:       69: aload         5
+970:       71: invokestatic  #236                // Method com/intellij/openapi/fileEditor/impl/EditorWindowKt.getComposite:(Lcom/intellij/ui/tabs/TabInfo;)Lcom/intellij/openapi/fileEditor/impl/EditorComposite;
+971:       74: aload_1
+972:       75: invokestatic  #519                // Method kotlin/jvm/internal/Intrinsics.areEqual:(Ljava/lang/Object;Ljava/lang/Object;)Z
+973:       78: ifeq          37
+[...]
+985:      101: getfield      #159                // Field com/intellij/openapi/fileEditor/impl/EditorTabbedContainer.editorTabs:Lcom/intellij/ui/tabs/impl/JBEditorTabs;
+986:      104: aload_2
+987:      105: iconst_0
+988:      106: invokevirtual #808                // Method com/intellij/ui/tabs/impl/JBEditorTabs.select:(Lcom/intellij/ui/tabs/TabInfo;Z)Lcom/intellij/openapi/util/ActionCallback;
+989:      109: pop
+990:      110: goto          115
+991:      113: pop
+992:      114: nop
+993:      115: aload_0
+994:      116: getfield      #52                 // Field _currentCompositeFlow:Lkotlinx/coroutines/flow/MutableStateFlow;
+995:      119: aload_1
+996:      120: invokeinterface #813,  2          // InterfaceMethod kotlinx/coroutines/flow/MutableStateFlow.setValue:(Ljava/lang/Object;)V
+997:      125: return
+998:
+999:   public final void setCurrentCompositeAndSelectTab$intellij_platform_ide_impl(com.intellij.ui.tabs.TabInfo);
+[...]
+1006:       11: getfield      #159                // Field com/intellij/openapi/fileEditor/impl/EditorTabbedContainer.editorTabs:Lcom/intellij/ui/tabs/impl/JBEditorTabs;
+1007:       14: aload_1
+1008:       15: iconst_0
+1009:       16: invokevirtual #808                // Method com/intellij/ui/tabs/impl/JBEditorTabs.select:(Lcom/intellij/ui/tabs/TabInfo;Z)Lcom/intellij/openapi/util/ActionCallback;
+1010:       19: pop
+1011:       20: aload_0
+1012:       21: getfield      #52                 // Field _currentCompositeFlow:Lkotlinx/coroutines/flow/MutableStateFlow;
+1013:       24: aload_1
+1014:       25: invokestatic  #236                // Method com/intellij/openapi/fileEditor/impl/EditorWindowKt.getComposite:(Lcom/intellij/ui/tabs/TabInfo;)Lcom/intellij/openapi/fileEditor/impl/EditorComposite;
+1015:       28: invokeinterface #813,  2          // InterfaceMethod kotlinx/coroutines/flow/MutableStateFlow.setValue:(Ljava/lang/Object;)V
+1016:       33: return
+1017:
+[...]
+1888:   public final void closeFile(com.intellij.openapi.vfs.VirtualFile, boolean, boolean);
+[...]
+1920:   public final void closeFile(com.intellij.openapi.vfs.VirtualFile, boolean);
+[...]
+1924:        4: invokestatic  #15                 // Method kotlin/jvm/internal/Intrinsics.checkNotNullParameter:(Ljava/lang/Object;Ljava/lang/String;)V
+1925:        7: aload_0
+1926:        8: aload_1
+1927:        9: invokevirtual #941                // Method getComposite:(Lcom/intellij/openapi/vfs/VirtualFile;)Lcom/intellij/openapi/fileEditor/impl/EditorComposite;
+1928:       12: dup
+1929:       13: ifnonnull     18
+1930:       16: pop
+[...]
+1954:   public final void closeFile(com.intellij.openapi.vfs.VirtualFile, com.intellij.openapi.fileEditor.impl.EditorComposite, boolean);
+[...]
+2052:      197: ifne          210
+2053:      200: aload         12
+2054:      202: aload         13
+2055:      204: invokevirtual #1263               // Method com/intellij/ui/tabs/impl/JBEditorTabs.removeTabWithoutChangingSelection:(Lcom/intellij/ui/tabs/TabInfo;)V
+2056:      207: goto          237
+2057:      210: aload_0
+2058:      211: aload         13
+2059:      213: aload_1
+2060:      214: iload         11
+2061:      216: invokevirtual #1267               // Method getTabToSelect$intellij_platform_ide_impl:(Lcom/intellij/ui/tabs/TabInfo;Lcom/intellij/openapi/vfs/VirtualFile;I)Lcom/intellij/ui/tabs/TabInfo;
+2062:      219: astore        15
+2063:      221: aload         12
+2064:      223: checkcast     #1269               // class com/intellij/ui/tabs/impl/JBTabsImpl
+[...]
+2067:      230: iconst_0
+2068:      231: iconst_4
+2069:      232: aconst_null
+2070:      233: invokestatic  #1273               // Method com/intellij/ui/tabs/impl/JBTabsImpl.removeTab$default:(Lcom/intellij/ui/tabs/impl/JBTabsImpl;Lcom/intellij/ui/tabs/TabInfo;Lcom/intellij/ui/tabs/TabInfo;ZILjava/lang/Object;)Lcom/intellij/openapi/util/ActionCallback;
+2071:      236: pop
+2072:      237: aload         10
+2073:      239: aload_2
+2074:      240: invokevirtual #1276               // Method com/intellij/openapi/fileEditor/impl/FileEditorManagerImpl.disposeComposite$intellij_platform_ide_impl:(Lcom/intellij/openapi/fileEditor/impl/EditorComposite;)V
+2075:      243: iload_3
+2076:      244: ifeq          268
+2077:      247: aload_0
+[...]
+2090:      277: invokevirtual #229                // Method com/intellij/ui/tabs/impl/JBEditorTabs.getSelectedInfo:()Lcom/intellij/ui/tabs/TabInfo;
+2091:      280: ifnonnull     293
+2092:      283: aload_0
+2093:      284: getfield      #52                 // Field _currentCompositeFlow:Lkotlinx/coroutines/flow/MutableStateFlow;
+2094:      287: aconst_null
+2095:      288: invokeinterface #813,  2          // InterfaceMethod kotlinx/coroutines/flow/MutableStateFlow.setValue:(Ljava/lang/Object;)V
+2096:      293: aload_1
+2097:      294: getstatic     #1294               // Field com/intellij/openapi/project/ReadmeShownUsageCollector.INSTANCE:Lcom/intellij/openapi/project/ReadmeShownUsageCollector;
+2098:      297: invokevirtual #1298               // Method com/intellij/openapi/project/ReadmeShownUsageCollector.getREADME_OPENED_ON_START_TS$intellij_platform_ide_impl:()Lcom/intellij/openapi/util/Key;
+[...]
+2136:      395: aload         10
+2137:      397: checkcast     #1336               // class com/intellij/openapi/fileEditor/FileEditorManager
+2138:      400: aload_1
+2139:      401: invokeinterface #1340,  3         // InterfaceMethod com/intellij/openapi/fileEditor/FileEditorManagerListener.fileClosed:(Lcom/intellij/openapi/fileEditor/FileEditorManager;Lcom/intellij/openapi/vfs/VirtualFile;)V
+2140:      406: aload_0
+2141:      407: getfield      #23                 // Field owner:Lcom/intellij/openapi/fileEditor/impl/EditorsSplitters;
+2142:      410: aload_1
+2143:      411: invokevirtual #1343               // Method com/intellij/openapi/fileEditor/impl/EditorsSplitters.afterFileClosed$intellij_platform_ide_impl:(Lcom/intellij/openapi/vfs/VirtualFile;)V
+2144:      414: goto          543
+2145:      417: astore        11
+2146:      419: aload_1
+[...]
+2503:   public final com.intellij.ui.tabs.TabInfo getTabToSelect$intellij_platform_ide_impl(com.intellij.ui.tabs.TabInfo, com.intellij.openapi.vfs.VirtualFile, int);
+[...]
+2509:        8: ldc_w         #1360               // String fileBeingClosed
+2510:       11: invokestatic  #15                 // Method kotlin/jvm/internal/Intrinsics.checkNotNullParameter:(Ljava/lang/Object;Ljava/lang/String;)V
+2511:       14: aload_1
+2512:       15: invokevirtual #1363               // Method com/intellij/ui/tabs/TabInfo.getPreviousSelection:()Lcom/intellij/ui/tabs/TabInfo;
+2513:       18: astore        4
+2514:       20: aload         4
+2515:       22: ifnull        48
+2516:       25: aload_0
+2517:       26: getfield      #35                 // Field tabbedPane:Lcom/intellij/openapi/fileEditor/impl/EditorTabbedContainer;
+2518:       29: getfield      #159                // Field com/intellij/openapi/fileEditor/impl/EditorTabbedContainer.editorTabs:Lcom/intellij/ui/tabs/impl/JBEditorTabs;
+2519:       32: invokevirtual #1366               // Method com/intellij/ui/tabs/impl/JBEditorTabs.getVisibleInfos:()Ljava/util/List;
+2520:       35: aload         4
+2521:       37: invokeinterface #1369,  2         // InterfaceMethod java/util/List.contains:(Ljava/lang/Object;)Z
+2522:       42: ifeq          48
+2523:       45: aload         4
+2524:       47: areturn
+2525:       48: aload_0
+2526:       49: aload_2
+2527:       50: iload_3
+2528:       51: invokevirtual #1373               // Method computeIndexToSelect$intellij_platform_ide_impl:(Lcom/intellij/openapi/vfs/VirtualFile;I)I
+2529:       54: istore        5
+2530:       56: aload_0
+2531:       57: getfield      #35                 // Field tabbedPane:Lcom/intellij/openapi/fileEditor/impl/EditorTabbedContainer;
+[...]
+2697:   public final int computeIndexToSelect$intellij_platform_ide_impl(com.intellij.openapi.vfs.VirtualFile, int);
+[...]
+2713:       28: astore        4
+2714:       30: aload         4
+2715:       32: invokevirtual #1446               // Method com/intellij/ide/ui/UISettings.getState:()Lcom/intellij/ide/ui/UISettingsState;
+2716:       35: invokevirtual #1451               // Method com/intellij/ide/ui/UISettingsState.getActiveMruEditorOnClose:()Z
+2717:       38: ifeq          150
+2718:       41: getstatic     #1456               // Field com/intellij/openapi/fileEditor/impl/EditorHistoryManager.Companion:Lcom/intellij/openapi/fileEditor/impl/EditorHistoryManager$Companion;
+2719:       44: aload_0
+2720:       45: invokevirtual #1027               // Method getManager:()Lcom/intellij/openapi/fileEditor/impl/FileEditorManagerImpl;
+2721:       48: invokevirtual #577                // Method com/intellij/openapi/fileEditor/impl/FileEditorManagerImpl.getProject:()Lcom/intellij/openapi/project/Project;
+2722:       51: invokevirtual #1461               // Method com/intellij/openapi/fileEditor/impl/EditorHistoryManager$Companion.getInstance:(Lcom/intellij/openapi/project/Project;)Lcom/intellij/openapi/fileEditor/impl/EditorHistoryManager;
+2723:       54: invokevirtual #1463               // Method com/intellij/openapi/fileEditor/impl/EditorHistoryManager.getFileList:()Ljava/util/List;
+2724:       57: astore        5
+2725:       59: aload         5
+2726:       61: checkcast     #315                // class java/util/Collection
+[...]
+2747:      112: aload_0
+2748:      113: aload_0
+2749:      114: aload         8
+2750:      116: invokevirtual #941                // Method getComposite:(Lcom/intellij/openapi/vfs/VirtualFile;)Lcom/intellij/openapi/fileEditor/impl/EditorComposite;
+2751:      119: dup
+2752:      120: ifnonnull     128
+2753:      123: pop
+[...]
+2764:      144: if_icmple     79
+2765:      147: goto          175
+2766:      150: aload         4
+2767:      152: invokevirtual #1471               // Method com/intellij/ide/ui/UISettings.getActiveRightEditorOnClose:()Z
+2768:      155: ifeq          175
+2769:      158: iload_2
+2770:      159: iconst_1
+[...]
+4007:   public final void closeFile(com.intellij.openapi.vfs.VirtualFile);

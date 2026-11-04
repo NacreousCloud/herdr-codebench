@@ -5,16 +5,23 @@
 // the person to edit and send, or sent with Enter.
 import { div } from "gpui-kit";
 import { T } from "./i18n.js";
-import { IDEA, isIdea, uiSize, ideaUI } from "./idea-design.js";
+import { IDEA, isIdea, uiSize, ideaUI, uiColors, uiIconButton, uiCheckbox } from "./idea-design.js";
+import { editorGeometry, editorGutter, editorLine, editorViewport, editorSurface } from "./editor-surface.js";
+import { nextDifference } from "./review-model.js";
+import { definitionGesture } from "./editor-model.js";
+import { ACTION_GROUPS, getAction, actionPresentation, effectiveShortcuts, normalizeChord } from "./actions.js";
+import { toolImage } from "./ideaicons.js";
+import { groupItems } from "./toolbar-model.js";
 import { v_flex, h_flex, InputState, Input, TextView } from "gpui-base";
 import { Scroller } from "./scroller.js";
-import { openEverywhere } from "./everywhere.js";
 import { lsp } from "./lsp.js";
 import { CommentBox, commentCard, commentHeight, commentsOf, repoKey, repoStore, saveRepo } from "./comments.js";
-import { exec, hc, readTextFile, theme, settings, shared, setShared, run, notify, watchFolder, spaces } from "herdr";
+import { exec, hc, readTextFile, theme, shared, setShared, run, watchFolder, spaces, nextCommand, layout, keys } from "herdr";
+import { uiNotify } from "./idea-design.js";
+const notify = note => uiNotify({ ...note, group: "codenav.review" });
 import {
   icon, iconButton, button, sectionHeader, location, targets, setEditorSpec, editorKey, showEditor, showReview,
-  expandTabs, basename, ext, colorize, syntaxColors, offsetAt, wordAt, openPath, measureFont, copyText, emptyEditor, codeFont, islandBottom
+  expandTabs, displayWidth, basename, ext, colorize, syntaxColors, offsetAt, wordAt, openPath, measureFont, copyText, emptyEditor, codeFont, islandBottom, find
  } from "./common.js";
 
 const SEP = "\n@@CODENAV@@\n";
@@ -79,6 +86,29 @@ export default class Review {
     this.filter.on("change", (_e, cx) => cx.notify());
     this.comment = new CommentBox();
     cx.timer.every(5000, (cx) => { if (this.on) this.refresh(cx, true); });
+    cx.spawn(async cx => { for (;;) {
+      this.command(await nextCommand(), cx);
+    } });
+  }
+  command(command, cx) {
+    if (this.part === "side" || shared("codenav.area") !== "review") return;
+    if (command === "review-next-diff" || command === "review-prev-diff") this.moveDifference(command === "review-next-diff" ? 1 : -1, cx);
+    else if (command === "review-open-source") this.openSelectedSource();
+    else if (isIdea() && this.part === "main" && this.lspOk && this.lspSel?.word) {
+      if (command === "usages") this.lspReferences(cx);
+      else if (command === "definition") this.lspDefinition(cx);
+      else if (command === "implementation") this.lspDefinition(cx, "implementation");
+    }
+  }
+  release() { this.refreshSeq = (this.refreshSeq ?? 0) + 1; this.diffSeq = (this.diffSeq ?? 0) + 1; this.filesSeq = (this.filesSeq ?? 0) + 1; this.closed = true; }
+  snapshot() { return JSON.stringify([location().space, this.on, this.root, this.base, this.to(), this.mode, this.selected]); }
+  moveDifference(direction, cx) {
+    const next = nextDifference(this.rows, this.cur, direction);
+    if (next === null) return;
+    this.cur = next;
+    const index = this.view().findIndex(item => item.type === "row" && item.i === next);
+    if (index >= 0) this.scroll.scrollTo(index, "center");
+    cx.notify();
   }
 
   // -- repository ------------------------------------------------------------
@@ -96,9 +126,12 @@ export default class Review {
   committedOnly() { return Boolean(this.head) || this.mode === "head"; }
 
   refresh(cx, quiet = false) {
-    const { cwd, on } = location();
+    const { cwd, on, space } = location();
     const context = `${on ?? ""}:${cwd}`;
-    if (!cwd || this.loading) return;
+    if (!cwd || this.loading && context === this.context) return;
+    const seq = this.refreshSeq = (this.refreshSeq ?? 0) + 1;
+    if (context !== this.context) this.diffSeq = (this.diffSeq ?? 0) + 1;
+    const alive = () => !this.closed && this.refreshSeq === seq && location().space === space && `${location().on ?? ""}:${location().cwd}` === context;
     // The focused folder moves often (an agent's commands): what shows stays
     // until the answer names another repository, so nothing blinks.
     this.context = context;
@@ -110,7 +143,8 @@ export default class Review {
     };
     cx.spawn(async (cx) => {
       try {
-        const r = await this.sh(REPO, [cwd]);
+        const r = await exec("sh", ["-c", REPO, "sh", cwd], { on });
+        if (!alive()) return;
         // Not a repository: nothing of the last one may show here.
         this.notRepo = r.code === 3;
         if (r.code !== 0) { clear(); this.error = r.code === 3 ? T("Not a git repository") : r.stderr.trim() || T("Cannot read this folder"); return; }
@@ -134,13 +168,15 @@ export default class Review {
         this.error = this.base ? null : T("No other branch to compare with");
         if (this.base) await this.loadFiles(cx);
         this.watch(cx);
-      } catch (e) { this.error = String(e.message ?? e); }
-      finally { this.loading = false; cx.notify(); }
+      } catch (e) { if (alive()) this.error = String(e.message ?? e); }
+      finally { if (seq === this.refreshSeq) { this.loading = false; cx.notify(); } }
     });
   }
 
   async loadFiles(cx) {
+    const seq = this.filesSeq = (this.filesSeq ?? 0) + 1, snapshot = this.snapshot();
     const r = await this.sh(FILES, [this.root, this.base, this.to() ?? ""]);
+    if (this.closed || seq !== this.filesSeq || snapshot !== this.snapshot()) return;
     if (r.code !== 0) { this.error = r.stderr.trim(); this.files = []; return; }
     const [mb, names, nums, untracked] = r.stdout.split(SEP);
     this.mergeBase = mb.trim();
@@ -157,6 +193,7 @@ export default class Review {
   }
 
   async loadDiff(cx) {
+    const snapshot = this.snapshot();
     const file = this.files.find((f) => f.path === this.selected);
     const seq = (this.diffSeq = (this.diffSeq ?? 0) + 1);
     if (!file) { this.rows = []; return; }
@@ -171,10 +208,11 @@ export default class Review {
       const first = lines.findIndex((l) => l.startsWith("@@"));
       lines = first < 0 ? [] : lines.slice(first);
     }
-    if (seq !== this.diffSeq) return;
+    if (this.closed || seq !== this.diffSeq || snapshot !== this.snapshot()) return;
     this.rows = diffRows(lines.slice(0, MAX_ROWS));
     this.binary = !this.rows.length;
     this.width = Math.max(400, ...this.rows.slice(0, 5000).map((r) => expandTabs(r.text).length * 7.8 + 120));
+    this.columns = Math.max(40, ...this.rows.slice(0, 5000).map((r) => displayWidth(r.text)));
     this.lspSel = null; this.newToks = null; this.oldToks = null;
     // The new side is the file on disk only against the working tree, on this computer.
     this.lspOk = !this.on && !this.to() && file.status !== "D";
@@ -204,25 +242,39 @@ export default class Review {
   // -- language server on the new side ---------------------------------------------
   absPath() { return `${this.root}/${this.selected}`; }
 
+  geometry() {
+    if (!isIdea()) return { row: codeFont().row, gutter: GUTTER, textOrigin: TEXT_X };
+    if (this.geometryRows !== this.rows) {
+      this.geometryRows = this.rows;
+      this.numberMax = this.rows.reduce((max, row) => Math.max(max, row.a ?? 0, row.b ?? 0), 0);
+    }
+    return editorGeometry(codeFont(), this.cw ?? codeFont().size * 0.6, { lineCount: this.numberMax, numberColumns: 2 });
+  }
+  gutter() { return this.geometry().gutter; }
+  textOrigin() { return this.geometry().textOrigin; }
+
   pickWord(item, x, mods, cx) {
     const r = item.r;
-    if (!this.lspOk || r.b === undefined || x < TEXT_X) { this.lspSel = null; return; }
-    const col = offsetAt(r.text, Math.max(0, Math.floor((x - TEXT_X) / (this.cw ?? codeFont().size * 0.6))));
+    if (!this.lspOk || r.b === undefined || x < this.textOrigin()) { this.lspSel = null; return; }
+    const col = offsetAt(r.text, Math.max(0, Math.floor((x - this.textOrigin()) / (this.cw ?? codeFont().size * 0.6))));
     const w = wordAt(r.text, col);
     if (!w) { this.lspSel = null; return; }
     this.lspSel = { i: item.i, line: r.b - 1, col: w.start, word: w.word, hover: null, refs: null };
-    if (isIdea() && mods?.platform && mods?.alt) this.lspDefinition(cx, "implementation");
-    else if (mods?.platform || !isIdea() && mods?.control) this.lspDefinition(cx);
-    else this.lspHover(cx);
+    const kind = definitionGesture(mods, isIdea());
+    if (kind) this.lspDefinition(cx, kind);
+    else if (!isIdea()) this.lspHover(cx);
   }
 
   lspArgs() { return { path: this.absPath(), line: this.lspSel.line, col: this.lspSel.col }; }
 
   lspHover(cx) {
     const sel = this.lspSel;
+    if (!sel) return;
+    const generation = sel.generation = (sel.generation ?? 0) + 1;
+    if (isIdea()) { sel.explicit = "docs"; sel.refs = null; sel.note = null; sel.hover = null; }
     cx.spawn(async (cx) => {
       const r = await lsp("hover", this.lspArgs(), (ms) => cx.sleep(ms)).catch((e) => ({ error: String(e.message ?? e) }));
-      if (this.lspSel === sel) { sel.hover = r; cx.notify(); }
+      if (this.lspSel === sel && generation === sel.generation) { sel.hover = r ?? {}; cx.notify(); }
     });
   }
 
@@ -234,37 +286,46 @@ export default class Review {
       try {
         const r = await lsp(method, this.lspArgs(), (ms) => cx.sleep(ms));
         if (this.lspSel !== sel) return;
-        if (!r.length) sel.note = T("No {kind} found for {word}", { kind: T(method === "implementation" ? "implementation" : "definition"), word: sel.word });
+        if (!r.length) {
+          sel.note = T("No {kind} found for {word}", { kind: T(method === "implementation" ? "implementation" : "definition"), word: sel.word });
+          if (isIdea()) notify({ title: sel.note, level: "info", timeout: 3500 });
+        }
         else openPath(`${r[0].path}:${r[0].line + 1}:${r[0].col + 1}`);
-      } catch (e) { sel.note = String(e.message ?? e); }
+      } catch (e) { if (this.lspSel !== sel) return; sel.note = String(e.message ?? e); if (isIdea()) notify({ title: sel.note, level: "error", timeout: 3500 }); }
       cx.notify();
     });
   }
 
   lspReferences(cx) {
     const sel = this.lspSel;
+    if (!sel) return;
+    const generation = sel.generation = (sel.generation ?? 0) + 1;
+    if (isIdea()) { sel.explicit = "refs"; sel.hover = null; }
     sel.refs = []; sel.note = T("Searching…"); cx.notify();
     cx.spawn(async (cx) => {
       try {
         const items = await lsp("references", this.lspArgs(), (ms) => cx.sleep(ms));
-        if (this.lspSel !== sel) return;
+        if (this.lspSel !== sel || generation !== sel.generation) return;
         sel.refs = items; sel.note = T("{n} references to {word}", { n: items.length, word: sel.word });
-      } catch (e) { sel.note = String(e.message ?? e); }
+      } catch (e) { if (this.lspSel !== sel || generation !== sel.generation) return; sel.note = String(e.message ?? e); }
       cx.notify();
     });
   }
 
   lspPanel(t) {
     const sel = this.lspSel;
-    if (!sel) return null;
+    if (!sel || isIdea() && !sel.explicit) return null;
     const where = (p) => p.startsWith(this.root + "/") ? p.slice(this.root.length + 1) : p;
     const md = sel.hover?.markdown;
-    return ideaUI(v_flex()).flex_none().max_h(240).border_t(1).border_color(t.border).bg(isIdea() ? t.background : t.chrome)
-      .child(h_flex().h(30).flex_none().px(10).gap(6).items_center()
+    return ideaUI(v_flex()).flex_none().when(isIdea(), el => el.h(220)).when(!isIdea(), el => el.max_h(240))
+      .border_t(1).border_color(isIdea() ? uiColors().separator : t.border).bg(isIdea() ? uiColors().editor : t.chrome)
+      .when(isIdea(), el => el.child(sectionHeader(T(sel.explicit === "docs" ? "Documentation" : "References"), [
+        iconButton("rv-l-x", "x", T("Close (Esc)"), (_e, cx) => { this.lspSel = null; cx.notify(); })])))
+      .when(!isIdea(), el => el.child(h_flex().h(30).flex_none().px(10).gap(6).items_center()
         .child(div().flex_1().min_w(0).truncate().text_size(uiSize(12)).text_color(t.muted).child(sel.note ?? `${sel.word} · ${T("Ln {line}, Col {col}", { line: sel.line + 1, col: sel.col + 1 })}`))
-        .child(button("rv-l-def", T("Definition"), (_e, cx) => this.lspDefinition(cx), { tip: isIdea() ? "Cmd+click" : T("F12 or Cmd+click") }))
+        .child(button("rv-l-def", T("Definition"), (_e, cx) => this.lspDefinition(cx), { tip: T("F12 or Cmd+click") }))
         .child(button("rv-l-refs", T("References"), (_e, cx) => this.lspReferences(cx)))
-        .child(iconButton("rv-l-x", "x", T("Close (Esc)"), (_e, cx) => { this.lspSel = null; cx.notify(); })))
+        .child(iconButton("rv-l-x", "x", T("Close (Esc)"), (_e, cx) => { this.lspSel = null; cx.notify(); }))))
       .child(div().id("rv-l-body").flex_1().min_h(0).overflow_y_scrollbar().px(12).pb(8)
         .when(Boolean(sel.refs?.length), (e) => e.children(sel.refs.slice(0, 200).map((it, k) =>
           h_flex().id(`rv-l-r-${k}`).h(isIdea() ? IDEA.rowHeight : 22).gap(10).items_center().text_size(uiSize(12)).cursor_pointer().hover((s) => s.bg(t.hover))
@@ -272,7 +333,9 @@ export default class Review {
             .child(div().flex_none().max_w(360).truncate().text_color(t.muted).child(`${where(it.path)}:${it.line + 1}`))
             .child(div().flex_1().min_w(0).truncate().font_family(codeFont().family).when(isIdea(), (e) => e.text_size(codeFont().size)).child(it.text ?? "")))))
         .when(!sel.refs?.length && Boolean(md), (e) => e.child(TextView.markdown("rv-l-hover", md).selectable().text_size(uiSize(12.5))))
-        .when(!sel.refs?.length && Boolean(sel.hover?.error), (e) => e.child(div().text_size(uiSize(12)).text_color(t.dim).child(sel.hover.error))));
+        .when(!sel.refs?.length && Boolean(sel.hover?.error), (e) => e.child(div().text_size(uiSize(12)).text_color(t.dim).child(sel.hover.error)))
+        .when(isIdea() && !sel.refs?.length && !md && !sel.hover?.error, el => el.child(div().text_size(uiSize(12)).text_color(uiColors().secondary)
+          .child(sel.explicit === "refs" ? sel.note ?? T("No results") : T(sel.hover ? "No documentation" : "Loading…")))));
   }
 
   watch(cx) {
@@ -394,7 +457,7 @@ export default class Review {
     if (item.type === "comment") { this.comment.edit(item.c); cx.notify(); return; }
     if (item.r.kind === "@") return;
     const x = e.local_position?.x ?? 0, mods = e.modifiers ?? {};
-    if (x >= GUTTER) { this.cur = item.i; this.pickWord(item, x, mods, cx); cx.notify(); return; }
+    if (x >= this.gutter()) { this.cur = item.i; this.pickWord(item, x, mods, cx); cx.notify(); return; }
     if (!(mods.shift && this.anchor !== null && this.anchor !== undefined && this.anchorPath === this.selected)) { this.anchor = item.i; this.anchorPath = this.selected; }
     this.selectRows(this.anchor, item.i, cx);
     this.gutterDrag = { to: item.i };
@@ -474,6 +537,15 @@ export default class Review {
   openFile(path, line) {
     showEditor();
     setEditorSpec(editorKey(), { kind: "file", path: `${this.root}/${path}`, root: this.root, rel: path, on: this.on, line });
+  }
+  openSelectedSource() {
+    const file = this.files.find(file => file.path === this.selected);
+    if (!file || file.status === "D" || this.loading) return;
+    const at = Number.isInteger(this.cur) ? this.cur : 0;
+    const row = this.rows[at];
+    const line = row?.b ?? this.rows.slice(at).find(row => row.b !== undefined)?.b
+      ?? this.rows.slice(0, at).reverse().find(row => row.b !== undefined)?.b ?? 1;
+    this.openFile(this.selected, line);
   }
 
   // -- drawing --------------------------------------------------------------------
@@ -607,15 +679,50 @@ export default class Review {
       return sideOf(r) === c.side && lineOf(r) >= c.start && lineOf(r) <= c.end;
     };
     const file = this.files.find((f) => f.path === this.selected);
-    const header = ideaUI(h_flex()).h(isIdea() ? IDEA.toolHeaderHeight : 34).flex_none().pl(12).pr(6).gap(8).items_center().border_b(1).border_color(t.border).bg(isIdea() ? t.background : t.chrome)
+    const seenActions = new Set();
+    const hasDifference = !this.loading && !this.binary && this.rows.some(row => row.kind === "+" || row.kind === "-");
+    const reviewActions = isIdea() ? groupItems("Review.toolbar", shared("codenav.customization") ?? {}, ACTION_GROUPS).filter(item => {
+      if (item.kind !== "action") return true;
+      if (seenActions.has(item.action)) return false;
+      seenActions.add(item.action); return true;
+    }).map(item => {
+      if (item.kind === "separator") return div().w(1).h(18).mx(4).bg(t.border);
+      const action = getAction(item.action);
+      if (!action) return div();
+      const presentation = actionPresentation(action, { layout: "idea", area: "review", document: this.selected ? { path: `${this.root}/${this.selected}`, on: this.on } : null, hasWorkspace: Boolean(this.root) });
+      const direct = action.command === "codenav.review-next-diff" ? (_event, cx) => this.moveDifference(1, cx)
+        : action.command === "codenav.review-prev-diff" ? (_event, cx) => this.moveDifference(-1, cx)
+        : action.command === "codenav.review-open-source" ? () => this.openSelectedSource()
+        : () => run(action.command);
+      const navigation = action.command === "codenav.review-next-diff" || action.command === "codenav.review-prev-diff";
+      const opening = action.command === "codenav.review-open-source";
+      const graphic = item.icon ? toolImage(item.icon, 16)
+        : navigation ? icon(action.command === "codenav.review-prev-diff" ? "chevron-up" : "chevron-down", 14)
+        : opening ? icon("external", 14) : toolImage(action.icon, 16);
+      return uiIconButton(`rv-action-${item.id}`, graphic, direct,
+        { tip: T(action.label), disabled: !presentation.enabled || navigation && !hasDifference || opening && (!file || file.status === "D" || this.loading), active: presentation.selected, size: 20 });
+    }) : [
+      iconButton("rv-prev-difference", "chevron-up", T("Previous Difference"), (_event, cx) => this.moveDifference(-1, cx)),
+      iconButton("rv-next-difference", "chevron-down", T("Next Difference"), (_event, cx) => this.moveDifference(1, cx)),
+    ];
+    const header = ideaUI(h_flex()).h(isIdea() ? Math.max(IDEA.editorBreadcrumbHeight, uiSize() + 6) : 34).flex_none().pl(isIdea() ? 8 : 12).pr(6).gap(8).items_center()
+      .border_b(1).border_color(isIdea() ? uiColors().separator : t.border).bg(isIdea() ? uiColors().editor : t.chrome)
       .child(icon("file-text", 14).text_color(t.muted))
       .when(!isIdea() || this.part !== "main", (e) => e.child(div().flex_none().max_w(420).truncate().font_semibold().child(this.selected ?? T("No changes"))))
       .child(div().flex_1().min_w(0).truncate().text_size(uiSize(11)).text_color(t.dim)
         .tooltip(this.selected ?? "").child(file ? `${T({ A: "Added", M: "Modified", D: "Deleted", U: "Untracked", T: "Type changed" }[file.status] ?? file.status)} · ${this.base}…${this.to() ?? T("working tree")}` : ""))
-      .when(Number.isInteger(this.cur) && this.rows[this.cur] && this.rows[this.cur].kind !== "@", (e) => e.child(
-        button("rv-comment", T("Comment"), (_e, cx) => this.selectRows(this.cur, this.cur, cx), { tip: T("Comment on the selected line (or drag over line numbers)") })))
-      .child(iconButton("rv-full", "eye", this.full ? T("Show changes only") : T("Show the whole file"), (_e, cx) => { this.full = !this.full; cx.spawn(async (cx) => { await this.loadDiff(cx); cx.notify(); }); }, { color: this.full ? t.accent : undefined }))
-      .when(Boolean(file) && file.status !== "D", (e) => e.child(iconButton("rv-open", "external", T("Open the file"), () => this.openFile(this.selected, c?.start ?? lineOf(this.rows.find((r) => r.kind === "+") ?? {}) ?? 1))));
+      .children(reviewActions)
+      .when(isIdea(), e => e.child(div().w(1).h(14).flex_none().bg(uiColors().separator))
+        .child(uiIconButton("rv-comment", icon("message", 14), (_e, cx) => this.selectRows(this.cur, this.cur, cx), {
+          size: 20, tip: T("Add Review Comment"), disabled: this.loading || !Number.isInteger(this.cur) || !this.rows[this.cur] || this.rows[this.cur].kind === "@",
+        }))
+        .child(uiCheckbox("rv-full", T("Whole File"), (_e, cx) => {
+          this.full = !this.full; cx.spawn(async (cx) => { await this.loadDiff(cx); cx.notify(); });
+        }, { checked: this.full, disabled: !file || this.loading || this.binary })))
+      .when(!isIdea(), e => e
+        .when(Number.isInteger(this.cur) && this.rows[this.cur] && this.rows[this.cur].kind !== "@", e => e.child(button("rv-comment", T("Comment"), (_e, cx) => this.selectRows(this.cur, this.cur, cx), { tip: T("Comment on the selected line (or drag over line numbers)") })))
+        .child(iconButton("rv-full", "eye", this.full ? T("Show changes only") : T("Show the whole file"), (_e, cx) => { this.full = !this.full; cx.spawn(async (cx) => { await this.loadDiff(cx); cx.notify(); }); }, { color: this.full ? t.accent : undefined }))
+        .when(Boolean(file) && file.status !== "D", e => e.child(iconButton("rv-open", "external", T("Open the file"), () => this.openFile(this.selected, c?.start ?? lineOf(this.rows.find((r) => r.kind === "+") ?? {}) ?? 1)))));
     const measure = measureFont(this, font, codeFont().size);
     let body;
     if (this.error) body = div().p(16).text_color(t.dim).child(this.error);
@@ -623,8 +730,8 @@ export default class Review {
     else if (this.binary) body = div().p(16).text_color(t.dim).child(T("No text diff (binary, empty, or only a mode change)."));
     else {
       this.scroll.setHeights(sizes);
-      body = div().flex_1().min_h(0).flex().font_family(font).text_size(codeFont().size).when(isIdea(), (e) => e.text_color("#BCBEC4"))
-        .child(this.scroll.view("rv-diff", t, this.width ?? 400, (k) => {
+      const width = isIdea() ? this.textOrigin() + (this.columns ?? 40) * (this.cw ?? codeFont().size * 0.6) + 40 : this.width ?? 400;
+      body = editorViewport("rv-diff", { scroll: this.scroll, theme: t, font: codeFont(), gutter: this.gutter(), width, render: (k) => {
           const it = items[k];
           return this.item(it, t, inRange).id(it.type === "comment" ? `rv-c-${it.c.id}` : `rv-r-${it.i}`)
             .on_mouse_down("left", (e, cx) => this.pressRow(it, e, cx))
@@ -634,9 +741,9 @@ export default class Review {
               cx.stop_propagation(); cx.notify();
             }))
             .on_mouse_move((_e, cx) => this.dragRow(it, cx));
-        }, () => { this.gutterDrag = null; }));
+        }, onUp: () => { this.gutterDrag = null; } });
     }
-    return v_flex().flex_1().min_w(0).h_full().bg(t.background)
+    return v_flex().flex_1().min_w(0).h_full().bg(isIdea() ? uiColors().editor : t.background)
       .child(header)
       .child(measure)
       .child(body)
@@ -646,14 +753,28 @@ export default class Review {
   item(it, t, inRange) {
     if (it.type === "comment") {
       const file = it.c.kind === "file";
-      return commentCard(t, it.c, { prefix: it.stale ? (file ? T("File comment · ") : T("Outdated · ")) : "", warn: it.stale && !file });
+      return commentCard(t, it.c, { prefix: it.stale ? (file ? T("File comment · ") : T("Outdated · ")) : "", warn: it.stale && !file,
+        pl: isIdea() ? this.textOrigin() : 16 });
     }
     const r = it.r;
-    if (r.kind === "@") return h_flex().w_full().h(26).px(12).gap(8).flex_none().items_center().bg(t.raised).text_color(t.dim)
+    if (r.kind === "@") return h_flex().w_full().h(isIdea() ? codeFont().row + 6 : 26).px(12).gap(8).flex_none().items_center().bg(t.raised).text_color(t.dim)
       .child(div().flex_none().child(r.text.replace(/@@(.*)@@.*/, "@@$1@@"))).child(div().text_color(t.muted).child(r.ctx ?? ""));
     const num = (n) => div().w(44).flex_none().text_right().text_color(t.dim).cursor_pointer().child(n === undefined ? "" : String(n));
     const colors = syntaxColors(t);
     const picked = inRange(it);
+    if (isIdea()) {
+      const geometry = this.geometry();
+      const number = n => div().w(geometry.numberWidth).flex_none().text_right().text_color(it.i === this.cur ? uiColors().secondary : uiColors().lineNumber)
+        .cursor_pointer().child(n === undefined ? "" : String(n));
+      const gutter = editorGutter(geometry, { numbers: [number(r.a), number(r.b)],
+        rails: [div().w(3).mr(4).h_full().flex_none().when(picked, el => el.bg(t.accent))],
+        marker: div().w(geometry.markerWidth).flex_none().flex().justify_center().text_color(r.kind === "+" ? t.ansi2 : r.kind === "-" ? t.ansi1 : uiColors().lineNumber)
+          .child(r.kind === " " ? "" : r.kind) });
+      return editorLine(geometry, gutter, colorize(r.text, r.b !== undefined ? this.newToks?.[r.b - 1] : this.oldToks?.[r.a - 1], colors))
+        .when(r.kind === "+", el => el.bg(t.ansi2 + "1f")).when(r.kind === "-", el => el.bg(t.ansi1 + "1f"))
+        .when(it.i === this.cur && !picked, el => el.bg(uiColors().currentLine))
+        .when(picked, el => el.bg(t.accent + "33"));
+    }
     return h_flex().w_full().h(codeFont().row).flex_none().gap(8).whitespace_nowrap()
       .when(r.kind === "+", (e) => e.bg(t.ansi2 + "1f")).when(r.kind === "-", (e) => e.bg(t.ansi1 + "1f"))
       .when(it.i === this.cur && !picked, (e) => e.bg(t.hover))
@@ -686,20 +807,32 @@ export default class Review {
     }
     // Outside a repository the diff half has nothing to review: the editor's empty state.
     if (this.part === "main" && this.notRepo) {
-      return ideaUI(islandBottom(div().id("codenav-review").size_full().bg(t.background))).text_color(t.foreground)
+      const empty = ideaUI(islandBottom(div().id("codenav-review").size_full().bg(t.background))).text_color(t.foreground)
         .track_focus(this.focus).on_mouse_down("left", () => this.focus.focus())
         .child(emptyEditor(t));
+      const tabs = find(layout(), "editor-tabs");
+      return editorSurface(empty, { topCorners: !tabs || Boolean(tabs.hidden) });
     }
-    return ideaUI(islandBottom(h_flex().id("codenav-review").size_full().min_h(0).bg(t.background))).text_color(t.foreground).text_size(uiSize(13))
+    const root = ideaUI(islandBottom(h_flex().id("codenav-review").size_full().min_h(0).bg(t.background))).text_color(t.foreground).text_size(uiSize(13))
       .track_focus(this.focus)
       .on_key_down((e, cx) => {
+        const chord = isIdea() ? normalizeChord(e.keystroke) : e.keystroke;
+        const bound = action => effectiveShortcuts(action, keys(), { layout: "idea", mod: "codenav" }).some(key => normalizeChord(key) === chord);
         if (this.comment.key(e, this.rkey())) this.anchor = null;
+        else if (isIdea() && this.lspSel && (chord === "f1" || chord === "ctrl-j")) this.lspHover(cx);
+        else if (isIdea() && this.lspSel && chord === "cmd-b" && bound("definition")) this.lspDefinition(cx);
+        else if (isIdea() && this.lspSel && chord === "cmd-alt-b" && bound("implementation")) this.lspDefinition(cx, "implementation");
+        else if (isIdea() && this.lspSel && bound("usages")) this.lspReferences(cx);
+        else if (isIdea() && (chord === "f7" || chord === "shift-f7")) this.moveDifference(chord === "shift-f7" ? -1 : 1, cx);
+        else if (isIdea() && chord === "f4" && this.selected) this.openFile(this.selected, lineOf(this.rows[this.cur] ?? {}) ?? 1);
         else if (e.keystroke === "escape" && this.lspSel) this.lspSel = null;
         else return;
         cx.notify(); cx.stop_propagation();
       })
       .when(this.part !== "main", (e) => e.child(this.sidebar(t)))
       .when(this.part !== "side", (e) => e.child(this.diff(t)));
+    const tabs = find(layout(), "editor-tabs");
+    return this.part === "side" ? root : editorSurface(root, { topCorners: !tabs || Boolean(tabs.hidden) });
   }
 }
 

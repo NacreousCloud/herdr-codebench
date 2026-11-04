@@ -1,0 +1,77 @@
+# Focused javap excerpts. [...] = omitted original lines. Numbers are original dump lines.
+1: Compiled from "SwitcherActions.kt"
+2: public abstract class com.intellij.ide.actions.BaseRecentFilesAction extends com.intellij.openapi.project.DumbAwareAction {
+[...]
+20:   public void update(com.intellij.openapi.actionSystem.AnActionEvent);
+[...]
+27:       12: aload_1
+28:       13: invokevirtual #46                 // Method com/intellij/openapi/actionSystem/AnActionEvent.getPresentation:()Lcom/intellij/openapi/actionSystem/Presentation;
+29:       16: iconst_0
+30:       17: invokevirtual #49                 // Method com/intellij/openapi/actionSystem/Presentation.setEnabledAndVisible:(Z)V
+31:       20: return
+32:       21: aload_1
+33:       22: invokevirtual #46                 // Method com/intellij/openapi/actionSystem/AnActionEvent.getPresentation:()Lcom/intellij/openapi/actionSystem/Presentation;
+34:       25: aload_1
+35:       26: invokevirtual #53                 // Method com/intellij/openapi/actionSystem/AnActionEvent.getProject:()Lcom/intellij/openapi/project/Project;
+36:       29: ifnull        36
+37:       32: iconst_1
+38:       33: goto          37
+39:       36: iconst_0
+40:       37: invokevirtual #49                 // Method com/intellij/openapi/actionSystem/Presentation.setEnabledAndVisible:(Z)V
+41:       40: return
+42:
+[...]
+48:   public void actionPerformed(com.intellij.openapi.actionSystem.AnActionEvent);
+[...]
+51:        1: ldc           #35                 // String event
+52:        3: invokestatic  #41                 // Method kotlin/jvm/internal/Intrinsics.checkNotNullParameter:(Ljava/lang/Object;Ljava/lang/String;)V
+53:        6: aload_1
+54:        7: invokevirtual #53                 // Method com/intellij/openapi/actionSystem/AnActionEvent.getProject:()Lcom/intellij/openapi/project/Project;
+55:       10: dup
+56:       11: ifnonnull     16
+57:       14: pop
+58:       15: return
+59:       16: astore_2
+60:       17: getstatic     #69                 // Field com/intellij/ide/actions/Switcher.INSTANCE:Lcom/intellij/ide/actions/Switcher;
+61:       20: invokevirtual #73                 // Method com/intellij/ide/actions/Switcher.getSWITCHER_KEY:()Lcom/intellij/openapi/util/Key;
+62:       23: aload_2
+63:       24: checkcast     #75                 // class com/intellij/openapi/util/UserDataHolder
+64:       27: invokevirtual #81                 // Method com/intellij/openapi/util/Key.get:(Lcom/intellij/openapi/util/UserDataHolder;)Ljava/lang/Object;
+65:       30: checkcast     #83                 // class com/intellij/ide/actions/Switcher$SwitcherPanel
+66:       33: dup
+67:       34: ifnull        73
+68:       37: invokevirtual #87                 // Method com/intellij/ide/actions/Switcher$SwitcherPanel.getCbShowOnlyEditedFiles:()Ljavax/swing/JCheckBox;
+69:       40: dup
+70:       41: ifnull        73
+71:       44: astore_3
+[...]
+75:       49: istore        5
+76:       51: aload         4
+77:       53: aload         4
+78:       55: invokevirtual #92                 // Method javax/swing/JCheckBox.isSelected:()Z
+79:       58: ifne          65
+80:       61: iconst_1
+81:       62: goto          66
+82:       65: iconst_0
+83:       66: invokevirtual #95                 // Method javax/swing/JCheckBox.setSelected:(Z)V
+84:       69: aload_3
+85:       70: goto          106
+86:       73: pop
+87:       74: new           #83                 // class com/intellij/ide/actions/Switcher$SwitcherPanel
+88:       77: dup
+89:       78: aload_2
+90:       79: ldc           #97                 // String title.popup.recent.files
+91:       81: iconst_0
+92:       82: anewarray     #99                 // class java/lang/Object
+93:       85: invokestatic  #105                // Method com/intellij/ide/IdeBundle.message:(Ljava/lang/String;[Ljava/lang/Object;)Ljava/lang/String;
+[...]
+96:       91: invokestatic  #110                // Method kotlin/jvm/internal/Intrinsics.checkNotNullExpressionValue:(Ljava/lang/Object;Ljava/lang/String;)V
+97:       94: aconst_null
+98:       95: aload_0
+99:       96: getfield      #13                 // Field onlyEditedFiles:Z
+100:       99: invokestatic  #116                // Method java/lang/Boolean.valueOf:(Z)Ljava/lang/Boolean;
+101:      102: iconst_1
+102:      103: invokespecial #119                // Method com/intellij/ide/actions/Switcher$SwitcherPanel."<init>":(Lcom/intellij/openapi/project/Project;Ljava/lang/String;Ljava/awt/event/InputEvent;Ljava/lang/Boolean;Z)V
+103:      106: pop
+104:      107: return
+105: }

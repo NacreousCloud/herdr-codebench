@@ -3,3 +3,8 @@ Terminal plugins), dark New UI variants, licensed under the Apache License 2.0.
 https://github.com/JetBrains/intellij-community
 
 Selected variants: herdr-codebench adapts the monochrome tool-window strokes to #FFFFFF (ToolWindow.Button.selectedForeground).
+
+progress.svg is the unmodified process/step_1.svg from installed IntelliJ
+intellij.platform.ide.jar (Copyright 2000-2021 JetBrains, Apache-2.0).
+Herdr uses native continuous rotation with the same 1000 ms cycle as IDEA's
+8 x 125 ms AsyncProcessIcon, rather than a JavaScript frame timer.

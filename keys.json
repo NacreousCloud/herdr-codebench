@@ -35,7 +35,8 @@
     "ctrl-left": "codenav.tab-prev"
   },
   "layout:idea": {
-    "shift shift": "codenav.find-all",
+    "cmd-u": "codenav.super-declaration",
+    "cmd-shift-space": "codenav.find-all",
     "cmd-1": "codenav.tool-project",
     "cmd-0": "codenav.tool-commit",
     "cmd-7": "codenav.tool-structure",
@@ -62,12 +63,13 @@
     "cmd-f2": "codenav.stop",
     "cmd-s": "activity.save",
     "cmd-3": "codenav.tool-find",
-    "cmd-,": "codenav.settings",
+    "cmd-,": "app.settings",
+    "cmd-shift-,": "codenav.settings",
     "shift-f12": "codenav.tool-reset"
   },
   "terminal": {
-    "shift shift": "codenav.key:shift shift",
-    "cmd-shift-o": "codenav.key:cmd-shift-o",
+    "cmd-shift-space": "codenav.key:cmd-shift-space",
+    "cmd-shift-o": "codenav.terminal-files",
     "cmd-o": "codenav.key:cmd-o",
     "cmd-alt-o": "codenav.key:cmd-alt-o",
     "ctrl-e": "codenav.key:ctrl-e",
@@ -76,6 +78,7 @@
     "cmd-e": "codenav.key:cmd-e",
     "cmd-shift-e": "codenav.key:cmd-shift-e",
     "cmd-shift-a": "codenav.key:cmd-shift-a",
-    "cmd-,": "codenav.key:cmd-,"
+    "cmd-,": "codenav.key:cmd-,",
+    "cmd-shift-,": "codenav.key:cmd-shift-,"
   }
 }

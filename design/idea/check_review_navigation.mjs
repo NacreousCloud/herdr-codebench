@@ -1,0 +1,26 @@
+import assert from "node:assert/strict";
+import vm from "node:vm";
+import { readFile } from "node:fs/promises";
+const context=vm.createContext({console});
+const policy=new vm.SourceTextModule(await readFile(new URL("../../mods/codenav/review-model.js",import.meta.url),"utf8"),{context});
+await policy.link(()=>{throw Error("pure model");});await policy.evaluate();
+const {differenceStarts,nextDifference}=policy.namespace;
+const rows=[{kind:"@"},{kind:"-"},{kind:"+"},{kind:" "},{kind:"+"},{kind:" "},{kind:"@"},{kind:"-"}];
+assert.deepEqual(Array.from(differenceStarts(rows)),[1,4,7]);assert.equal(nextDifference(rows,1,1),4);assert.equal(nextDifference(rows,1,-1),7);assert.equal(nextDifference([],null,1),null);
+let current={space:"one",on:null,cwd:"/repo"}, resolve;
+const source=await readFile(new URL("../../mods/codenav/review.js",import.meta.url),"utf8");
+const overrides={location:()=>current,readTextFile:()=>new Promise(r=>resolve=r),expandTabs:x=>x};
+const mod=new vm.SourceTextModule(source,{context});
+await mod.link(id=>{
+ if(id==="./review-model.js")return policy;
+ const statements=[...source.matchAll(/import\s*\{([^}]+)\}\s*from\s*"([^"]+)"/g)].filter(x=>x[2]===id);
+ const names=[...new Set(statements.flatMap(x=>x[1].split(",").map(n=>n.trim().split(/\s+as\s+/)[0])))];
+ return new vm.SyntheticModule(names,function(){for(const name of names)this.setExport(name,overrides[name]??(()=>{}));},{context});
+});
+await mod.evaluate();
+const view=new mod.namespace.default();Object.assign(view,{root:"/repo",on:null,base:"main",mode:"worktree",selected:"A.kt",files:[{path:"A.kt",untracked:true}],rows:[{text:"existing"}]});
+view.loadColors=()=>{};
+const pending=view.loadDiff({notify(){}});current={space:"two",on:null,cwd:"/repo"};resolve("late content");await pending;
+assert.equal(view.rows[0].text,"existing","late diff for a previous workspace is ignored even for same path");
+const second=view.loadDiff({notify(){}});view.selected="B.kt";resolve("late content");await second;assert.equal(view.rows[0].text,"existing","late previous-file diff never replaces current selection");
+console.log("PASS difference blocks/cycling, empty results and stale workspace/file diff isolation");

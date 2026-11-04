@@ -3,11 +3,13 @@
 // and a picker of the paths in its screen and recent output (Cmd+Shift+O).
 import { div, svg } from "gpui-kit";
 import { v_flex, h_flex, InputState, Input, v_virtual_list, VirtualListScrollHandle, Scrollbar } from "gpui-base";
-import { run, props, closeOverlay, openOverlay, theme, terminals, panes, exec, hc, notify } from "herdr";
+import { run, props, closeOverlay, openOverlay, theme, terminals, panes, exec, hc, keys, shared } from "herdr";
+import { uiNotify as notify } from "./idea-design.js";
 import { T } from "./i18n.js";
 import { IDEA, isIdea, uiSize, popupSurface, MenuController, uiMenu, uiInputBox, uiListRow } from "./idea-design.js";
 import { openPath, tilde, basename, uiFontFamily } from "./common.js";
 import { ideaImage, toolImage } from "./ideaicons.js";
+import { actionShortcut } from "./actions.js";
 
 // "src/a.kt:42:5", "src/a.kt(42,5)", "src/a.kt#L42", "file:///x/a.kt", "~/a.kt", "./a.kt".
 const PATH = /(?:file:\/\/)?(?:~|\.{1,2})?\/?(?:[\w.@+-]+\/)*[\w.@+-]+\.[A-Za-z][\w]{0,9}(?:(?::\d+(?::\d+)?)|(?:\(\d+(?:,\d+)?\))|(?:#L\d+))?/g;
@@ -124,7 +126,7 @@ export class TermMenu {
     const toProgram = term?.labels?.["herdr.right-click"] === "program";
     return [
       [T("Open selected path in code view"), "file-text", (sleep) => openSelection(tg, sleep)],
-      [T("Files in this terminal…"), "search", () => showTerminalFiles(tg.terminal), "cmd-shift-o"],
+      [T("Files in this terminal…"), "search", () => showTerminalFiles(tg.terminal), actionShortcut("terminal-files", keys(), { layout: shared("layout"), terminal: true })],
       null,
       [T("Split right"), "panel-right", () => run("pane.split", { direction: "right", pane: tg.pane })],
       [T("Split down"), "panel-right", () => run("pane.split", { direction: "down", pane: tg.pane })],

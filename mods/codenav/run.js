@@ -8,19 +8,37 @@ import { div } from "gpui-kit";
 import { v_flex, h_flex, InputState, Input } from "gpui-base";
 import { theme, shared, setShared, spaces, panes, run, props, closeOverlay, openOverlay, hc, exec } from "herdr";
 import { T } from "./i18n.js";
-import { IDEA, isIdea, uiSize, popupSurface, MenuController, uiMenu, uiDialog, uiInputBox, uiButton, uiIconButton, uiListRow, uiToolbar, uiCaption, uiSeparator } from "./idea-design.js";
+import { IDEA, isIdea, uiSize, popupSurface, MenuController, uiMenu, uiDialog, uiInputBox, uiButton, uiIconButton, uiListRow, uiToolbar, uiCaption, uiSeparator, uiNotify } from "./idea-design.js";
 import { tilde, icon, codeFont, uiFontFamily } from "./common.js";
 import { toolImage } from "./ideaicons.js";
 
 const KEY = "codenav.run";
 const project = () => { const s = spaces().find((x) => x.active); return s ? `${s.machine ?? ""}:${s.folder}` : null; };
+const activeSpace = () => spaces().find(s => s.active)?.id ?? null;
+const sessionScope = () => `${project()}@${activeSpace()}`;
 export const runStore = () => (shared(KEY) ?? {})[project()] ?? { configs: [], selected: 0 };
 function saveRun(patch, k = project()) {
   if (!k) return;
   setShared(KEY, { ...(shared(KEY) ?? {}), [k]: { ...((shared(KEY) ?? {})[k] ?? { configs: [], selected: 0 }), ...patch } });
 }
 export const tabName = (c) => `▶ ${c.name}`;
-export const configTab = (c) => c && spaces().find((s) => s.active)?.tabs.find((t) => t.name === tabName(c));
+const configKey = c => c?.id ?? `legacy:${c?.name ?? ""}`;
+const newId = () => `run.${Date.now()}.${Math.random().toString(36).slice(2, 9)}`;
+export const configTab = c => {
+  if (!c) return null;
+  const tabs = spaces().find(s => s.active)?.tabs ?? [], sessions = (shared("codenav.runSessions") ?? {})[sessionScope()] ?? {};
+  const attached = sessions[configKey(c)]?.tab;
+  if (attached) return tabs.find(tab => tab.id === attached) ?? null;
+  // Adopt a pre-ID configuration's existing terminal once; never claim a new
+  // configuration's unrelated same-name tab or an ambiguous legacy terminal.
+  const legacy = c.id ? c.legacyTabName : tabName(c);
+  if (!legacy) return null;
+  const matches = tabs.filter(tab => tab.name === legacy);
+  const configs = runStore().configs.filter(item => (item.id ? item.legacyTabName : tabName(item)) === legacy);
+  if (matches.length !== 1 || configs.length > 1) return null;
+  const claimed = Object.entries(sessions).some(([id, session]) => id !== configKey(c) && id !== `legacy:${legacy.slice(2)}` && session.tab === matches[0].id);
+  return claimed ? null : matches[0];
+};
 const tabTerminal = (tab) => tab && panes().find((p) => p.tab === tab.id && p.terminal);
 // Something other than the shell runs in the configuration's tab.
 export const isRunning = (c) => { const p = tabTerminal(configTab(c)); return Boolean(p && p.program && !p.program.shell); };
@@ -41,30 +59,53 @@ const pause = (sec) => exec("sleep", [String(sec)]).catch(() => {});
 export function runConfig(c, after) {
   if (!c?.command) return openRunConfigs();
   if (isRunning(c)) {
-    setShared("codenav.runPending", c);
+    setShared("codenav.runPending", { config: c, project: project(), space: activeSpace() });
     return openOverlay({ mod: "confirm", kind: "dialog", width: 420, height: 170,
       props: { title: T("'{name}' is still running", { name: c.name }), detail: T("Stop it and run it again?"), command: { name: "codenav.run-restart" } } });
   }
-  start(c, after);
+  return start(c, after);
 }
 // The confirmation's answer: stop what runs, then run again.
 export async function restartPending(after) {
-  const c = shared("codenav.runPending");
-  if (!c) return;
+  const pending = shared("codenav.runPending");
+  if (!pending) return;
   setShared("codenav.runPending", null);
+  const c = pending.config ?? pending;
+  const samePlace = () => (!pending.project || pending.project === project()) && (!pending.space || pending.space === activeSpace());
+  if (!samePlace()) { uiNotify({ group: "codenav.run", title: T("Run cancelled"), body: T("Switch back to this project to run."), level: "warning" }); return; }
   await stopConfig(c);
-  start(c, after);
+  if (!samePlace()) return;
+  return start(c, after);
 }
+const starting = new Set();
 async function start(c, after) {
+  const key = sessionScope(), executionId = `${Date.now()}.${Math.random().toString(36).slice(2, 8)}`, launchKey = `${key}:${configKey(c)}`;
+  if (starting.has(launchKey)) return;
+  starting.add(launchKey);
+  try {
   let tab = configTab(c);
   if (!tab) {
+    const previous = new Set((spaces().find(s => s.active)?.tabs ?? []).map(item => item.id));
     run("tab.new", { name: tabName(c), folder: c.folder || spaces().find((s) => s.active)?.folder });
-    for (let i = 0; i < 30 && !tabTerminal(tab = configTab(c)); i++) await pause(0.15);
+    for (let i = 0; i < 30; i++) {
+      if (sessionScope() !== key) return;
+      const created = (spaces().find(s => s.active)?.tabs ?? []).filter(item => !previous.has(item.id) && item.name === tabName(c));
+      if (created.length > 1) throw new Error(T("Could not identify the new run terminal."));
+      tab = created[0];
+      if (tabTerminal(tab)) break;
+      await pause(0.15);
+    }
   } else run("tab.select", { id: tab.id });
+  if (sessionScope() !== key) return;
   const term = tabTerminal(tab)?.terminal;
-  if (!term) return;
+  if (!term) throw new Error(T("Could not open the run terminal."));
+  const sessions = shared("codenav.runSessions") ?? {};
+  setShared("codenav.runSessions", { ...sessions, [key]: { ...(sessions[key] ?? {}), [configKey(c)]: { ...(sessions[key]?.[configKey(c)] ?? {}), configuration: configKey(c), executionId, tab: tab.id, terminal: term, startedAt: Date.now() } } });
   after?.();
-  await hc(["send", term, withEnv(c)]).catch(() => {});
+  const result = await hc(["send", term, withEnv(c)]);
+  if (result?.code) throw new Error(result.stderr || T("Could not start the run configuration."));
+  } catch (error) { uiNotify({ group: "codenav.run", title: T("Run failed"), body: String(error.message ?? error), level: "error" }); }
+  finally { starting.delete(launchKey); }
 }
 // Stops what runs in the configuration's tab (Ctrl+C, twice if it lingers); the tab stays.
 export async function stopConfig(c) {
@@ -103,7 +144,7 @@ export class RunConfigs {
     const space = spaces().find(s => s.active);
     this.projectSpace = space ? { id: space.id, machine: space.machine, folder: space.folder } : null;
     const st = runStore();
-    this.configs = st.configs.map((c) => ({ ...c }));
+    this.configs = st.configs.map((c) => c.id ? { ...c } : { ...c, id: newId(), legacyTabName: tabName(c) });
     this.saved = JSON.stringify(this.configs);
     this.at = Math.min(st.selected ?? 0, Math.max(this.configs.length - 1, 0));
     this.inputs = {
@@ -126,6 +167,7 @@ export class RunConfigs {
   add(copy) {
     const base = copy && this.configs[this.at] ? { ...this.configs[this.at], name: T("{name} (copy)", { name: this.configs[this.at].name }) }
       : { name: T("Unnamed"), command: "", folder: "", env: "" };
+    base.id = newId(); delete base.legacyTabName;
     this.configs.push(base); this.at = this.configs.length - 1; this.load(); this.inputs.name.focus();
   }
   apply() {

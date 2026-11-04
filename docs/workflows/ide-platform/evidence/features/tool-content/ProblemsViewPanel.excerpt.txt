@@ -1,0 +1,141 @@
+# Focused javap excerpts; [...] = omitted original lines. Prefix = full dump line; bytecode offsets remain original.
+1: Compiled from "ProblemsViewPanel.java"
+2: public class com.intellij.analysis.problemsView.toolWindow.ProblemsViewPanel extends com.intellij.ui.OnePixelSplitter implements com.intellij.openapi.Disposable,com.intellij.openapi.actionSystem.UiCompatibleDataProvider,com.intellij.analysis.problemsView.toolWindow.ProblemsViewTab {
+3:   public static final com.intellij.openapi.actionSystem.DataKey<com.intellij.analysis.problemsView.toolWindow.ProblemsViewPanel> DATA_KEY;
+[...]
+5:   public static final com.intellij.openapi.actionSystem.DataKey<com.intellij.openapi.editor.Editor> PREVIEW_DATA_KEY;
+[...]
+7:   private final com.intellij.openapi.client.ClientProjectSession mySession;
+[...]
+11:   private final java.lang.String myId;
+[...]
+13:   private final com.intellij.analysis.problemsView.toolWindow.ProblemsViewState myState;
+[...]
+15:   private final java.util.function.Supplier<java.lang.String> myName;
+[...]
+17:   private final com.intellij.analysis.problemsView.toolWindow.ProblemsTreeModel myTreeModel;
+[...]
+19:   protected final com.intellij.ui.preview.DescriptorPreview myPreview;
+[...]
+21:   private final javax.swing.JPanel myPanel;
+[...]
+23:   protected final com.intellij.openapi.actionSystem.ActionToolbar myToolbar;
+[...]
+25:   protected final javax.swing.JScrollPane myScrollPane;
+[...]
+27:   private final java.awt.Insets myToolbarInsets;
+[...]
+29:   private final com.intellij.ui.treeStructure.Tree myTree;
+[...]
+31:   private final com.intellij.ide.TreeExpander myTreeExpander;
+[...]
+33:   private final java.util.concurrent.atomic.AtomicReference<java.lang.Long> myShowTime;
+[...]
+35:   private final com.intellij.util.SingleAlarm mySelectionAlarm;
+[...]
+37:   private final com.intellij.util.SingleAlarm myUpdateAlarm;
+[...]
+39:   private final com.intellij.openapi.actionSystem.ToggleOptionAction$Option myAutoscrollToSource;
+[...]
+41:   private final com.intellij.openapi.actionSystem.ToggleOptionAction$Option myOpenInPreviewTab;
+[...]
+43:   private final com.intellij.openapi.actionSystem.ToggleOptionAction$Option myShowPreview;
+[...]
+45:   private final com.intellij.openapi.actionSystem.ToggleOptionAction$Option myGroupByToolId;
+[...]
+47:   private final com.intellij.openapi.actionSystem.ToggleOptionAction$Option mySortFoldersFirst;
+[...]
+49:   protected final com.intellij.openapi.actionSystem.ToggleOptionAction$Option mySortBySeverity;
+[...]
+51:   private final com.intellij.openapi.actionSystem.ToggleOptionAction$Option mySortByName;
+[...]
+718:   public void selectionChangedTo(boolean);
+[...]
+722:        4: aload_0
+723:        5: getfield      #15                 // Field myTreeModel:Lcom/intellij/analysis/problemsView/toolWindow/ProblemsTreeModel;
+724:        8: aload_0
+725:        9: invokevirtual #139                // Method createComparator:()Ljava/util/Comparator;
+726:       12: invokevirtual #143                // Method com/intellij/analysis/problemsView/toolWindow/ProblemsTreeModel.setComparator:(Ljava/util/Comparator;)V
+727:       15: aload_0
+728:       16: invokevirtual #598                // Method updatePreview:()V
+729:       19: aload_0
+730:       20: invokevirtual #397                // Method getProject:()Lcom/intellij/openapi/project/Project;
+731:       23: invokestatic  #401                // Method com/intellij/analysis/problemsView/toolWindow/ProblemsView.getToolWindow:(Lcom/intellij/openapi/project/Project;)Lcom/intellij/openapi/wm/ToolWindow;
+[...]
+733:       27: aload_2
+734:       28: instanceof    #601                // class com/intellij/openapi/wm/ex/ToolWindowEx
+735:       31: ifeq          54
+736:       34: invokestatic  #603                // Method com/intellij/openapi/actionSystem/ActionManager.getInstance:()Lcom/intellij/openapi/actionSystem/ActionManager;
+737:       37: ldc_w         #608                // String ProblemsView.ToolWindow.SecondaryActions
+738:       40: invokevirtual #610                // Method com/intellij/openapi/actionSystem/ActionManager.getAction:(Ljava/lang/String;)Lcom/intellij/openapi/actionSystem/AnAction;
+739:       43: checkcast     #614                // class com/intellij/openapi/actionSystem/ActionGroup
+740:       46: astore_3
+741:       47: aload_2
+742:       48: aload_3
+743:       49: invokeinterface #616,  2          // InterfaceMethod com/intellij/openapi/wm/ToolWindow.setAdditionalGearActions:(Lcom/intellij/openapi/actionSystem/ActionGroup;)V
+744:       54: aload_0
+745:       55: iload_1
+746:       56: invokevirtual #371                // Method visibilityChangedTo:(Z)V
+747:       59: return
+748:
+[...]
+878:   private void updateAutoscroll();
+[...]
+881:        1: invokevirtual #739                // Method isActiveTab:()Z
+882:        4: ifeq          37
+883:        7: aload_0
+884:        8: invokevirtual #742                // Method getAutoscrollToSource:()Lcom/intellij/openapi/actionSystem/ToggleOptionAction$Option;
+885:       11: invokestatic  #746                // Method isNotNullAndSelected:(Lcom/intellij/openapi/actionSystem/ToggleOptionAction$Option;)Z
+886:       14: ifne          27
+887:       17: aload_0
+888:       18: invokevirtual #750                // Method getOpenInPreviewTab:()Lcom/intellij/openapi/actionSystem/ToggleOptionAction$Option;
+889:       21: invokestatic  #746                // Method isNotNullAndSelected:(Lcom/intellij/openapi/actionSystem/ToggleOptionAction$Option;)Z
+890:       24: ifeq          37
+891:       27: aload_0
+892:       28: aload_0
+[...]
+979:   protected java.lang.String getPopupHandlerGroupId();
+980:     Code:
+981:        0: ldc_w         #796                // String ProblemsView.ToolWindow.TreePopup
+982:        3: areturn
+983:
+984:   protected java.lang.String getToolbarActionGroupId();
+985:     Code:
+986:        0: ldc_w         #798                // String ProblemsView.ToolWindow.Toolbar
+987:        3: areturn
+988:
+989:   protected com.intellij.openapi.actionSystem.ActionToolbar createToolbar();
+990:     Code:
+991:        0: invokestatic  #603                // Method com/intellij/openapi/actionSystem/ActionManager.getInstance:()Lcom/intellij/openapi/actionSystem/ActionManager;
+992:        3: aload_0
+993:        4: invokevirtual #800                // Method getToolbarActionGroupId:()Ljava/lang/String;
+994:        7: invokevirtual #610                // Method com/intellij/openapi/actionSystem/ActionManager.getAction:(Ljava/lang/String;)Lcom/intellij/openapi/actionSystem/AnAction;
+995:       10: checkcast     #614                // class com/intellij/openapi/actionSystem/ActionGroup
+996:       13: astore_1
+997:       14: invokestatic  #603                // Method com/intellij/openapi/actionSystem/ActionManager.getInstance:()Lcom/intellij/openapi/actionSystem/ActionManager;
+998:       17: ldc_w         #803                // String ProblemsViewToolbar
+999:       20: aload_1
+1000:       21: iconst_0
+1001:       22: invokevirtual #805                // Method com/intellij/openapi/actionSystem/ActionManager.createActionToolbar:(Ljava/lang/String;Lcom/intellij/openapi/actionSystem/ActionGroup;Z)Lcom/intellij/openapi/actionSystem/ActionToolbar;
+1002:       25: dup
+1003:       26: ifnonnull     34
+1004:       29: bipush        15
+[...]
+1008:   protected java.util.Comparator<com.intellij.analysis.problemsView.toolWindow.Node> createComparator();
+[...]
+1010:        0: new           #809                // class com/intellij/analysis/problemsView/toolWindow/ProblemsViewNodeComparator
+1011:        3: dup
+1012:        4: aload_0
+1013:        5: invokevirtual #811                // Method getSortFoldersFirst:()Lcom/intellij/openapi/actionSystem/ToggleOptionAction$Option;
+1014:        8: invokestatic  #814                // Method isNullableOrSelected:(Lcom/intellij/openapi/actionSystem/ToggleOptionAction$Option;)Z
+1015:       11: aload_0
+1016:       12: invokevirtual #817                // Method getSortBySeverity:()Lcom/intellij/openapi/actionSystem/ToggleOptionAction$Option;
+1017:       15: invokestatic  #814                // Method isNullableOrSelected:(Lcom/intellij/openapi/actionSystem/ToggleOptionAction$Option;)Z
+1018:       18: aload_0
+1019:       19: invokevirtual #820                // Method getSortByName:()Lcom/intellij/openapi/actionSystem/ToggleOptionAction$Option;
+1020:       22: invokestatic  #746                // Method isNotNullAndSelected:(Lcom/intellij/openapi/actionSystem/ToggleOptionAction$Option;)Z
+1021:       25: invokespecial #823                // Method com/intellij/analysis/problemsView/toolWindow/ProblemsViewNodeComparator."<init>":(ZZZ)V
+1022:       28: areturn
+1023:
+[...]
+1276:   static {};

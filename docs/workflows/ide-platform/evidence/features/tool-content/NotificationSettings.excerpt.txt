@@ -1,0 +1,89 @@
+# Focused javap excerpts; [...] = omitted original lines. Prefix = full dump line; bytecode offsets remain original.
+1: Compiled from "NotificationSettings.kt"
+2: public final class com.intellij.notification.impl.NotificationSettings {
+3:   public static final com.intellij.notification.impl.NotificationSettings$Companion Companion;
+[...]
+5:   private java.lang.String groupId;
+[...]
+7:   private com.intellij.notification.NotificationDisplayType displayType;
+[...]
+9:   private boolean isShouldLog;
+[...]
+11:   private boolean isShouldReadAloud;
+[...]
+13:   private boolean isPlaySound;
+[...]
+130:   public final com.intellij.notification.impl.NotificationSettings withShouldLog(boolean);
+[...]
+137:        5: iconst_0
+138:        6: bipush        27
+139:        8: aconst_null
+140:        9: invokestatic  #63                 // Method copy$default:(Lcom/intellij/notification/impl/NotificationSettings;Ljava/lang/String;Lcom/intellij/notification/NotificationDisplayType;ZZZILjava/lang/Object;)Lcom/intellij/notification/impl/NotificationSettings;
+141:       12: areturn
+142:
+[...]
+156:   public final com.intellij.notification.impl.NotificationSettings withPlaySound(boolean);
+[...]
+163:        5: iload_1
+164:        6: bipush        15
+165:        8: aconst_null
+166:        9: invokestatic  #63                 // Method copy$default:(Lcom/intellij/notification/impl/NotificationSettings;Ljava/lang/String;Lcom/intellij/notification/NotificationDisplayType;ZZZILjava/lang/Object;)Lcom/intellij/notification/impl/NotificationSettings;
+167:       12: areturn
+168:
+169:   public final com.intellij.notification.impl.NotificationSettings withDisplayType(com.intellij.notification.NotificationDisplayType);
+[...]
+179:       11: iconst_0
+180:       12: bipush        29
+181:       14: aconst_null
+182:       15: invokestatic  #63                 // Method copy$default:(Lcom/intellij/notification/impl/NotificationSettings;Ljava/lang/String;Lcom/intellij/notification/NotificationDisplayType;ZZZILjava/lang/Object;)Lcom/intellij/notification/impl/NotificationSettings;
+183:       18: areturn
+184:
+185:   public final org.jdom.Element save();
+[...]
+194:       12: iconst_0
+195:       13: istore_3
+196:       14: aload_2
+197:       15: ldc           #10                 // String groupId
+198:       17: aload_0
+199:       18: getfield      #24                 // Field groupId:Ljava/lang/String;
+200:       21: invokevirtual #84                 // Method org/jdom/Element.setAttribute:(Ljava/lang/String;Ljava/lang/String;)Lorg/jdom/Element;
+201:       24: pop
+202:       25: aload_0
+203:       26: getfield      #27                 // Field displayType:Lcom/intellij/notification/NotificationDisplayType;
+204:       29: getstatic     #89                 // Field com/intellij/notification/NotificationDisplayType.BALLOON:Lcom/intellij/notification/NotificationDisplayType;
+205:       32: if_acmpeq     49
+206:       35: aload_2
+207:       36: ldc           #18                 // String displayType
+208:       38: aload_0
+209:       39: getfield      #27                 // Field displayType:Lcom/intellij/notification/NotificationDisplayType;
+210:       42: invokevirtual #92                 // Method com/intellij/notification/NotificationDisplayType.toString:()Ljava/lang/String;
+211:       45: invokevirtual #84                 // Method org/jdom/Element.setAttribute:(Ljava/lang/String;Ljava/lang/String;)Lorg/jdom/Element;
+212:       48: pop
+213:       49: aload_0
+214:       50: getfield      #31                 // Field isShouldLog:Z
+215:       53: ifne          65
+216:       56: aload_2
+217:       57: ldc           #93                 // String shouldLog
+218:       59: ldc           #95                 // String false
+219:       61: invokevirtual #84                 // Method org/jdom/Element.setAttribute:(Ljava/lang/String;Ljava/lang/String;)Lorg/jdom/Element;
+220:       64: pop
+221:       65: aload_0
+222:       66: getfield      #34                 // Field isShouldReadAloud:Z
+223:       69: ifeq          81
+224:       72: aload_2
+225:       73: ldc           #96                 // String shouldReadAloud
+226:       75: ldc           #98                 // String true
+227:       77: invokevirtual #84                 // Method org/jdom/Element.setAttribute:(Ljava/lang/String;Ljava/lang/String;)Lorg/jdom/Element;
+228:       80: pop
+229:       81: aload_0
+230:       82: getfield      #37                 // Field isPlaySound:Z
+231:       85: ifeq          97
+232:       88: aload_2
+233:       89: ldc           #99                 // String playSound
+234:       91: ldc           #98                 // String true
+235:       93: invokevirtual #84                 // Method org/jdom/Element.setAttribute:(Ljava/lang/String;Ljava/lang/String;)Lorg/jdom/Element;
+236:       96: pop
+237:       97: nop
+238:       98: aload_1
+[...]
+464:   static {};

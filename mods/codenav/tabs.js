@@ -5,18 +5,19 @@
 // Right-click a tab for Close / Close Others / Close All; Cmd+W in the code
 // view closes the shown tab (the status item takes the command).
 // Back / forward (Ctrl+- / Ctrl+Shift+-) walk the tabs shown before, per space: the
-// last 10, skipping tabs closed since; the arrows at the strip's start do the same.
+// last 10, skipping tabs closed since. IDEA keeps its navigation arrows after
+// the tabs so the first file starts at the editor island's left edge.
 import { div } from "gpui-kit";
 import { T } from "./i18n.js";
 import { h_flex, v_flex } from "gpui-base";
 import { theme, shared, setShared, layout, run, spaces, openOverlay, closeOverlay, props } from "herdr";
 import { icon, iconButton, find, STACK, AREA, CHILD, editorSpec, editorKey, setEditorSpec, wantedChild, showReview, basename, location } from "./common.js";
 import { ideaImage } from "./ideaicons.js";
-import { IDEA, isIdea, uiSize, ideaUI, popupSurface, uiTab, uiTabStrip, TabViewport, uiMenu, uiPopupSize, MenuController } from "./idea-design.js";
+import { IDEA, isIdea, uiSize, ideaUI, uiColors, popupSurface, uiTab, uiTabStrip, TabViewport, uiMenu, uiPopupSize, MenuController } from "./idea-design.js";
+import { fileTabId as fileId, recentFileTabs, visitFile, tabAfterClose } from "./editor-history.js";
 
 const KEY = "codenav.tabs";
-const MAX = 20;
-const fileId = (s) => `f:${s.on ?? ""}:${s.path}`;
+const MAX = 100;
 const reviewId = (r) => `r:${r.rkey}:${r.path}`;
 
 // -- the open tabs of the shown space ----------------------------------------------
@@ -44,7 +45,7 @@ function current() {
   return r.rkey.slice(0, at) === (on ?? "") && cwd && (cwd + "/").startsWith(root + "/") ? r : null;
 }
 function activeId() {
-  if (reviewing()) { const r = current(); return r?.path ? reviewId(r) : null; }
+  if (reviewing()) { const r = current(); if (r?.path) return reviewId(r); }
   const s = editorSpec();
   return s ? fileId(s) : null;
 }
@@ -67,15 +68,33 @@ function openTab(tab) {
 // and with none left IDEA keeps its empty editor island.
 function closeTabs(ids) {
   const list = tabsNow(), gone = new Set(ids), active = activeId();
-  const at = list.findIndex((x) => x.id === active);
+  const key = editorKey(), h = historyNow();
+  const editorState = (shared("activity.editorState") ?? {})[key];
+  if (isIdea() && editorState?.path && (editorState.dirty || editorState.saving) && gone.has(fileId(editorState))) {
+    const requests = shared("activity.closeRequest") ?? {}, previous = requests[key];
+    if (!previous || previous.status !== "pending" || JSON.stringify(previous.ids) !== JSON.stringify(ids)) {
+      setShared("activity.closeRequest", { ...requests, [key]: { token: `${Date.now()}-${Math.random()}`, key, ids, path: editorState.path, on: editorState.on ?? null, status: "pending" } });
+    }
+    run("layout.select", { stack: STACK, child: CHILD.text });
+    if (find(layout(), AREA)?.hidden) run("layout.show", { id: AREA });
+    return false;
+  }
+  const recent = recentFileTabs((shared("codenav.recentFiles") ?? {})[key], h.list, list);
+  if (isIdea() && list.some(tab => gone.has(tab.id) && tab.type === "file")) {
+    setShared("codenav.recentFiles", { ...(shared("codenav.recentFiles") ?? {}), [key]: recent });
+  }
+  const next = tabAfterClose(isIdea() ? visibleTabs() : list, active, gone, [...recent.map(tab => tab.id), ...h.list.slice().reverse().map(tab => tab.id)], isIdea());
   const rest = list.filter((x) => !gone.has(x.id));
+  if (isIdea()) {
+    const closed = list.filter(tab => gone.has(tab.id) && tab.type === "file");
+    if (closed.length) setShared("codenav.closedTabs", { ...(shared("codenav.closedTabs") ?? {}), [key]: [...closed.slice().reverse(), ...((shared("codenav.closedTabs") ?? {})[key] ?? [])].slice(0, 20) });
+  }
   setTabs(rest);
   // The editor's file goes with its tab, or the strip would bring the tab back.
   const spec = editorSpec();
   if (spec && gone.has(fileId(spec))) setEditorSpec(editorKey(), null);
-  if (!gone.has(active)) return;
-  const next = rest.find((x, i) => i >= at) ?? rest[rest.length - 1];
-  if (next) return openTab(next);
+  if (!gone.has(active) && (!isIdea() || visibleTabs().length)) return;
+  if (gone.has(active) && next) return openTab(next);
   setEditorSpec(editorKey(), null);
   if (reviewing()) setShared("codenav.area", null);
   if (isIdea()) {
@@ -88,9 +107,27 @@ export function stepTab(dir) {
   const list = tabsNow(), at = list.findIndex((x) => x.id === activeId());
   if (list.length) openTab(list[(at + dir + list.length) % list.length]);
 }
-export const closeTab = (id) => closeTabs([id ?? activeId()].filter(Boolean));
-const closeOthers = (id) => { const keep = tabsNow().find((x) => x.id === id); closeTabs(tabsNow().filter((x) => x.id !== id).map((x) => x.id)); if (keep) openTab(keep); };
+export const closeTab = (id) => closeTabs([id ?? activeId() ?? (isIdea() ? visibleTabs().slice(-1)[0]?.id : null)].filter(Boolean));
+export const closeOthers = (id) => { const keep = tabsNow().find((x) => x.id === id); if (closeTabs(tabsNow().filter((x) => x.id !== id && (!isIdea() || !x.pinned)).map((x) => x.id)) !== false && keep) openTab(keep); };
 export const closeAll = () => closeTabs([...tabsNow().map(x => x.id), activeId()].filter(Boolean));
+export function pinTab(id, pinned) { setTabs(tabsNow().map(tab => tab.id === id ? { ...tab, pinned: pinned ?? !tab.pinned } : tab)); }
+export function reopenClosedTab() {
+  const key = editorKey(), all = shared("codenav.closedTabs") ?? {}, closed = all[key] ?? [];
+  if (!closed.length) return false;
+  const [tab, ...rest] = closed; setShared("codenav.closedTabs", { ...all, [key]: rest });
+  if (!tabsNow().some(open => open.id === tab.id)) setTabs([...tabsNow(), tab]);
+  openTab(tab);
+  if (find(layout(), AREA)?.hidden) run("layout.show", { id: AREA });
+  return true;
+}
+export function resumeClose({ key, token }) {
+  const requests = shared("activity.closeRequest") ?? {}, request = requests[key];
+  if (key !== editorKey() || request?.token !== token || request.status !== "approved") return false;
+  const state = (shared("activity.editorState") ?? {})[key];
+  if (state?.path === request.path && (state.on ?? null) === request.on && (state.dirty || state.saving)) return false;
+  const rest = { ...requests }; delete rest[key]; setShared("activity.closeRequest", rest);
+  closeTabs(request.ids); return true;
+}
 
 // -- where the space's tabs have been: shared "codenav.history" ----------------------------
 const HISTORY = 10;
@@ -127,6 +164,11 @@ export const canStep = (dir) => nextOpen(historyNow(), dir) >= 0;
 export function routeEditor(self, cx) {
     if (!find(layout(), STACK)) return;
     const key = editorKey();
+    const closing = (shared("activity.closeRequest") ?? {})[key];
+    if (closing?.status === "approved" && self.approving !== closing.token) {
+      self.approving = closing.token;
+      cx.timer.after(0, () => { self.approving = null; resumeClose({ key, token: closing.token }); });
+    }
     const spec = editorSpec();
     const at = spec?.at ?? 0;
     if (self.routeKey === key && self.lastAt !== undefined && at > self.lastAt && reviewing()) {
@@ -153,6 +195,17 @@ export function routeEditor(self, cx) {
     }
     const shown = tabsNow().find((x) => x.id === activeId());
     const h = historyNow();
+    // The MRU is independent of back/forward history and survives tab close.
+    // The visible Status remains its owner; render only schedules the write.
+    if (isIdea() && shown?.type === "file" && (shared("codenav.recentFiles") ?? {})[key]?.[0]?.id !== shown.id && self.remembering !== shown.id) {
+      self.remembering = shown.id;
+      cx.timer.after(0, () => {
+        self.remembering = null;
+        if (editorKey() !== key || activeId() !== shown.id || !tabsNow().some(tab => tab.id === shown.id)) return;
+        const all = shared("codenav.recentFiles") ?? {};
+        setShared("codenav.recentFiles", { ...all, [key]: visitFile(recentFileTabs(all[key], historyNow().list, tabsNow()), shown) });
+      });
+    }
     if (shown && h.list[h.at]?.id !== shown.id && self.noting !== shown.id && !(h.going && Date.now() - h.going < 1500)) {
       self.noting = shown.id;
       cx.timer.after(0, () => { self.noting = null; if (editorKey() === key && activeId() === shown.id && tabsNow().some(x => x.id === shown.id)) noteShown(shown); });
@@ -164,6 +217,13 @@ export function routeEditor(self, cx) {
     }
     const strip = find(layout(), "editor-tabs");
     const empty = isIdea() && !spec && !(reviewing() && current()?.path) && !visibleTabs().length;
+    if (isIdea() && find(layout(), AREA)?.hidden && !self.areaSyncing) {
+      self.areaSyncing = true;
+      cx.timer.after(0, () => {
+        self.areaSyncing = false;
+        if (editorKey() === key && isIdea() && find(layout(), AREA)?.hidden) run("layout.show", { id: AREA });
+      });
+    }
     if (strip && Boolean(strip.hidden) !== empty && !self.stripSyncing) {
       self.stripSyncing = true;
       cx.timer.after(0, () => {
@@ -179,7 +239,7 @@ export default class Tabs {
   init() { this.viewport = new TabViewport(); }
 
   render(cx) {
-    const t = theme(), spec = editorSpec(), active = activeId();
+    const t = theme(), active = activeId();
     const comments = new Map();
     for (const [rkey, st] of Object.entries(shared("codenav.reviews") ?? {}))
       for (const c of st.comments ?? []) comments.set(`${rkey}:${c.path}`, (comments.get(`${rkey}:${c.path}`) ?? 0) + 1);
@@ -192,12 +252,13 @@ export default class Tabs {
       if (idea) return uiTab(`cn-tab-${x.id}`, [
         x.type === "file" ? ideaImage(x.spec.path, false, IDEA.iconSize) : icon("git-branch", IDEA.iconSize).text_color(t.accent),
         div().max_w(180).truncate().when(on, el => el.font_semibold()).child(name),
+        ...(x.pinned ? [div().text_size(10).tooltip(T("Pinned Tab")).child("•")] : []),
         ...(count > 0 ? [div().px(5).h(15).flex().items_center().rounded(8).bg(t.accent).text_color(t.accent_foreground).text_size(10).font_bold().child(String(count))] : []),
       ], { selected: on, onSelect: () => openTab(x), onClose: () => closeTab(x.id), closeIcon: icon("x", 11),
         tip: x.type === "file" ? x.spec.rel ?? x.spec.path : `${T("Review")} · ${x.path}` })
         .on_mouse_down("right", (_e, cx) => {
           cx.stop_propagation();
-          openOverlay({ mod: "codenav", props: { view: "tabmenu", id: x.id }, kind: "popup", frame: "none", ...uiPopupSize(3, { width: 210 }) });
+          openOverlay({ mod: "codenav", props: { view: "tabmenu", id: x.id }, kind: "popup", frame: "none", ...uiPopupSize(6, { width: 210 }) });
         });
       return h_flex().id(`cn-tab-${i}`).flex_none().pl(12).pr(6).gap(6).items_center().text_size(12).cursor_pointer()
         .h_full().border_b(2).border_color(on ? t.accent : "#00000000").when(on, el => el.bg(t.background))
@@ -217,17 +278,15 @@ export default class Tabs {
     };
     const list = visibleTabs();
     const ideaLook = shared("layout") === "idea";
-    return ideaUI(h_flex()).id("codenav-tabs").size_full().pr(6).items_center().bg(t.chrome).when(!ideaLook, (e) => e.border_b(1).border_color(t.border)).when(ideaLook, (e) => e.pl(4).rounded_t(IDEA.islandRadius))
-      .child(h_flex().flex_none().h_full().px(4).gap(2).items_center().when(!ideaLook, (e) => e.border_r(1).border_color(t.border))
-        .child(iconButton("cn-tabs-back", "chevron-left", T(ideaLook ? "Back (Cmd+[)" : "Previous tab (Ctrl+-)"), () => ideaLook ? run("codenav.nav-back") : tabBack(), { color: ideaLook || canStep(-1) ? t.muted : t.dim }))
-        .child(iconButton("cn-tabs-fwd", "chevron-right", T(ideaLook ? "Forward (Cmd+])" : "Next tab (Ctrl+Shift+-)"), () => ideaLook ? run("codenav.nav-forward") : tabForward(), { color: ideaLook || canStep(1) ? t.muted : t.dim })))
+    const navigation = () => h_flex().flex_none().h_full().px(4).gap(2).items_center().when(!ideaLook, (e) => e.border_r(1).border_color(t.border))
+      .child(iconButton("cn-tabs-back", "chevron-left", T(ideaLook ? "Back (Cmd+[)" : "Previous tab (Ctrl+-)"), () => ideaLook ? run("codenav.nav-back") : tabBack(), { color: ideaLook || canStep(-1) ? t.muted : t.dim }))
+      .child(iconButton("cn-tabs-fwd", "chevron-right", T(ideaLook ? "Forward (Cmd+])" : "Next tab (Ctrl+Shift+-)"), () => ideaLook ? run("codenav.nav-forward") : tabForward(), { color: ideaLook || canStep(1) ? t.muted : t.dim }));
+    return ideaUI(h_flex()).id("codenav-tabs").size_full().pr(6).items_center().bg(ideaLook ? uiColors().editor : t.chrome).when(!ideaLook, (e) => e.border_b(1).border_color(t.border)).when(ideaLook, (e) => e.rounded_t(IDEA.islandRadius))
+      .when(!ideaLook, e => e.child(navigation()))
       .child(ideaLook ? uiTabStrip("cn-tabs-scroll", list.map((x, i) => ({ id: x.id, content: tab(x, i) })), active, this.viewport)
         : h_flex().id("cn-tabs-scroll").flex_1().min_w(0).h_full().overflow_x_scrollbar()
           .children(list.length ? list.map(tab) : [div().px(12).text_size(12).text_color(t.dim).child(T("Editor"))]))
-      .when(Boolean(spec?.edit) && !reviewing(), (e) => e.child(iconButton("cn-tab-codeview", "eye", T("Back to the code view (language server help)"), () => {
-        const { edit, ...rest } = spec;
-        setEditorSpec(editorKey(), rest);
-      })))
+      .when(ideaLook, e => e.child(navigation()))
       .when(!ideaLook, (e) => e.child(iconButton("cn-area-x", "x", T("Hide the editor area (Ctrl+Alt+E)"), () => run("layout.hide", { id: AREA }))))
       .when(ideaLook, (e) => e.child(iconButton("cn-tabs-list", "chevron-down", T("Open Tabs"), () => openOverlay({ mod: "codenav", props: { view: "tablist" }, kind: "popup", frame: "none", ...uiPopupSize(Math.max(1, list.length), { width: 360, maxHeight: 360 }) }))));
   }
@@ -241,6 +300,8 @@ export class TabMenu {
     const t = theme(), { id, overlay } = props() ?? {};
     const actions = [() => closeTab(id), () => closeOthers(id), () => closeAll()];
     const rows = ["Close", "Close Others", "Close All"].map((label, i) => ({ id: String(i), label: T(label), action: actions[i] }));
+    if (isIdea()) rows.push({ separator: true }, { id: "pin", label: T(tabsNow().find(tab => tab.id === id)?.pinned ? "Unpin Tab" : "Pin Tab"), action: () => pinTab(id) },
+      { id: "reopen", label: T("Reopen Closed Tab"), disabled: !((shared("codenav.closedTabs") ?? {})[editorKey()] ?? []).length, action: () => reopenClosedTab() });
     if (isIdea()) return uiMenu("cn-tabmenu", rows, this.menu, cx, { width: 210, onClose: () => closeOverlay(overlay) });
     const choose = (i) => { closeOverlay(overlay); actions[i]?.(); };
     const item = (key, label, i) => div().id(`cn-tm-${key}`).h(isIdea() ? IDEA.rowHeight : 30).px(12).flex().items_center().rounded(isIdea() ? IDEA.selectionRadius : 5).text_size(isIdea() ? uiSize() : 12.5).cursor_pointer()

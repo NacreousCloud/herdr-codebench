@@ -1,0 +1,78 @@
+# Focused javap excerpts. [...] = omitted original lines. Numbers are original dump lines.
+1: Compiled from "SearchEverywhereContributor.java"
+2: public interface com.intellij.ide.actions.searcheverywhere.SearchEverywhereContributor<Item> extends com.intellij.openapi.project.PossiblyDumbAware, com.intellij.openapi.Disposable {
+[...]
+5:   public abstract java.lang.String getSearchProviderId();
+[...]
+7:   public abstract java.lang.String getGroupName();
+[...]
+19:   public abstract int getSortWeight();
+[...]
+21:   public abstract boolean showInFindResults();
+[...]
+23:   public default boolean isShownInSeparateTab();
+24:     Code:
+25:        0: iconst_0
+26:        1: ireturn
+27:
+28:   public default int getElementPriority(Item, java.lang.String);
+[...]
+35:        9: ifnonnull     16
+36:       12: iconst_2
+37:       13: invokestatic  #190                // InterfaceMethod $$$reportNull$$$0:(I)V
+38:       16: iconst_0
+39:       17: ireturn
+40:
+[...]
+68:   public abstract void fetchElements(java.lang.String, com.intellij.openapi.progress.ProgressIndicator, com.intellij.util.Processor<? super Item>);
+[...]
+70:   public default com.intellij.ide.actions.searcheverywhere.ContributorSearchResult<Item> search(java.lang.String, com.intellij.openapi.progress.ProgressIndicator, int);
+[...]
+77:       10: ifnonnull     18
+78:       13: bipush        7
+79:       15: invokestatic  #190                // InterfaceMethod $$$reportNull$$$0:(I)V
+80:       18: invokestatic  #13                 // Method com/intellij/ide/actions/searcheverywhere/ContributorSearchResult.builder:()Lcom/intellij/ide/actions/searcheverywhere/ContributorSearchResult$Builder;
+81:       21: astore        4
+82:       23: aload_0
+83:       24: aload_1
+[...]
+85:       26: iload_3
+86:       27: aload         4
+87:       29: invokedynamic #19,  0             // InvokeDynamic #0:process:(ILcom/intellij/ide/actions/searcheverywhere/ContributorSearchResult$Builder;)Lcom/intellij/util/Processor;
+88:       34: invokeinterface #23,  4           // InterfaceMethod fetchElements:(Ljava/lang/String;Lcom/intellij/openapi/progress/ProgressIndicator;Lcom/intellij/util/Processor;)V
+89:       39: aload         4
+90:       41: invokevirtual #27                 // Method com/intellij/ide/actions/searcheverywhere/ContributorSearchResult$Builder.build:()Lcom/intellij/ide/actions/searcheverywhere/ContributorSearchResult;
+91:       44: dup
+92:       45: ifnonnull     53
+93:       48: bipush        8
+[...]
+97:   public default java.util.List<Item> search(java.lang.String, com.intellij.openapi.progress.ProgressIndicator);
+[...]
+113:       28: aload_2
+114:       29: aload_3
+115:       30: invokedynamic #39,  0             // InvokeDynamic #1:process:(Ljava/util/List;)Lcom/intellij/util/Processor;
+116:       35: invokeinterface #23,  4           // InterfaceMethod fetchElements:(Ljava/lang/String;Lcom/intellij/openapi/progress/ProgressIndicator;Lcom/intellij/util/Processor;)V
+117:       40: aload_3
+118:       41: dup
+119:       42: ifnonnull     50
+[...]
+124:   public abstract boolean processSelectedItem(Item, int, java.lang.String);
+[...]
+126:   public abstract javax.swing.ListCellRenderer<? super Item> getElementsRenderer();
+[...]
+128:   public default java.lang.Object getDataForItem(Item, java.lang.String);
+[...]
+150:   public default java.lang.String getItemDescription(Item);
+[...]
+172:   public default boolean isMultiSelectionSupported();
+173:     Code:
+174:        0: iconst_0
+175:        1: ireturn
+176:
+[...]
+182:   public default boolean isEmptyPatternSupported();
+183:     Code:
+184:        0: iconst_0
+185:        1: ireturn
+186:
+187:   public default void dispose();

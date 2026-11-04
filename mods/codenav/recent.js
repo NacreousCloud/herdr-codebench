@@ -4,10 +4,11 @@ import { h_flex, v_flex, InputState, Input, v_virtual_list, VirtualListScrollHan
 import { shared, props, closeOverlay, theme } from "herdr";
 import { T } from "./i18n.js";
 import { IDEA, uiSize, popupSurface, uiInputBox, uiListRow, uiSeparator, uiCheckbox } from "./idea-design.js";
-import { editorKey, openPath, basename, tilde, icon } from "./common.js";
+import { editorKey, openPath, basename, tilde } from "./common.js";
 import { ideaImage, toolImage } from "./ideaicons.js";
-import { TOOLS, toggleTool } from "./tools.js";
+import { TOOLS, toggleTool } from "./tool-windows.js";
 import { openEverywhere } from "./everywhere.js";
+import { recentFileTabs } from "./editor-history.js";
 
 export default class RecentFiles {
   init(_p, cx) {
@@ -25,11 +26,11 @@ export default class RecentFiles {
   files() {
     const key = editorKey(), tabs = (shared("codenav.tabs") ?? {})[key] ?? [];
     const history = (shared("codenav.history") ?? {})[key]?.list ?? [];
-    const order = [...history.map(x => x.id).reverse(), ...tabs.map(x => x.id).reverse()];
+    const recent = recentFileTabs((shared("codenav.recentFiles") ?? {})[key], history, tabs);
     const edited = new Set((shared("codenav.editedFiles") ?? {})[key] ?? []);
     const seen = new Set(), out = [], q = this.input.value().trim().toLowerCase();
-    for (const id of order) {
-      const tab = tabs.find(x => x.id === id), spec = tab?.spec;
+    for (const tab of recent) {
+      const id = tab.id, spec = tab.spec;
       if (tab?.type !== "file" || typeof spec?.path !== "string" || seen.has(id)) continue;
       seen.add(id);
       if (this.onlyEdited && !edited.has(spec.path)) continue;
@@ -40,7 +41,6 @@ export default class RecentFiles {
   }
   tools() {
     const q = this.input.value().trim().toLowerCase();
-    // Read TOOLS only at runtime: tools.js imports everywhere.js as well.
     return Object.entries(TOOLS).filter(([, t]) => !q || T(t.label).toLowerCase().includes(q));
   }
   visible() {
@@ -100,7 +100,8 @@ export default class RecentFiles {
         .child(v_flex().flex_1().h_full().min_w(0).min_h(0).relative()
           .when(Boolean(files.length), el => el.child(v_virtual_list("recent-files", files.length, rowHeight, i => String(files[i].id), range => files.slice(range.start, range.end).map((file, n) => {
             const i = range.start + n;
-            return uiListRow(`recent-file-${i}`, [ideaImage(file.path, false, 16), div().flex_1().min_w(0).truncate().child(basename(file.path))],
+            return uiListRow(`recent-file-${i}`, [ideaImage(file.path, false, 16), div().flex_none().max_w(220).truncate().child(basename(file.path)),
+              div().flex_1().min_w(0).truncate().text_color(t.dim).text_size(uiSize(11)).child(tilde(file.path.replace(/\/[^/]*$/, "")))],
               { selected: i === this.fileAt, focused: this.column === "files", interactive: true }).mx(4);
           })).size_full().track_scroll(this.fileScroll).on_item_click((key) => {
             const index = files.findIndex(file => String(file.id) === key); if (index < 0) return;

@@ -1,6 +1,6 @@
 // Code navigation and branch review for Herdr. One mod, several views, chosen
 // by the block's props: { view: "code" | "review" | "tabs" | "status" | ... }.
-//   code      — source view with language-server help (bridge/lsp_bridge.py)
+//   code      — source view with language-server help (shared Go engine client)
 //   review    — diff against a base branch, line comments, sent to a terminal
 //   tabs      — the editor area's strip; keeps its stack on the right child
 //   status    — status-bar item: running language servers, language
@@ -12,8 +12,8 @@
 //   the idea layout (tools.js, everywhere.js): stripe, toolmenu, settings, toolempty, toolheader, toolbar,
 //   structure, problems, crumbs, projects, everywhere
 import { View, div } from "gpui-kit";
-import { props as herdrProps } from "herdr";
-import CodeView from "./code.js";
+import { props as herdrProps, shared, setShared, closeOverlay } from "herdr";
+import CodeView, { EditorContextMenu } from "./code.js";
 import Review from "./review.js";
 import Tabs, { TabMenu, TabList } from "./tabs.js";
 import Status from "./status.js";
@@ -28,15 +28,21 @@ import Agents from "./agents.js";
 import NewTerminal from "./newterminal.js";
 import RecentFiles from "./recent.js";
 import DesignPreview from "./design-preview.js";
+import Notice from "./notice.js";
+import LspSetup from "./lsp-setup.js";
 
 const VIEWS = { code: CodeView, review: Review, tabs: Tabs, status: Status, tabmenu: TabMenu, termfiles: TermFiles, termmenu: TermMenu, panehead: PaneHead,
   stripe: Stripe, notifications: Notifications, toolmenu: ToolMenu, toolempty: ToolEmpty, toolheader: ToolHeader, islandbottom: IslandBottom, toolbar: Toolbar, structure: Structure, problems: Problems, crumbs: Crumbs,
   projects: Projects, everywhere: Everywhere, runmenu: RunMenu, runconfigs: RunConfigs, httpenv: HttpEnvMenu,
-  settings: IdeaSettings, agents: Agents, newterminal: NewTerminal, tablist: TabList,
-  recent: RecentFiles, designpreview: DesignPreview };
+  "lsp-setup": LspSetup, settings: IdeaSettings, agents: Agents, newterminal: NewTerminal, tablist: TabList,
+  recent: RecentFiles, designpreview: DesignPreview, notice: Notice, editorcontext: EditorContextMenu };
 
 export default class CodeNav extends View {
   init(initProps, cx) {
+    const ghost = shared("codenav.dragGhost");
+    if (ghost) { closeOverlay(ghost); setShared("codenav.dragGhost", null); }
+    if (shared("codenav.drag")) setShared("codenav.drag", null);
+    if (shared("codenav.shortcutTrace")) setShared("codenav.shortcutTrace", null);
     const p = { ...(initProps ?? {}), ...(herdrProps() ?? {}) };
     this.view = p.view ?? (p.tab === "pane" && p.target ? "termmenu" : "review");
     const Impl = VIEWS[this.view] ?? null;

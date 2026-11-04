@@ -1,24 +1,26 @@
 // Structural edges belong to the island, not to whichever view happens to be
 // active. Herdr's layout radius does not mask an editor, viewer or terminal.
 import { IDEA } from "./idea-design.js";
+import { ensureToolSplits, ensureBottomSpan } from "./tool-layout.js";
+import { find } from "./layout-tree.js";
 
-const find = (n, id) => n?.id === id ? n : (n?.children ?? []).map((c) => find(c, id)).find(Boolean);
-const EDGES = { left: "sidebar", right: "tool-right", bottom: "terminal-panel", editor: "editor-area" };
+const EDGES = { left: "left-main", left2: "left-aux", right: "right-main", right2: "right-aux", bottom: "terminal-panel", editor: "editor-area" };
 export const islandFoot = (side) => ({
   id: `island-${side}-bottom`, type: "block", size: { px: IDEA.islandRadius }, min: IDEA.islandRadius, max: IDEA.islandRadius,
-  background: "canvas", content: { mod: "codenav", props: { view: "islandbottom" } },
+  background: "canvas", content: { mod: "codenav", props: { view: "islandbottom", side } },
 });
 
 // Mutate only idea-owned chrome fields; tool ordering, sizes, active children,
 // split directions, hidden state and terminal data remain the user's.
 export function ensureIdeaIslands(tree) {
-  let changed = false;
+  let changed = ensureToolSplits(tree);
+  changed = ensureBottomSpan(tree) || changed;
   const set = (node, key, value) => {
     if (JSON.stringify(node[key]) !== JSON.stringify(value)) { node[key] = value; changed = true; }
   };
   // Each island owns half the inter-island border. Root gaps also create an
   // unwanted gutter next to the stripes and status bar.
-  for (const id of ["root", "body", "work-body"]) {
+  for (const id of ["root", "body", "idea-content", "idea-upper", "work-body", "sidebar", "tool-right"]) {
     const node = find(tree, id);
     if (node) { set(node, "gap", 0); set(node, "padding", [0, 0]); }
   }
@@ -52,7 +54,7 @@ export function ensureIdeaIslands(tree) {
   updatePanes(tree);
   const tabs = find(tree, "editor-tabs");
   if (tabs) { set(tabs, "size", { px: IDEA.tabHeight }); set(tabs, "radius", IDEA.islandRadius); }
-  for (const id of ["left-bar", "right-bar", "bottom-bar"]) {
+  for (const id of ["left-bar", "left2-bar", "right-bar", "right2-bar", "bottom-bar"]) {
     const header = find(tree, id);
     if (header) { set(header, "size", { px: IDEA.toolHeaderHeight }); set(header, "background", "canvas"); set(header, "radius", IDEA.islandRadius); }
   }

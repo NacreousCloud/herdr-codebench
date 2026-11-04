@@ -309,6 +309,38 @@ func TestSuperOperationalErrorsAreNotHiddenAsEmptyNavigation(t *testing.T) {
 	}
 }
 
+func TestSuperWithoutResolvedParentStaysEmpty(t *testing.T) {
+	for _, mode := range []string{"empty", "null", "unsupported"} {
+		t.Run(mode, func(t *testing.T) {
+			root := t.TempDir()
+			child := superTestFile(t, root, "Plain.kt", "class Plain {\n fun answer(): String = \"none\"\n}\n")
+			owner := Position{Line: 0, Col: 6}
+			calls := 0
+			cb := superTestCallbacks(t, child, func(_ context.Context, method string, _ any) (json.RawMessage, error) {
+				calls++
+				if method != "textDocument/prepareTypeHierarchy" {
+					t.Fatalf("unresolved parent triggered invented navigation: %s", method)
+				}
+				if mode == "unsupported" {
+					return nil, &RPCError{Code: -32601, Message: "not supported"}
+				}
+				if mode == "null" {
+					return json.RawMessage("null"), nil
+				}
+				return json.RawMessage("[]"), nil
+			})
+			result, err := superNavigation(context.Background(), Request{Path: child, Kind: "super", Name: "answer", Line: 1, Col: 5, Owner: &owner}, cb)
+			if err != nil || len(result) != 0 || calls != 1 {
+				t.Fatal(result, calls, err)
+			}
+			encoded, err := json.Marshal(result)
+			if err != nil || string(encoded) != "[]" {
+				t.Fatalf("empty navigation must remain a JSON array: %s %v", encoded, err)
+			}
+		})
+	}
+}
+
 func TestSuperRetainsOriginalLibraryURI(t *testing.T) {
 	root := t.TempDir()
 	child := superTestFile(t, root, "Child.java", "class Child extends Parent {}")

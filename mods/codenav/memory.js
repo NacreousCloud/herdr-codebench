@@ -6,6 +6,7 @@
 // across spaces.
 import { spaces, layout, shared, setShared, run } from "herdr";
 import { find, AREA, STACK, CHILD, editorSpec, wantedChild, splitDir, setSplit } from "./common.js";
+import { isIdea } from "./idea-design.js";
 
 const KEY = "codenav.spaces";
 const PANEL = "terminal-panel";
@@ -17,7 +18,7 @@ function snapshot() {
     area: !node(AREA)?.hidden,
     panel: !node(PANEL)?.hidden,
     review: shared("codenav.area") === "review",
-    areaWeight: node(AREA)?.size?.weight ?? null,
+    areaWeight: (isIdea() ? node("idea-upper") ?? node(AREA) : node(AREA))?.size?.weight ?? null,
     panelWeight: node(PANEL)?.size?.weight ?? null,
     split: splitDir(),
   };
@@ -27,17 +28,18 @@ function apply(s) {
   const l = layout();
   const node = (id) => find(l, id);
   // A space seen for the first time: the editor area shows only if it has a file open.
-  s = s ?? { area: Boolean(editorSpec()), panel: true, review: false };
+  s = s ?? { area: isIdea() || Boolean(editorSpec()), panel: true, review: false };
   if (Boolean(shared("codenav.area") === "review") !== Boolean(s.review)) setShared("codenav.area", s.review ? "review" : null);
   const show = (id, on) => { if (node(id) && Boolean(node(id).hidden) === Boolean(on)) run(on ? "layout.show" : "layout.hide", { id }); };
-  show(AREA, s.area);
+  show(AREA, isIdea() || s.area);
   show(PANEL, s.panel || !s.area);
-  if (s.areaWeight && node(AREA)?.size?.weight !== s.areaWeight) run("layout.resize", { id: AREA, weight: s.areaWeight });
+  const areaSizeId = isIdea() && node("idea-upper") ? "idea-upper" : AREA;
+  if (s.areaWeight && node(areaSizeId)?.size?.weight !== s.areaWeight) run("layout.resize", { id: areaSizeId, weight: s.areaWeight });
   if (s.panelWeight && node(PANEL)?.size?.weight !== s.panelWeight) run("layout.resize", { id: PANEL, weight: s.panelWeight });
   const want = s.review ? CHILD.review : wantedChild();
   if (node(STACK) && node(STACK).active !== want) run("layout.select", { stack: STACK, child: want });
   // Last: it replaces the tree, so it takes everything above with it.
-  if (s.split && s.split !== splitDir()) setSplit(s.split);
+  if (!isIdea() && s.split && s.split !== splitDir()) setSplit(s.split);
 }
 
 // Called on every render of an always-shown copy: notices the space switch,

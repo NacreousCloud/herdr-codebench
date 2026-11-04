@@ -1,0 +1,177 @@
+# Focused javap excerpts; [...] = omitted original lines. Prefix = full dump line; bytecode offsets remain original.
+1: Compiled from "RunContentManagerImpl.kt"
+2: public final class com.intellij.execution.ui.RunContentManagerImpl implements com.intellij.execution.ui.RunContentManager {
+3:   public static final com.intellij.execution.ui.RunContentManagerImpl$Companion Companion;
+[...]
+5:   private final com.intellij.openapi.project.Project project;
+[...]
+7:   private final java.util.Map<com.intellij.execution.RunContentDescriptorId, com.intellij.execution.ui.RunContentDescriptor> descriptors;
+[...]
+9:   private final java.util.Map<java.lang.String, javax.swing.Icon> toolWindowIdToBaseIcon;
+[...]
+11:   private final java.util.concurrent.ConcurrentLinkedDeque<java.lang.String> toolWindowIdZBuffer;
+[...]
+13:   public static final com.intellij.openapi.util.Key<java.lang.Boolean> ALWAYS_USE_DEFAULT_STOPPING_BEHAVIOUR_KEY;
+[...]
+15:   public static final com.intellij.openapi.util.Key<com.intellij.execution.RunnerAndConfigurationSettings> TEMPORARY_CONFIGURATION_KEY;
+[...]
+98:   public void registerRunContentDescriptor(com.intellij.execution.ui.RunContentDescriptor);
+[...]
+119:       37: invokevirtual #174                // Method com/intellij/openapi/diagnostic/Logger.warn:(Ljava/lang/String;)V
+120:       40: return
+121:       41: aload_0
+122:       42: getfield      #32                 // Field descriptors:Ljava/util/Map;
+123:       45: aload_2
+124:       46: aload_1
+125:       47: invokeinterface #178,  3          // InterfaceMethod java/util/Map.put:(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+126:       52: pop
+127:       53: aload_1
+128:       54: checkcast     #60                 // class com/intellij/openapi/Disposable
+129:       57: aload_0
+130:       58: aload_2
+131:       59: invokedynamic #187,  0            // InvokeDynamic #2:dispose:(Lcom/intellij/execution/ui/RunContentManagerImpl;Lcom/intellij/execution/RunContentDescriptorId;)Lcom/intellij/openapi/Disposable;
+132:       64: invokestatic  #192                // Method com/intellij/openapi/util/Disposer.register:(Lcom/intellij/openapi/Disposable;Lcom/intellij/openapi/Disposable;)V
+133:       67: return
+134:
+[...]
+377:   public boolean removeRunContent(com.intellij.execution.Executor, com.intellij.execution.ui.RunContentDescriptor);
+[...]
+396:       31: aload_3
+397:       32: aload         4
+398:       34: iconst_1
+399:       35: invokeinterface #466,  3          // InterfaceMethod com/intellij/ui/content/ContentManager.removeContent:(Lcom/intellij/ui/content/Content;Z)Z
+400:       40: ifeq          47
+401:       43: iconst_1
+402:       44: goto          48
+[...]
+406:   public void showRunContent(com.intellij.execution.Executor, com.intellij.execution.ui.RunContentDescriptor);
+[...]
+415:       13: aload_1
+416:       14: aload_2
+417:       15: aload_2
+418:       16: invokevirtual #472                // Method com/intellij/execution/ui/RunContentDescriptor.getExecutionId:()J
+419:       19: invokespecial #475                // Method showRunContent:(Lcom/intellij/execution/Executor;Lcom/intellij/execution/ui/RunContentDescriptor;J)V
+420:       22: return
+421:
+422:   private final void showRunContent(com.intellij.execution.Executor, com.intellij.execution.ui.RunContentDescriptor, long);
+[...]
+454:       57: ifnonnull     70
+455:       60: aload_2
+456:       61: aload_1
+457:       62: invokestatic  #499                // Method com/intellij/execution/ui/RunContentManagerImplKt.access$createNewContent:(Lcom/intellij/execution/ui/RunContentDescriptor;Lcom/intellij/execution/Executor;)Lcom/intellij/ui/content/Content;
+458:       65: astore        8
+459:       67: goto          110
+460:       70: aload         7
+461:       72: invokevirtual #502                // Method com/intellij/execution/ui/RunContentDescriptor.getAttachedContent:()Lcom/intellij/ui/content/Content;
+462:       75: dup
+463:       76: invokestatic  #425                // Method kotlin/jvm/internal/Intrinsics.checkNotNull:(Ljava/lang/Object;)V
+464:       79: astore        8
+[...]
+470:       91: invokespecial #515                // Method getSyncPublisher:()Lcom/intellij/execution/ui/RunContentWithExecutorListener;
+471:       94: aload         7
+472:       96: aload_1
+473:       97: invokeinterface #519,  3          // InterfaceMethod com/intellij/execution/ui/RunContentWithExecutorListener.contentRemoved:(Lcom/intellij/execution/ui/RunContentDescriptor;Lcom/intellij/execution/Executor;)V
+474:      102: aload         7
+475:      104: checkcast     #60                 // class com/intellij/openapi/Disposable
+476:      107: invokestatic  #522                // Method com/intellij/openapi/util/Disposer.dispose:(Lcom/intellij/openapi/Disposable;)V
+477:      110: aload         8
+478:      112: lload_3
+479:      113: invokeinterface #526,  3          // InterfaceMethod com/intellij/ui/content/Content.setExecutionId:(J)V
+480:      118: aload         8
+481:      120: aload_2
+482:      121: invokevirtual #530                // Method com/intellij/execution/ui/RunContentDescriptor.getComponent:()Ljavax/swing/JComponent;
+483:      124: invokeinterface #534,  2          // InterfaceMethod com/intellij/ui/content/Content.setComponent:(Ljavax/swing/JComponent;)V
+484:      129: aload         8
+485:      131: aload_2
+486:      132: invokevirtual #538                // Method com/intellij/execution/ui/RunContentDescriptor.getPreferredFocusComputable:()Lcom/intellij/openapi/util/Computable;
+487:      135: invokeinterface #542,  2          // InterfaceMethod com/intellij/ui/content/Content.setPreferredFocusedComponent:(Lcom/intellij/openapi/util/Computable;)V
+488:      140: aload         8
+489:      142: getstatic     #546                // Field com/intellij/execution/ui/RunContentDescriptor.DESCRIPTOR_KEY:Lcom/intellij/openapi/util/Key;
+490:      145: aload_2
+[...]
+496:      162: aload         8
+497:      164: aload_2
+498:      165: invokevirtual #487                // Method com/intellij/execution/ui/RunContentDescriptor.getDisplayName:()Ljava/lang/String;
+499:      168: invokeinterface #556,  2          // InterfaceMethod com/intellij/ui/content/Content.setDisplayName:(Ljava/lang/String;)V
+500:      173: aload_2
+501:      174: invokevirtual #560                // Method com/intellij/execution/ui/RunContentDescriptor.getCoroutineScope:()Lkotlinx/coroutines/CoroutineScope;
+502:      177: dup
+[...]
+517:      205: pop
+518:      206: aload_2
+519:      207: aload         8
+520:      209: invokevirtual #579                // Method com/intellij/execution/ui/RunContentDescriptor.setAttachedContent:(Lcom/intellij/ui/content/Content;)V
+521:      212: aload_0
+522:      213: invokespecial #215                // Method getToolWindowManager:()Lcom/intellij/openapi/wm/ToolWindowManager;
+523:      216: aload         6
+524:      218: invokevirtual #229                // Method com/intellij/openapi/wm/ToolWindowManager.getToolWindow:(Ljava/lang/String;)Lcom/intellij/openapi/wm/ToolWindow;
+525:      221: astore        9
+526:      223: aload_2
+527:      224: invokevirtual #583                // Method com/intellij/execution/ui/RunContentDescriptor.getProcessHandler:()Lcom/intellij/execution/process/ProcessHandler;
+528:      227: astore        10
+529:      229: aload         10
+530:      231: ifnull        328
+[...]
+541:      252: astore        11
+542:      254: aload         10
+543:      256: aload         11
+544:      258: checkcast     #590                // class com/intellij/execution/process/ProcessListener
+545:      261: invokevirtual #596                // Method com/intellij/execution/process/ProcessHandler.addProcessListener:(Lcom/intellij/execution/process/ProcessListener;)V
+546:      264: aload         10
+547:      266: invokevirtual #599                // Method com/intellij/execution/process/ProcessHandler.isStartNotified:()Z
+548:      269: ifeq          297
+[...]
+557:      291: invokespecial #612                // Method com/intellij/execution/process/ProcessEvent."<init>":(Lcom/intellij/execution/process/ProcessHandler;)V
+558:      294: invokevirtual #616                // Method com/intellij/execution/ui/RunContentManagerImpl$showRunContent$processAdapter$1.startNotified:(Lcom/intellij/execution/process/ProcessEvent;)V
+559:      297: aload         8
+560:      299: invokeinterface #620,  1          // InterfaceMethod com/intellij/ui/content/Content.getDisposer:()Lcom/intellij/openapi/Disposable;
+561:      304: astore        12
+562:      306: aload         12
+563:      308: ifnull        362
+[...]
+565:      313: aload         10
+566:      315: aload         11
+567:      317: invokedynamic #628,  0            // InvokeDynamic #8:dispose:(Lcom/intellij/execution/process/ProcessHandler;Lcom/intellij/execution/ui/RunContentManagerImpl$showRunContent$processAdapter$1;)Lcom/intellij/openapi/Disposable;
+568:      322: invokestatic  #192                // Method com/intellij/openapi/util/Disposer.register:(Lcom/intellij/openapi/Disposable;Lcom/intellij/openapi/Disposable;)V
+569:      325: goto          362
+570:      328: aload_2
+571:      329: invokevirtual #560                // Method com/intellij/execution/ui/RunContentDescriptor.getCoroutineScope:()Lkotlinx/coroutines/CoroutineScope;
+[...]
+625:      448: aload         7
+626:      450: invokeinterface #662,  4          // InterfaceMethod com/intellij/execution/ui/RunContentManagerExtension.contentReused:(Lcom/intellij/openapi/project/Project;Lcom/intellij/ui/content/Content;Lcom/intellij/execution/ui/RunContentDescriptor;)V
+627:      455: aload_2
+628:      456: invokevirtual #665                // Method com/intellij/execution/ui/RunContentDescriptor.isSelectContentWhenAdded:()Z
+629:      459: ifne          488
+630:      462: aload         7
+631:      464: ifnull        506
+[...]
+641:      495: dup
+642:      496: invokestatic  #425                // Method kotlin/jvm/internal/Intrinsics.checkNotNull:(Ljava/lang/Object;)V
+643:      499: aload         8
+644:      501: invokeinterface #675,  2          // InterfaceMethod com/intellij/ui/content/ContentManager.setSelectedContent:(Lcom/intellij/ui/content/Content;)V
+645:      506: invokestatic  #680                // Method com/intellij/ide/ActivityTracker.getInstance:()Lcom/intellij/ide/ActivityTracker;
+646:      509: invokevirtual #683                // Method com/intellij/ide/ActivityTracker.inc:()V
+647:      512: aload_2
+648:      513: invokevirtual #686                // Method com/intellij/execution/ui/RunContentDescriptor.isActivateToolWindowWhenAdded:()Z
+649:      516: ifne          520
+650:      519: return
+651:      520: invokestatic  #380                // Method com/intellij/openapi/application/ApplicationManager.getApplication:()Lcom/intellij/openapi/application/Application;
+[...]
+656:      532: aload_0
+657:      533: getfield      #23                 // Field project:Lcom/intellij/openapi/project/Project;
+658:      536: invokeinterface #392,  1          // InterfaceMethod com/intellij/openapi/project/Project.getDisposed:()Lcom/intellij/openapi/util/Condition;
+659:      541: invokeinterface #398,  3          // InterfaceMethod com/intellij/openapi/application/Application.invokeLater:(Ljava/lang/Runnable;Lcom/intellij/openapi/util/Condition;)V
+660:      546: return
+661:
+[...]
+821:   public void showRunContent(com.intellij.execution.Executor, com.intellij.execution.ui.RunContentDescriptor, com.intellij.execution.ui.RunContentDescriptor);
+[...]
+834:       22: aload_1
+835:       23: aload_2
+836:       24: aload_2
+837:       25: invokevirtual #472                // Method com/intellij/execution/ui/RunContentDescriptor.getExecutionId:()J
+838:       28: invokespecial #475                // Method showRunContent:(Lcom/intellij/execution/Executor;Lcom/intellij/execution/ui/RunContentDescriptor;J)V
+839:       31: return
+840:
+[...]
+2874:   static {};

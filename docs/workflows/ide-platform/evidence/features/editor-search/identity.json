@@ -1,0 +1,54 @@
+{
+  "method": "ordinary zipfile + javap -constants -p -c; not REA Evidence; no target execution",
+  "app": "/Applications/IntelliJ IDEA.app",
+  "classes": [
+    {
+      "jar": "/Applications/IntelliJ IDEA.app/Contents/lib/intellij.platform.ide.impl.jar",
+      "jarSha256": "5a19d56e6ff99866f413af64200954a2e61c6dc8258014de0811a08e4312e026",
+      "class": "com.intellij.openapi.fileEditor.impl.FileEditorManagerImpl",
+      "member": "com/intellij/openapi/fileEditor/impl/FileEditorManagerImpl.class",
+      "classSha256": "0009dc1c490327a4496746bfb3f4071a2f576a1e4e6665192d90e51c7bacc52c",
+      "excerpt": "FileEditorManagerImpl.excerpt.txt"
+    },
+    {
+      "jar": "/Applications/IntelliJ IDEA.app/Contents/lib/intellij.platform.ide.impl.jar",
+      "jarSha256": "5a19d56e6ff99866f413af64200954a2e61c6dc8258014de0811a08e4312e026",
+      "class": "com.intellij.openapi.fileEditor.impl.EditorWindow",
+      "member": "com/intellij/openapi/fileEditor/impl/EditorWindow.class",
+      "classSha256": "9514da0aecb4afa0b11bc7782ee37c2b07bc8a987959d0acf4839102f5cf8049",
+      "excerpt": "EditorWindow.excerpt.txt"
+    },
+    {
+      "jar": "/Applications/IntelliJ IDEA.app/Contents/lib/intellij.platform.ide.jar",
+      "jarSha256": "53db581415966aa27160a805302eeab2f1306820c51200b41417f137e5bc11b0",
+      "class": "com.intellij.ui.tabs.impl.JBTabsImpl",
+      "member": "com/intellij/ui/tabs/impl/JBTabsImpl.class",
+      "classSha256": "b376cabe31632677651dc6a61cfe6549f17d6d3dd2eb1981e6205c927315e52c",
+      "excerpt": "JBTabsImpl.excerpt.txt"
+    },
+    {
+      "jar": "/Applications/IntelliJ IDEA.app/Contents/lib/intellij.platform.lang.impl.jar",
+      "jarSha256": "a1f3ac7bc6b265a8e1a8562f51def7e32ccb9bc454bbe523a91f5f1c523fd3ea",
+      "class": "com.intellij.ide.actions.searcheverywhere.SearchEverywhereUI",
+      "member": "com/intellij/ide/actions/searcheverywhere/SearchEverywhereUI.class",
+      "classSha256": "250181083e1a7477ace33561263930c35662ce189a55f18b297d766e3f8954e6",
+      "excerpt": "SearchEverywhereUI.excerpt.txt"
+    },
+    {
+      "jar": "/Applications/IntelliJ IDEA.app/Contents/lib/intellij.platform.lang.jar",
+      "jarSha256": "4d14343f196575fcdc2d2bf099b31fdc430661a15a6cc4833357af001a33b989",
+      "class": "com.intellij.ide.actions.searcheverywhere.SearchEverywhereContributor",
+      "member": "com/intellij/ide/actions/searcheverywhere/SearchEverywhereContributor.class",
+      "classSha256": "fa01b1186c326848ed42b4cc014ebb112b01d0bdd2b7672cbfcd904b4609e0a5",
+      "excerpt": "SearchEverywhereContributor.excerpt.txt"
+    },
+    {
+      "jar": "/Applications/IntelliJ IDEA.app/Contents/lib/intellij.platform.ide.impl.jar",
+      "jarSha256": "5a19d56e6ff99866f413af64200954a2e61c6dc8258014de0811a08e4312e026",
+      "class": "com.intellij.ide.actions.BaseRecentFilesAction",
+      "member": "com/intellij/ide/actions/BaseRecentFilesAction.class",
+      "classSha256": "c3b564a4b75d8014cf6251eba8189bced1ac949003aca00c5350b8661c172f37",
+      "excerpt": "BaseRecentFilesAction.excerpt.txt"
+    }
+  ]
+}

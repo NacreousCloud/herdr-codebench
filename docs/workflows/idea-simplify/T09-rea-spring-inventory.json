@@ -1,0 +1,124 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"evidence_id\":\"ev_0a447663caa6905c4542485fcd0c66dd7d0fc594abb71c442b2df026b6aef32b\",\"subject\":{\"name\":\"intellij.spring.jar\",\"digest\":{\"sha256\":\"76989f72cb6bffc77b7c59d6a45ed658485cecf34fd74de03cc71bb45bdf22b0\"},\"local_path\":\"/Applications/IntelliJ IDEA.app/Contents/plugins/Spring/lib/modules/intellij.spring.jar\",\"format\":\"zip\",\"architecture\":null},\"provider\":{\"id\":\"rea-analysis-view\",\"name\":\"REA analysis view projection\",\"version\":\"1\"},\"analysis_profile\":null,\"predicate_type\":\"rea.analysis-view\",\"operation\":\"inspect_analysis_view\",\"parameters\":{\"parent_evidence_id\":\"ev_8c9e8173b055b3a5f1ab3dab524498e00a51030db6e858e971cff87ee4d86769\",\"view\":{\"kind\":\"summary\"}},\"raw_result\":null,\"normalized_result\":{\"kind\":\"summary\",\"view\":{\"kind\":\"summary\"},\"parent_evidence_id\":\"ev_8c9e8173b055b3a5f1ab3dab524498e00a51030db6e858e971cff87ee4d86769\",\"parent_operation\":\"inspect_artifact\",\"parent_digest\":\"8c9e8173b055b3a5f1ab3dab524498e00a51030db6e858e971cff87ee4d86769\",\"view_digest\":\"0adf8faf6381eccc189cff426b2c9bc76029088ceb0be0a4d0261208c8e39b21\",\"artifact\":{\"path\":\"/Applications/IntelliJ IDEA.app/Contents/plugins/Spring/lib/modules/intellij.spring.jar\",\"sha256\":\"76989f72cb6bffc77b7c59d6a45ed658485cecf34fd74de03cc71bb45bdf22b0\"},\"coverage\":{\"status\":\"complete-within-view\",\"examined\":2093,\"total\":2093,\"next_offset\":null,\"exhausted\":true},\"limitations\":[\"Inspection derives bounded static hypotheses and next probes; it does not execute the artifact or claim format-specific semantics.\",\"ZIP inventory lists central-directory entries only. Non-entry bytes, including an APK Signing Block before the central directory or a ZIP comment after it, are not occurrences.\"],\"unknowns\":[\"Inventory does not establish application runtime behavior or complete format-specific analysis.\"],\"summary\":{\"manifest\":{\"manifest_id\":\"agm_89cc4c84172dc292dccf2739ae858b9ad7f7e7517b174541fcf3e610e99f98fb\",\"root_artifact_id\":\"art_cd9db15e06e71432aafd4f91f67b383551ecacfd9597d4037940d82e9ac374e1\",\"root_sha256\":\"76989f72cb6bffc77b7c59d6a45ed658485cecf34fd74de03cc71bb45bdf22b0\",\"root_format\":\"zip\",\"graph_sha256\":\"a12acf41d7ba74e661bd17121cc7d229289638444bcbe8af655dc05c4ac7206b\",\"node_count\":698,\"occurrence_count\":698,\"edge_count\":697},\"available_counts\":{\"nodes\":698,\"occurrences\":698,\"edges\":697,\"integrity_contradictions\":0},\"observed_entry_kind_counts\":{\"file\":698,\"directory\":0,\"symlink\":0,\"slice\":0},\"source_complete\":true,\"inventory_evidence_ids\":[\"ev_4a5c4a674c382750dad413245627afe8ca7e3d0b037137a6276a4a881ad9ef20\"],\"inspection\":{\"coverage\":{\"status\":\"complete-within-substeps\",\"substeps_completed\":1,\"observations_retained\":1,\"observations_omitted\":0,\"hypotheses_retained\":0,\"hypotheses_omitted\":0,\"unexplored_branches_retained\":0,\"unexplored_branches_omitted\":0,\"next_probes_retained\":0,\"next_probes_omitted\":0},\"unexplored_branches\":[]},\"limitation_count\":2}},\"confidence\":\"derived\",\"authority\":\"shipped-artifact\",\"environment\":null,\"limitations\":[\"Inspection derives bounded static hypotheses and next probes; it does not execute the artifact or claim format-specific semantics.\",\"ZIP inventory lists central-directory entries only. Non-entry bytes, including an APK Signing Block before the central directory or a ZIP comment after it, are not occurrences.\"],\"relationship_coverage\":null,\"locations\":[{\"kind\":\"artifact-path\",\"path\":\"/Applications/IntelliJ IDEA.app/Contents/plugins/Spring/lib/modules/intellij.spring.jar\"}],\"evidence_links\":[\"ev_8c9e8173b055b3a5f1ab3dab524498e00a51030db6e858e971cff87ee4d86769\"]}"
+    }
+  ],
+  "structuredContent": {
+    "evidence_id": "ev_0a447663caa6905c4542485fcd0c66dd7d0fc594abb71c442b2df026b6aef32b",
+    "subject": {
+      "name": "intellij.spring.jar",
+      "digest": {
+        "sha256": "76989f72cb6bffc77b7c59d6a45ed658485cecf34fd74de03cc71bb45bdf22b0"
+      },
+      "local_path": "/Applications/IntelliJ IDEA.app/Contents/plugins/Spring/lib/modules/intellij.spring.jar",
+      "format": "zip",
+      "architecture": null
+    },
+    "provider": {
+      "id": "rea-analysis-view",
+      "name": "REA analysis view projection",
+      "version": "1"
+    },
+    "analysis_profile": null,
+    "predicate_type": "rea.analysis-view",
+    "operation": "inspect_analysis_view",
+    "parameters": {
+      "parent_evidence_id": "ev_8c9e8173b055b3a5f1ab3dab524498e00a51030db6e858e971cff87ee4d86769",
+      "view": {
+        "kind": "summary"
+      }
+    },
+    "raw_result": null,
+    "normalized_result": {
+      "kind": "summary",
+      "view": {
+        "kind": "summary"
+      },
+      "parent_evidence_id": "ev_8c9e8173b055b3a5f1ab3dab524498e00a51030db6e858e971cff87ee4d86769",
+      "parent_operation": "inspect_artifact",
+      "parent_digest": "8c9e8173b055b3a5f1ab3dab524498e00a51030db6e858e971cff87ee4d86769",
+      "view_digest": "0adf8faf6381eccc189cff426b2c9bc76029088ceb0be0a4d0261208c8e39b21",
+      "artifact": {
+        "path": "/Applications/IntelliJ IDEA.app/Contents/plugins/Spring/lib/modules/intellij.spring.jar",
+        "sha256": "76989f72cb6bffc77b7c59d6a45ed658485cecf34fd74de03cc71bb45bdf22b0"
+      },
+      "coverage": {
+        "status": "complete-within-view",
+        "examined": 2093,
+        "total": 2093,
+        "next_offset": null,
+        "exhausted": true
+      },
+      "limitations": [
+        "Inspection derives bounded static hypotheses and next probes; it does not execute the artifact or claim format-specific semantics.",
+        "ZIP inventory lists central-directory entries only. Non-entry bytes, including an APK Signing Block before the central directory or a ZIP comment after it, are not occurrences."
+      ],
+      "unknowns": [
+        "Inventory does not establish application runtime behavior or complete format-specific analysis."
+      ],
+      "summary": {
+        "manifest": {
+          "manifest_id": "agm_89cc4c84172dc292dccf2739ae858b9ad7f7e7517b174541fcf3e610e99f98fb",
+          "root_artifact_id": "art_cd9db15e06e71432aafd4f91f67b383551ecacfd9597d4037940d82e9ac374e1",
+          "root_sha256": "76989f72cb6bffc77b7c59d6a45ed658485cecf34fd74de03cc71bb45bdf22b0",
+          "root_format": "zip",
+          "graph_sha256": "a12acf41d7ba74e661bd17121cc7d229289638444bcbe8af655dc05c4ac7206b",
+          "node_count": 698,
+          "occurrence_count": 698,
+          "edge_count": 697
+        },
+        "available_counts": {
+          "nodes": 698,
+          "occurrences": 698,
+          "edges": 697,
+          "integrity_contradictions": 0
+        },
+        "observed_entry_kind_counts": {
+          "file": 698,
+          "directory": 0,
+          "symlink": 0,
+          "slice": 0
+        },
+        "source_complete": true,
+        "inventory_evidence_ids": [
+          "ev_4a5c4a674c382750dad413245627afe8ca7e3d0b037137a6276a4a881ad9ef20"
+        ],
+        "inspection": {
+          "coverage": {
+            "status": "complete-within-substeps",
+            "substeps_completed": 1,
+            "observations_retained": 1,
+            "observations_omitted": 0,
+            "hypotheses_retained": 0,
+            "hypotheses_omitted": 0,
+            "unexplored_branches_retained": 0,
+            "unexplored_branches_omitted": 0,
+            "next_probes_retained": 0,
+            "next_probes_omitted": 0
+          },
+          "unexplored_branches": []
+        },
+        "limitation_count": 2
+      }
+    },
+    "confidence": "derived",
+    "authority": "shipped-artifact",
+    "environment": null,
+    "limitations": [
+      "Inspection derives bounded static hypotheses and next probes; it does not execute the artifact or claim format-specific semantics.",
+      "ZIP inventory lists central-directory entries only. Non-entry bytes, including an APK Signing Block before the central directory or a ZIP comment after it, are not occurrences."
+    ],
+    "relationship_coverage": null,
+    "locations": [
+      {
+        "kind": "artifact-path",
+        "path": "/Applications/IntelliJ IDEA.app/Contents/plugins/Spring/lib/modules/intellij.spring.jar"
+      }
+    ],
+    "evidence_links": [
+      "ev_8c9e8173b055b3a5f1ab3dab524498e00a51030db6e858e971cff87ee4d86769"
+    ]
+  }
+}

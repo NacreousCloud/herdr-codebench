@@ -5,6 +5,7 @@ import { readFile, writeFile } from "node:fs/promises";
 import vm from "node:vm";
 
 const root = new URL("../../", import.meta.url);
+const canonicalTokens = JSON.parse(await readFile(new URL("design/idea/tokens.json", root), "utf8"));
 const store = { layout: "idea" };
 const context = vm.createContext({ console });
 let inItemRenderer = false;
@@ -34,10 +35,11 @@ const synthetic = (id, values) => new vm.SyntheticModule(Object.keys(values), fu
   for (const [key, value] of Object.entries(values)) this.setExport(key, value);
 }, { context, identifier: id });
 const mocks = {
-  "gpui-kit": synthetic("gpui-kit", { div: element }),
+  "gpui-kit": synthetic("gpui-kit", { div: element, image: element }),
   "gpui-base": synthetic("gpui-base", { h_flex: element, v_flex: element, v_virtual_list: virtualList,
     Scrollbar: { vertical: element }, VirtualListScrollHandle: { new: () => ({ scroll_to_item: (...args) => scrolls.push(args), release() {} }) } }),
-  herdr: synthetic("herdr", { shared: key => store[key], settings: () => ({}), theme: () => ({ foreground: "#fff", surface: "#111" }) }),
+  herdr: synthetic("herdr", { shared: key => store[key], setShared: (key,value) => { store[key] = value; }, notify: () => {}, playSound: () => {}, openOverlay: () => "ghost", closeOverlay: () => {}, settings: () => ({}), theme: () => ({ foreground: "#fff", surface: "#111", ansi2: "#2", ansi4: "#4", ansi1: "#1" }) }),
+  "./idea-tokens.js": synthetic("canonical-tokens", { IDEA_TOKENS: canonicalTokens }),
 };
 const modules = new Map();
 async function load(url) {
@@ -52,6 +54,11 @@ const ui = (await load(new URL("design/idea/ui.js", root))).namespace;
 assert.equal(ui.IDEA.rowHeight, 22);
 assert.equal(ui.IDEA.islandRadius, 8);
 assert.equal(ui.uiColors().surface, "#191A1C");
+assert.equal(ui.IDEA.editorChangeMarkerWidth, 4);
+assert.equal(ui.IDEA.editorChangeMarkerRadius, 2);
+assert.equal(ui.uiColors().lineAdded, canonicalTokens['editor.colors'].ADDED_LINES_COLOR);
+assert.equal(ui.uiColors().lineModified, canonicalTokens['editor.colors'].MODIFIED_LINES_COLOR);
+assert.equal(ui.uiColors().lineDeleted, canonicalTokens['editor.colors'].DELETED_LINES_COLOR);
 store["codenav.appearance"] = { compact: false, uiSize: 16 };
 assert.equal(ui.IDEA.rowHeight, 24);
 assert.equal(ui.IDEA.islandRadius, 10);
@@ -60,6 +67,7 @@ store.layout = "codebench";
 assert.equal(ui.isCompact(), false);
 assert.equal(ui.uiSize(), 13);
 assert.equal(ui.uiColors().surface, "#111");
+assert.deepEqual([ui.uiColors().lineAdded, ui.uiColors().lineModified, ui.uiColors().lineDeleted], ['#2', '#4', '#1']);
 store.layout = "idea";
 delete store["codenav.appearance"];
 
@@ -104,6 +112,16 @@ assert.equal(chosen, beforeClick + 10, "separator is not actionable");
 menu.release(); menu.release(); empty.release();
 
 // Geometry migrations must preserve user arrangement and terminal payloads.
+const { find } = (await load(new URL("mods/codenav/layout-tree.js", root))).namespace;
+const first = { id: "duplicate" }, second = { id: "duplicate" };
+const lookupTree = { id: "root", children: [{ id: "branch", children: [first] }, second] };
+assert.equal(find(lookupTree, "root"), lookupTree, "the current node wins before its children");
+assert.equal(find(lookupTree, "duplicate"), first, "depth-first lookup returns the first match, not a later sibling");
+assert.equal(find(lookupTree, "missing"), null);
+assert.equal(find(null, "missing"), null);
+assert.equal(find({ id: "leaf" }, "missing"), null, "leaves need no children array");
+const shortCircuit = { id: "root", children: [first, { get id() { assert.fail("a later branch must not be visited after a match"); } }] };
+assert.equal(find(shortCircuit, "duplicate"), first);
 const islands = (await load(new URL("mods/codenav/islands.js", root))).namespace;
 const tree = JSON.parse(await readFile(new URL("layouts/idea.json", root), "utf8"));
 const collect = (node, map = new Map()) => { map.set(node.id, node); for (const child of node.children ?? []) collect(child, map); return map; };
@@ -115,17 +133,54 @@ for (const [id, previous] of before) {
   const next = after.get(id); assert.ok(next, id);
   for (const key of ["active", "hidden", "type"]) assert.deepEqual(next[key], previous[key], `${id}.${key}`);
   if (!id.startsWith("island-") && !["editor-tabs", "left-bar", "right-bar", "bottom-bar", "main-toolbar", "status-row", "stripe", "stripe-right"].includes(id)) assert.deepEqual(next.size, previous.size, `${id}.size`);
-  if (previous.children) assert.deepEqual(next.children.filter(n => !n.id.startsWith("island-")).map(n => n.id), previous.children.filter(n => !n.id.startsWith("island-")).map(n => n.id), `${id}.children`);
+  if (previous.children) {
+    const mainId = id === "sidebar" ? "left-main" : "right-main";
+    const holder = ["sidebar", "tool-right"].includes(id) && !previous.children.some(child=>child.id===mainId) ? after.get(mainId) : next;
+    assert.deepEqual(holder.children.filter(n => !n.id.startsWith("island-")).map(n => n.id), previous.children.filter(n => !n.id.startsWith("island-")).map(n => n.id), `${id}.children`);
+  }
 }
-for (const id of ["root", "body", "work-body"]) assert.equal(after.get(id).gap, 0);
-for (const id of ["sidebar", "tool-right", "terminal-panel", "editor-area"]) assert.deepEqual(Array.from(after.get(id).padding), [2, 2]);
+for (const id of ["root", "body", "idea-content", "idea-upper", "work-body"]) assert.equal(after.get(id).gap, 0);
+assert.deepEqual(Array.from(after.get('body').children,node=>node.id),['stripe','idea-content','stripe-right']);
+assert.deepEqual(Array.from(after.get('idea-content').children,node=>node.id),['idea-upper','terminal-panel']);
+assert.deepEqual(Array.from(after.get('idea-upper').children,node=>node.id),['sidebar','work-body','tool-right']);
+for (const id of ['idea-content','idea-upper']) assert.deepEqual(Array.from(after.get(id).padding),[0,0]);
+for (const id of ["left-main", "left-aux", "right-main", "right-aux", "terminal-panel", "editor-area"]) assert.deepEqual(Array.from(after.get(id).padding), [2, 2]);
+for (const id of ["sidebar", "tool-right"]) assert.deepEqual(Array.from(after.get(id).padding), [0,0]);
 for (const built of builtElements.filter(el => el.calls.some(([name]) => name === "virtual_list"))) {
   assert.ok(built.calls.some(([name]) => name === "size_full") || ["w", "h"].every(axis => built.calls.some(([name, value]) => name === axis && Number.isFinite(value) && value > 0)), "virtual lists need definite width and height");
 }
 const stripe = ui.uiStripeButton("stripe", element(), () => {}, { active: true });
+let spinnerFactories = 0;
+const makeSpinner = () => { spinnerFactories++; return element(); };
+const progress = ui.uiSpinner(makeSpinner, { size: 12 });
+assert.equal(spinnerFactories, 1, 'each spinner obtains its own native SVG');
+assert.equal(progress.calls.find(([name]) => name === 'spin')[1], 1000, 'IDEA eight125ms frames share a1000ms native cycle');
+assert.equal(progress.calls.find(([name]) => name === 'text_color')[1], ui.uiColors().secondary, 'working indicator uses neutral IDEA chrome color');
 assert.equal(stripe.calls.find(([name]) => name === "w")[1], 32);
 const fill = stripe.calls.find(([name]) => name === "child")[1];
 assert.equal(fill.calls.find(([name]) => name === "w")[1], 28, "selection remains inside the hit area");
+for (const compact of [true, false]) {
+  store['codenav.appearance'] = { compact };
+  for (const side of ['left', 'right']) {
+    const button = ui.uiStripeButton(`stripe-${side}`, element(), () => {}, { active: true, side });
+    const inside = button.calls.find(([name]) => name === 'child')[1];
+    const width = button.calls.find(([name]) => name === 'w')[1], fillWidth = inside.calls.find(([name]) => name === 'w')[1];
+    const offset = inside.calls.find(([name]) => name === 'left')[1];
+    assert.equal(width, ui.IDEA.stripeButtonWidth, 'hit width remains the existing density size');
+    assert.equal(offset, (side === 'left' ? 1 : -1) * ui.IDEA.islandGap / 4);
+    const start = (ui.IDEA.stripeWidth - fillWidth) / 2 + offset;
+    const end = ui.IDEA.stripeWidth - start - fillWidth;
+    const outer = side === 'left' ? start : end;
+    const inner = (side === 'left' ? end : start) + ui.IDEA.islandGap / 2;
+    assert.equal(inner, outer, 'visible inner shell+stripe margin matches outer stripe margin');
+    assert.ok(Math.abs(offset) <= (width - fillWidth) / 2, 'fill remains inside the unchanged hit target');
+  }
+  const footer = ui.uiEditorFooter([element()]);
+  assert.equal(footer.calls.find(([name]) => name === 'h')[1], ui.IDEA.editorBreadcrumbHeight);
+  assert.equal(footer.calls.find(([name]) => name === 'bg')[1], ui.uiColors().editor);
+  assert.ok(footer.calls.some(([name]) => name === 'justify_end'));
+}
+delete store['codenav.appearance'];
 const disabledCheckbox = ui.uiCheckbox("disabled", "Disabled", () => assert.fail("disabled"), { disabled: true });
 assert.ok(!disabledCheckbox.calls.some(([name]) => name === "on_click"));
 console.log("PASS shared density, semantic colors, deferred menu icons, keyboard/scroll, stripe inset, layout preservation/idempotence");

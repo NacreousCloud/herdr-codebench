@@ -1,0 +1,116 @@
+# Focused javap excerpts; [...] = omitted original lines. Prefix = full dump line; bytecode offsets remain original.
+1: Compiled from "RunContentDescriptor.java"
+2: public class com.intellij.execution.ui.RunContentDescriptor implements com.intellij.openapi.Disposable {
+3:   public static final com.intellij.openapi.util.Key<com.intellij.execution.ui.RunContentDescriptor> DESCRIPTOR_KEY;
+[...]
+5:   public static final com.intellij.openapi.util.Key<java.lang.String> CONTENT_TOOL_WINDOW_ID_KEY;
+[...]
+7:   private static final com.intellij.openapi.diagnostic.Logger LOG;
+[...]
+9:   private com.intellij.execution.ui.ExecutionConsole myExecutionConsole;
+[...]
+11:   private com.intellij.execution.process.ProcessHandler myProcessHandler;
+[...]
+13:   private javax.swing.JComponent myComponent;
+[...]
+15:   private final kotlinx.coroutines.flow.MutableStateFlow<java.lang.String> myDisplayNameView;
+[...]
+17:   private final kotlinx.coroutines.flow.MutableStateFlow<javax.swing.Icon> myIconView;
+[...]
+19:   private final java.lang.String myHelpId;
+[...]
+21:   private com.intellij.execution.ui.RunnerLayoutUi myRunnerLayoutUi;
+[...]
+23:   private com.intellij.execution.ui.RunContentDescriptorReusePolicy myReusePolicy;
+[...]
+25:   private boolean myActivateToolWindowWhenAdded;
+[...]
+27:   private boolean myReuseToolWindowActivation;
+[...]
+29:   private boolean mySelectContentWhenAdded;
+[...]
+31:   private long myExecutionId;
+[...]
+33:   private com.intellij.openapi.util.Computable<javax.swing.JComponent> myFocusComputable;
+[...]
+35:   private boolean myAutoFocusContent;
+[...]
+37:   private final kotlinx.coroutines.CoroutineScope myCoroutineScope;
+[...]
+39:   private com.intellij.ui.content.Content myContent;
+[...]
+41:   private java.lang.String myContentToolWindowId;
+[...]
+43:   private com.intellij.execution.RunContentDescriptorId myId;
+[...]
+45:   private final com.intellij.openapi.actionSystem.AnAction[] myRestartActions;
+[...]
+47:   private java.lang.Runnable myActivationCallback;
+[...]
+49:   private java.lang.String myRunConfigurationName;
+[...]
+51:   private java.lang.String myRunConfigurationTypeId;
+[...]
+294:   public void dispose();
+[...]
+299:        5: invokestatic  #175                // Method kotlinx/coroutines/CoroutineScopeKt.cancel:(Lkotlinx/coroutines/CoroutineScope;Ljava/util/concurrent/CancellationException;)V
+300:        8: aload_0
+301:        9: aconst_null
+302:       10: putfield      #73                 // Field myExecutionConsole:Lcom/intellij/execution/ui/ExecutionConsole;
+303:       13: aload_0
+304:       14: aconst_null
+305:       15: putfield      #81                 // Field myComponent:Ljavax/swing/JComponent;
+306:       18: aload_0
+307:       19: aconst_null
+308:       20: putfield      #77                 // Field myProcessHandler:Lcom/intellij/execution/process/ProcessHandler;
+309:       23: aload_0
+310:       24: aconst_null
+311:       25: putfield      #181                // Field myContent:Lcom/intellij/ui/content/Content;
+312:       28: aload_0
+313:       29: aconst_null
+314:       30: putfield      #101                // Field myActivationCallback:Ljava/lang/Runnable;
+[...]
+394:   public com.intellij.ui.content.Content getAttachedContent();
+395:     Code:
+396:        0: aload_0
+397:        1: getfield      #181                // Field myContent:Lcom/intellij/ui/content/Content;
+398:        4: areturn
+399:
+400:   public void setAttachedContent(com.intellij.ui.content.Content);
+[...]
+405:        6: invokestatic  #416                // Method $$$reportNull$$$0:(I)V
+406:        9: aload_0
+407:       10: aload_1
+408:       11: putfield      #181                // Field myContent:Lcom/intellij/ui/content/Content;
+409:       14: return
+410:
+[...]
+473:   public boolean isActivateToolWindowWhenAdded();
+474:     Code:
+475:        0: aload_0
+476:        1: getfield      #38                 // Field myActivateToolWindowWhenAdded:Z
+477:        4: ireturn
+478:
+[...]
+486:   public boolean isSelectContentWhenAdded();
+487:     Code:
+488:        0: aload_0
+489:        1: getfield      #45                 // Field mySelectContentWhenAdded:Z
+490:        4: ireturn
+491:
+[...]
+512:   public long getExecutionId();
+513:     Code:
+514:        0: aload_0
+515:        1: getfield      #48                 // Field myExecutionId:J
+516:        4: lreturn
+517:
+518:   public void setExecutionId(long);
+519:     Code:
+520:        0: aload_0
+521:        1: lload_1
+522:        2: putfield      #48                 // Field myExecutionId:J
+523:        5: return
+524:
+[...]
+611:   static {};

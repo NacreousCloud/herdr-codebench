@@ -1,6 +1,6 @@
 // Adapted from Herdr shipped mods/new-menu/main.js; commands and machine lookup preserved.
 import { div, svg, image } from "gpui-kit";
-import { h_flex, v_flex } from "gpui-base";
+
 import { IDEA, MenuController, uiMenu } from "./idea-design.js";
 import { T } from "./i18n.js";
 import { theme, spaces, panes, knownAgents, run, openOverlay, closeOverlay, props, window, keys, shared, setShared } from "herdr";

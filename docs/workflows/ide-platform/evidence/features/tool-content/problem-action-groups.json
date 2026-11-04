@@ -1,0 +1,180 @@
+[
+  {
+    "kind": "group",
+    "attributes": {
+      "id": "ProblemsView.ToolWindow.SecondaryActions"
+    },
+    "children": [
+      {
+        "kind": "action",
+        "attributes": {
+          "id": "ProblemsView.AutoscrollToSource",
+          "icon": "AllIcons.General.AutoscrollToSource",
+          "class": "com.intellij.analysis.problemsView.toolWindow.AutoscrollToSource"
+        },
+        "children": []
+      },
+      {
+        "kind": "action",
+        "attributes": {
+          "id": "ProblemsView.OpenInPreviewTab",
+          "class": "com.intellij.analysis.problemsView.toolWindow.OpenInPreviewTab"
+        },
+        "children": []
+      },
+      {
+        "kind": "action",
+        "attributes": {
+          "id": "ProblemsView.ShowPreview",
+          "icon": "AllIcons.Actions.PreviewDetails",
+          "class": "com.intellij.analysis.problemsView.toolWindow.ShowPreview"
+        },
+        "children": []
+      }
+    ]
+  },
+  {
+    "kind": "group",
+    "attributes": {
+      "id": "ProblemsView.ToolWindow.Toolbar"
+    },
+    "children": [
+      {
+        "kind": "group",
+        "attributes": {
+          "id": "ProblemsView.Options",
+          "icon": "AllIcons.Actions.GroupBy",
+          "popup": "true"
+        },
+        "children": [
+          {
+            "kind": "separator",
+            "attributes": {
+              "key": "group.ProblemsView.Show.text"
+            },
+            "children": []
+          },
+          {
+            "kind": "group",
+            "attributes": {
+              "id": "ProblemsView.SeverityFilters",
+              "class": "com.intellij.analysis.problemsView.toolWindow.SeverityFiltersActionGroup"
+            },
+            "children": []
+          },
+          {
+            "kind": "separator",
+            "attributes": {
+              "key": "group.ProblemsView.SortBy.text"
+            },
+            "children": []
+          },
+          {
+            "kind": "action",
+            "attributes": {
+              "id": "ProblemsView.SortFoldersFirst",
+              "icon": "AllIcons.ObjectBrowser.SortByType",
+              "class": "com.intellij.analysis.problemsView.toolWindow.SortFoldersFirst"
+            },
+            "children": []
+          },
+          {
+            "kind": "action",
+            "attributes": {
+              "id": "ProblemsView.SortBySeverity",
+              "icon": "AllIcons.Nodes.SortBySeverity",
+              "class": "com.intellij.analysis.problemsView.toolWindow.SortBySeverity"
+            },
+            "children": []
+          },
+          {
+            "kind": "action",
+            "attributes": {
+              "id": "ProblemsView.SortByName",
+              "icon": "AllIcons.ObjectBrowser.Sorted",
+              "class": "com.intellij.analysis.problemsView.toolWindow.SortByName"
+            },
+            "children": []
+          },
+          {
+            "kind": "separator",
+            "attributes": {},
+            "children": []
+          },
+          {
+            "kind": "action",
+            "attributes": {
+              "id": "ProblemsView.GroupByToolId",
+              "icon": "AllIcons.ObjectBrowser.SortByType",
+              "class": "com.intellij.analysis.problemsView.toolWindow.GroupByToolId"
+            },
+            "children": []
+          }
+        ]
+      },
+      {
+        "kind": "action",
+        "attributes": {
+          "id": "ProblemsView.QuickFixes",
+          "icon": "AllIcons.Actions.IntentionBulb",
+          "use-shortcut-of": "ShowIntentionActions",
+          "class": "com.intellij.analysis.problemsView.toolWindow.ShowProblemsViewQuickFixesAction"
+        },
+        "children": []
+      },
+      {
+        "kind": "reference",
+        "attributes": {
+          "ref": "ProblemsView.ShowPreview"
+        },
+        "children": []
+      },
+      {
+        "kind": "reference",
+        "attributes": {
+          "ref": "ExpandAll"
+        },
+        "children": []
+      },
+      {
+        "kind": "reference",
+        "attributes": {
+          "ref": "CollapseAll"
+        },
+        "children": []
+      }
+    ]
+  },
+  {
+    "kind": "group",
+    "attributes": {
+      "id": "ProblemsView.ToolWindow.TreePopup"
+    },
+    "children": [
+      {
+        "kind": "reference",
+        "attributes": {
+          "ref": "ProblemsView.QuickFixes"
+        },
+        "children": []
+      },
+      {
+        "kind": "action",
+        "attributes": {
+          "id": "ProblemsView.CopyProblemDescription",
+          "icon": "AllIcons.Actions.Copy",
+          "use-shortcut-of": "$Copy",
+          "class": "com.intellij.analysis.problemsView.toolWindow.CopyProblemDescriptionAction"
+        },
+        "children": []
+      },
+      {
+        "kind": "reference",
+        "attributes": {
+          "ref": "EditSource"
+        },
+        "children": []
+      }
+    ]
+  }
+]

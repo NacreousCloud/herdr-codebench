@@ -7,7 +7,7 @@
 | 폴더 | 내용 |
 | --- | --- |
 | `layouts/codebench.json` | 레이아웃: 맨 왼쪽 스페이스 목록, 그 옆 사이드바(탐색기·검색·리뷰, 스페이스를 옮겨도 그대로), 편집기 영역(탭 줄 + 코드 뷰 / 편집기 / 리뷰 diff), 터미널 패널, 상태 표시줄 |
-| `mods/codenav/` | 이 레포의 mod: 코드 뷰, 브랜치 리뷰, LSP bridge, 스페이스별 배치 기억, 한국어 |
+| `mods/codenav/` | 이 레포의 mod: 코드 뷰, 브랜치 리뷰, Go LSP 연결, 스페이스별 배치 기억, 한국어 |
 | `mods/activity/` | yama-lei의 activity mod 수정본 (아래 "원본 대비 변경") |
 | `mods/open-vscode/` | [CacaoRick/herdr-open-vscode](https://github.com/CacaoRick/herdr-open-vscode), 그대로 |
 
@@ -16,7 +16,7 @@
 ### 코드 뷰
 탐색기나 검색에서 소스 파일을 열면 나옵니다. 그림, PDF, 마크다운은 기존 activity 편집기와 뷰어가 엽니다.
 
-- 문법 색상(pygments), 줄 번호, 브레드크럼, 아웃라인, Cmd+F 찾기
+- 문법 색상, 줄 번호, 브레드크럼, 아웃라인, Cmd+F 찾기
 - 이름 클릭: 같은 이름 강조, 정보줄에 타입·문서(hover)와 그 줄의 진단
 - Cmd+클릭 / F12 정의로 이동, Shift+F12 참조, Cmd+F12 구현, 타입 정의
 - jar 안의 라이브러리 소스(Kotlin)와 jdtls 클래스 파일도 읽기 전용으로 엽니다
@@ -56,26 +56,18 @@ Herdr는 터미널 링크의 Cmd+클릭을 macOS 기본 앱으로 넘기고 이�
 
 ## LSP
 
-`mods/codenav/bridge/lsp_bridge.py`가 언어 서버를 켜 두고, mod는 `127.0.0.1:47821`로 짧게 묻습니다. herdr mod는 계속 켜져 있는 프로세스를 가질 수 없어서 이렇게 나눴습니다. bridge는 필요할 때 herdr-core 터미널(`codenav-lsp`, 화면에는 안 보임)로 저절로 켜지고, 1시간 동안 요청이 없으면 꺼집니다. 로그는 `~/.cache/herdr-codenav/`에 남습니다.
+작은 Go 엔진이 언어 서버 프로세스와 Spring 소스 탐색을 관리합니다. 플랫폼별 바이너리는 `engine/dist/`에 있고 SDK와 언어 서버는 동봉하지 않습니다. UI는 인증된 로컬 요청(`127.0.0.1:47822`)으로 엔진과 통신하며 서버는 필요할 때 켜지고 10분 동안 사용하지 않으면 내려갑니다.
 
-- bridge는 켜질 때마다 무작위 토큰을 `~/.cache/herdr-codenav/bridge.json`(권한 0600)에 쓰고, 그 토큰이 없는 요청과 브라우저발 요청(Origin 헤더, 다른 Host)은 거부합니다.
-- Java 기반 서버(jdtls, kotlin-lsp)는 `java.awt.headless`, `apple.awt.UIElement` 옵션으로 띄워 macOS 독에 나타나지 않습니다.
-- 메모리: Java 기반 서버는 힙 시작 64MB·상한 1GB로 띄우고, 쉬는 동안 G1 주기 GC로 메모리를 돌려줍니다(kotlin-lsp는 `IJ_JAVA_OPTIONS`, jdtls는 `--jvm-arg`, `servers.json`에서 조정). 10분 동안 쓰지 않은 서버는 내리고, 동시에 최대 3개까지만 띄웁니다. 대형 프로젝트에서 힙이 모자라면 `-Xmx` 값을 올리세요.
+하단 **LSP**를 클릭하거나 **액션 찾기 → 언어 서버 설정**, **설정 → 도구 → 언어 서버**에서 설치 가이드를 엽니다.
 
-| 언어 | 서버 | 설치 |
-| --- | --- | --- |
-| Kotlin | kotlin-lsp | `brew install --cask kotlin-lsp` (macOS가 막으면 아래 참고) |
-| Java | jdtls | `brew install jdtls` |
-| TypeScript / JavaScript | `tsc --lsp` (TypeScript 7), 없으면 typescript-language-server | `npm i -g typescript` |
-| Python | basedpyright / pyright / pylsp | `npm i -g pyright` |
-| Go | gopls | `go install golang.org/x/tools/gopls@latest` |
-| Rust | rust-analyzer | `rustup component add rust-analyzer` |
-| Swift | sourcekit-lsp | Xcode에 포함 |
+1. Java, Kotlin, TypeScript, JavaScript, Go, Swift, Rust 중 사용할 언어를 선택합니다.
+2. 해당 운영체제의 SDK·언어 서버 설치 안내를 따라 명령을 터미널에서 실행합니다. 명령 복사와 공식 문서 링크를 제공하며 설치 명령을 자동 실행하지 않습니다.
+3. 프로젝트 폴더를 선택하고 **설치 확인**을 누릅니다. 실행 파일 감지와 실제 서버 준비 상태를 구분합니다.
+4. **LSP 시작**을 누르면 엔진이 서버를 실행하고 실제 초기화 응답을 확인합니다. stdio 서버를 다른 터미널에서 별도로 띄울 필요가 없습니다.
 
-- 서버 목록과 프로젝트 루트를 찾는 기준은 `bridge/servers.json`에 있습니다. `~/.cache/herdr-codenav/servers.json`에 같은 형식으로 쓰면 덮어씁니다.
-- 문법 색상에는 python3의 `pygments`가 필요합니다(`pip3 install pygments`).
-- kotlin-lsp 내부의 `intellij-server`는 JetBrains 서명은 있지만 공증되지 않아 macOS가 실행을 막을 수 있습니다. 서명을 확인한 뒤 그 설치 폴더에서만 격리 표시를 지우면 됩니다: `xattr -dr com.apple.quarantine /opt/homebrew/Caskroom/kotlin-lsp/<버전>`
-- 원격(ssh) 스페이스에서는 문법 색상과 보기만 되고, LSP는 이 컴퓨터에서만 돕니다.
+TypeScript와 JavaScript는 `typescript-language-server`를 공유합니다. 선택한 SDK와 서버가 Herdr의 실행 환경에서 감지되어야 하며, 사용자 설정은 `~/.cache/herdr-codenav/servers.json`에서 기존 설정을 덮어쓸 수 있습니다. 기본 서버와 프로젝트 루트 규칙은 `mods/codenav/bridge/servers.json`에 있습니다. 원격 스페이스의 LSP는 지원하지 않습니다.
+
+엔진 설치·빌드·API와 Spring 기능의 상세 내용은 [엔진 문서](engine/README.md)를 참고하세요.
 
 ## 설치
 
@@ -118,7 +110,7 @@ git switch idea-ux           # IDEA 모드 변경은 이 브랜치에 있습니�
 herdr-app do layout.switch --name idea
 ```
 
-Shift를 눌렀다 놓는 동작을 두 번 하면 **어디서나 검색**이 열립니다. Herdr 0.1.12의 기본 `shift shift` 키 시퀀스를 사용하므로 터미널·파일 탐색기·에디터·리뷰 등 포커스 위치와 관계없이 IDEA 레이아웃에서 동작합니다. 설정 → 키맵 → 탐색에서도 `어디서나 검색` / `⇧ ⇧`를 볼 수 있습니다. 다른 컴퓨터에서도 `idea-ux` 브랜치에서 설치하세요.
+**⌘⇧Space**로 어디서나 검색을 엽니다. IDEA 레이아웃의 터미널·파일 탐색기·에디터·리뷰에서 동작하며 설정 → 키맵 → 탐색에서 변경할 수 있습니다. 입력 중 잘못 열리던 Shift 두 번 기본값은 제거했습니다. 설치 시 이전 기본값만 마이그레이션하며 개인 단축키는 보존합니다. 다른 컴퓨터에서도 `idea-ux` 브랜치에서 설치하세요.
 
 - 기준과 분석: [선정 계획](design/idea/PARITY_PLAN.md), [세부 비교](design/idea/DETAIL_AUDIT.md)
 - 구조 전환 설계: [현재 기능 목록 · IDEA 구조 조사 · 공통 플랫폼 계획](docs/workflows/ide-platform/README.md) (조사·설계 완료, 리팩터링 미착수)

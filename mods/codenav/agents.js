@@ -4,7 +4,7 @@
 // Adapted from Herdr shipped mods/agents/main.js, preserving live agent semantics.
 import { div, image, svg } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
-import { IDEA, uiSize, ideaUI, popupSurface } from "./idea-design.js";
+import { IDEA, uiSize, ideaUI, popupSurface, isIdea, uiSpinner } from "./idea-design.js";
 import { T } from "./i18n.js";
 import { agents, terminals, panes, focused, spaces, run, theme, shared, setShared, setAgentOrder, openOverlay, closeOverlay, props } from "herdr";
 
@@ -200,7 +200,9 @@ export default class Agents {
   // compact: a ! for blocked where a header already says "Needs you".
   status(t, a, compact = false) {
     const color = t[a.status] ?? t.dim;
-    if (a.status === "working") return svg("mods/workspace-chrome/spinner.svg").size(12).mx(1).flex_none().text_color(t.working).spin(900);
+    if (a.status === "working") return isIdea()
+      ? uiSpinner(() => svg("mods/codenav/idea-icons/progress.svg"), { size: 14, tip: T("Working…") }).mx(1)
+      : svg("mods/workspace-chrome/spinner.svg").size(12).mx(1).flex_none().text_color(t.working).spin(900);
     if (a.status === "blocked" && compact) return div().size(14).flex_none().rounded(4).bg(t.blocked + "26").text_size(uiSize(10.5)).font_bold().text_color(t.blocked).flex().items_center().justify_center().child("!");
     if (a.status === "blocked") return div().flex_none().px(6).h(18).rounded(5).bg(t.blocked + "26").text_size(uiSize(10.5)).font_semibold().text_color(t.blocked).flex().items_center().child("Needs you");
     // Idle: a ring; done: a dot.

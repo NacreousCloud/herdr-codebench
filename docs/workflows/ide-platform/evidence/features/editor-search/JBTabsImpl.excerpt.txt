@@ -1,0 +1,261 @@
+# Focused javap excerpts. [...] = omitted original lines. Numbers are original dump lines.
+1: Compiled from "JBTabsImpl.kt"
+2: public class com.intellij.ui.tabs.impl.JBTabsImpl extends javax.swing.JComponent implements com.intellij.ui.tabs.JBTabsEx,java.beans.PropertyChangeListener,com.intellij.openapi.actionSystem.UiCompatibleDataProvider,javax.swing.event.PopupMenuListener,com.intellij.ui.tabs.JBTabsPresentation,com.intellij.openapi.ui.Queryable,com.intellij.ide.ui.UISettingsListener,com.intellij.ui.switcher.QuickActionProvider,com.intellij.ui.tabs.impl.MorePopupAware,javax.accessibility.Accessible {
+[...]
+3251:   private final com.intellij.openapi.util.ActionCallback executeSelectionChange(com.intellij.ui.tabs.TabInfo, boolean, boolean);
+3252:     Code:
+3253:        0: aload_0
+3254:        1: getfield      #1675               // Field selectedInfo:Lcom/intellij/ui/tabs/TabInfo;
+3255:        4: ifnull        87
+3256:        7: aload_0
+3257:        8: getfield      #1675               // Field selectedInfo:Lcom/intellij/ui/tabs/TabInfo;
+3258:       11: aload_1
+3259:       12: invokestatic  #1336               // Method kotlin/jvm/internal/Intrinsics.areEqual:(Ljava/lang/Object;Ljava/lang/Object;)Z
+3260:       15: ifeq          87
+[...]
+3285:       73: aload_0
+3286:       74: aload         4
+3287:       76: iload_3
+3288:       77: invokespecial #1967               // Method requestFocusLaterOn:(Ljava/awt/Component;Z)Lcom/intellij/openapi/util/ActionCallback;
+3289:       80: areturn
+3290:       81: aload_0
+3291:       82: iload_3
+3292:       83: invokespecial #1971               // Method requestFocusLater:(Z)Lcom/intellij/openapi/util/ActionCallback;
+3293:       86: areturn
+3294:       87: aload_0
+3295:       88: getfield      #51                 // Field tabListOptions:Lcom/intellij/ui/tabs/impl/TabListOptions;
+3296:       91: getfield      #1697               // Field com/intellij/ui/tabs/impl/TabListOptions.requestFocusOnLastFocusedComponent:Z
+3297:       94: ifeq          126
+3298:       97: aload_0
+3299:       98: getfield      #1675               // Field selectedInfo:Lcom/intellij/ui/tabs/TabInfo;
+3300:      101: ifnull        126
+3301:      104: aload_0
+3302:      105: invokespecial #1706               // Method isMyChildIsFocusedNow:()Z
+3303:      108: ifeq          126
+3304:      111: aload_0
+3305:      112: getfield      #1675               // Field selectedInfo:Lcom/intellij/ui/tabs/TabInfo;
+3306:      115: dup
+3307:      116: invokestatic  #423                // Method kotlin/jvm/internal/Intrinsics.checkNotNull:(Ljava/lang/Object;)V
+3308:      119: aload_0
+3309:      120: invokevirtual #1974               // Method getFocusOwnerToStore:()Ljavax/swing/JComponent;
+3310:      123: invokevirtual #1977               // Method com/intellij/ui/tabs/TabInfo.setLastFocusOwner:(Ljavax/swing/JComponent;)V
+3311:      126: aload_0
+3312:      127: getfield      #1675               // Field selectedInfo:Lcom/intellij/ui/tabs/TabInfo;
+3313:      130: astore        4
+3314:      132: aload_0
+3315:      133: aload_1
+3316:      134: invokespecial #1900               // Method setSelectedInfo:(Lcom/intellij/ui/tabs/TabInfo;)V
+3317:      137: aload_0
+3318:      138: getfield      #1675               // Field selectedInfo:Lcom/intellij/ui/tabs/TabInfo;
+3319:      141: astore        5
+3320:      143: aload_1
+3321:      144: getfield      #701                // Field com/intellij/ui/tabs/TabInfo.tabLabel:Lcom/intellij/ui/tabs/impl/TabLabel;
+[...]
+3342:      184: aload_0
+3343:      185: aload         4
+3344:      187: aload         5
+3345:      189: invokespecial #1791               // Method fireBeforeSelectionChanged:(Lcom/intellij/ui/tabs/TabInfo;Lcom/intellij/ui/tabs/TabInfo;)V
+3346:      192: aload_0
+3347:      193: getfield      #818                // Field isMouseInsideTabsArea:Z
+3348:      196: istore        6
+[...]
+3350:      199: aload_0
+3351:      200: iconst_0
+3352:      201: iconst_1
+3353:      202: invokespecial #1903               // Method updateContainer:(ZZ)V
+3354:      205: aload_0
+3355:      206: iload         6
+3356:      208: putfield      #818                // Field isMouseInsideTabsArea:Z
+[...]
+3364:      225: aload_0
+3365:      226: aload         4
+3366:      228: aload         5
+3367:      230: invokespecial #1794               // Method fireSelectionChanged:(Lcom/intellij/ui/tabs/TabInfo;Lcom/intellij/ui/tabs/TabInfo;)V
+3368:      233: iload_2
+3369:      234: ifne          242
+3370:      237: aload_0
+[...]
+3382:      263: astore        7
+3383:      265: aload_0
+3384:      266: iload_3
+3385:      267: invokespecial #1971               // Method requestFocusLater:(Z)Lcom/intellij/openapi/util/ActionCallback;
+3386:      270: aload_0
+3387:      271: aload         7
+3388:      273: invokedynamic #1990,  0           // InvokeDynamic #20:run:(Lcom/intellij/ui/tabs/impl/JBTabsImpl;Lcom/intellij/openapi/util/ActionCallback;)Ljava/lang/Runnable;
+[...]
+3394:      286: aload_0
+3395:      287: checkcast     #441                // class java/awt/Component
+3396:      290: iload_3
+3397:      291: invokespecial #1967               // Method requestFocusLaterOn:(Ljava/awt/Component;Z)Lcom/intellij/openapi/util/ActionCallback;
+3398:      294: pop
+3399:      295: aload_0
+3400:      296: invokespecial #1907               // Method removeDeferred:()Lcom/intellij/openapi/util/ActionCallback;
+[...]
+4395:   public com.intellij.ui.tabs.TabInfo getToSelectOnRemoveOf(com.intellij.ui.tabs.TabInfo);
+[...]
+4398:        1: ldc_w         #2002               // String tab
+4399:        4: invokestatic  #36                 // Method kotlin/jvm/internal/Intrinsics.checkNotNullParameter:(Ljava/lang/Object;Ljava/lang/String;)V
+4400:        7: aload_0
+4401:        8: getfield      #67                 // Field visibleInfos:Ljava/util/ArrayList;
+4402:       11: aload_1
+4403:       12: invokevirtual #2288               // Method java/util/ArrayList.contains:(Ljava/lang/Object;)Z
+4404:       15: ifeq          40
+4405:       18: aload_0
+4406:       19: getfield      #1675               // Field selectedInfo:Lcom/intellij/ui/tabs/TabInfo;
+4407:       22: aload_1
+4408:       23: invokestatic  #1336               // Method kotlin/jvm/internal/Intrinsics.areEqual:(Ljava/lang/Object;Ljava/lang/Object;)Z
+4409:       26: ifeq          40
+4410:       29: aload_0
+4411:       30: getfield      #67                 // Field visibleInfos:Ljava/util/ArrayList;
+4412:       33: invokevirtual #1827               // Method java/util/ArrayList.size:()I
+4413:       36: iconst_1
+4414:       37: if_icmpne     42
+4415:       40: aconst_null
+4416:       41: areturn
+4417:       42: aload_0
+4418:       43: invokevirtual #1407               // Method getVisibleInfos:()Ljava/util/List;
+4419:       46: aload_1
+4420:       47: invokeinterface #1775,  2         // InterfaceMethod java/util/List.indexOf:(Ljava/lang/Object;)I
+4421:       52: istore_2
+4422:       53: aconst_null
+4423:       54: astore_3
+4424:       55: iload_2
+4425:       56: ifle          66
+[...]
+6313:   public com.intellij.openapi.util.ActionCallback removeTab(com.intellij.ui.tabs.TabInfo);
+6314:     Code:
+6315:        0: aload_0
+6316:        1: aload_1
+6317:        2: aconst_null
+6318:        3: iconst_0
+6319:        4: iconst_4
+6320:        5: aconst_null
+6321:        6: invokestatic  #2716               // Method removeTab$default:(Lcom/intellij/ui/tabs/impl/JBTabsImpl;Lcom/intellij/ui/tabs/TabInfo;Lcom/intellij/ui/tabs/TabInfo;ZILjava/lang/Object;)Lcom/intellij/openapi/util/ActionCallback;
+6322:        9: areturn
+6323:
+6324:   public final com.intellij.openapi.util.ActionCallback removeTab(com.intellij.ui.tabs.TabInfo, com.intellij.ui.tabs.TabInfo, boolean);
+[...]
+6339:       31: invokestatic  #1336               // Method kotlin/jvm/internal/Intrinsics.areEqual:(Ljava/lang/Object;Ljava/lang/Object;)Z
+6340:       34: ifeq          42
+6341:       37: aload_0
+6342:       38: aconst_null
+6343:       39: putfield      #743                // Field popupInfo:Lcom/intellij/ui/tabs/TabInfo;
+6344:       42: iload_3
+6345:       43: ifne          74
+[...]
+6364:       86: getfield      #767                // Field lastLayoutPass:Lcom/intellij/ui/tabs/impl/LayoutPassInfo;
+6365:       89: dup
+6366:       90: invokestatic  #423                // Method kotlin/jvm/internal/Intrinsics.checkNotNull:(Ljava/lang/Object;)V
+6367:       93: getfield      #2719               // Field com/intellij/ui/tabs/impl/LayoutPassInfo.visibleInfos:Ljava/util/List;
+6368:       96: aload_1
+6369:       97: invokeinterface #2720,  2         // InterfaceMethod java/util/List.remove:(Ljava/lang/Object;)Z
+6370:      102: pop
+[...]
+6374:      108: aload_1
+6375:      109: dup
+6376:      110: invokestatic  #423                // Method kotlin/jvm/internal/Intrinsics.checkNotNull:(Ljava/lang/Object;)V
+6377:      113: invokevirtual #2164               // Method getToSelectOnRemoveOf:(Lcom/intellij/ui/tabs/TabInfo;)Lcom/intellij/ui/tabs/TabInfo;
+6378:      116: goto          155
+6379:      119: aload_0
+6380:      120: getfield      #67                 // Field visibleInfos:Ljava/util/ArrayList;
+6381:      123: aload_2
+6382:      124: invokevirtual #2288               // Method java/util/ArrayList.contains:(Ljava/lang/Object;)Z
+6383:      127: ifeq          134
+[...]
+6391:      147: aload_1
+6392:      148: dup
+6393:      149: invokestatic  #423                // Method kotlin/jvm/internal/Intrinsics.checkNotNull:(Ljava/lang/Object;)V
+6394:      152: invokevirtual #2164               // Method getToSelectOnRemoveOf:(Lcom/intellij/ui/tabs/TabInfo;)Lcom/intellij/ui/tabs/TabInfo;
+6395:      155: astore        4
+6396:      157: new           #1931               // class com/intellij/openapi/util/ActionCallback
+6397:      160: dup
+[...]
+6405:      174: invokestatic  #423                // Method kotlin/jvm/internal/Intrinsics.checkNotNull:(Ljava/lang/Object;)V
+6406:      177: iconst_1
+6407:      178: aload_0
+6408:      179: getfield      #1675               // Field selectedInfo:Lcom/intellij/ui/tabs/TabInfo;
+6409:      182: aload_1
+6410:      183: invokestatic  #1336               // Method kotlin/jvm/internal/Intrinsics.areEqual:(Ljava/lang/Object;Ljava/lang/Object;)Z
+6411:      186: invokespecial #2730               // Method processRemove:(Lcom/intellij/ui/tabs/TabInfo;ZZ)V
+6412:      189: aload_0
+6413:      190: invokespecial #1907               // Method removeDeferred:()Lcom/intellij/openapi/util/ActionCallback;
+6414:      193: aload         5
+[...]
+6416:      198: goto          259
+6417:      201: aload_1
+6418:      202: aload_0
+6419:      203: getfield      #1675               // Field selectedInfo:Lcom/intellij/ui/tabs/TabInfo;
+6420:      206: invokestatic  #1336               // Method kotlin/jvm/internal/Intrinsics.areEqual:(Ljava/lang/Object;Ljava/lang/Object;)Z
+6421:      209: istore        6
+6422:      211: aload_0
+[...]
+6429:      223: aload_1
+6430:      224: iconst_0
+6431:      225: iconst_0
+6432:      226: invokespecial #2730               // Method processRemove:(Lcom/intellij/ui/tabs/TabInfo;ZZ)V
+6433:      229: iload         6
+6434:      231: ifeq          239
+6435:      234: aload_0
+6436:      235: aload_1
+6437:      236: invokespecial #1900               // Method setSelectedInfo:(Lcom/intellij/ui/tabs/TabInfo;)V
+6438:      239: aload_0
+6439:      240: aload         4
+6440:      242: iload         7
+[...]
+6446:      256: invokevirtual #1994               // Method com/intellij/openapi/util/ActionCallback.doWhenProcessed:(Ljava/lang/Runnable;)Lcom/intellij/openapi/util/ActionCallback;
+6447:      259: pop
+6448:      260: aload_0
+6449:      261: getfield      #67                 // Field visibleInfos:Ljava/util/ArrayList;
+6450:      264: invokevirtual #1840               // Method java/util/ArrayList.isEmpty:()Z
+6451:      267: ifeq          274
+6452:      270: aload_0
+6453:      271: invokespecial #2744               // Method removeDeferredNow:()V
+6454:      274: aload_0
+6455:      275: iconst_1
+6456:      276: invokevirtual #1796               // Method revalidateAndRepaint:(Z)V
+6457:      279: aload_0
+6458:      280: aload_1
+6459:      281: invokespecial #2746               // Method fireTabRemoved:(Lcom/intellij/ui/tabs/TabInfo;)V
+6460:      284: aload         5
+6461:      286: areturn
+6462:
+[...]
+6580:   private final void processRemove(com.intellij.ui.tabs.TabInfo, boolean, boolean);
+[...]
+6649:      140: checkcast     #441                // class java/awt/Component
+6650:      143: invokespecial #2796               // Method addToDeferredRemove:(Ljava/awt/Component;)V
+6651:      146: aload_0
+6652:      147: getfield      #67                 // Field visibleInfos:Ljava/util/ArrayList;
+6653:      150: aload_1
+6654:      151: invokevirtual #2797               // Method java/util/ArrayList.remove:(Ljava/lang/Object;)Z
+6655:      154: pop
+[...]
+6659:      160: invokevirtual #2799               // Method java/util/HashMap.remove:(Ljava/lang/Object;)Ljava/lang/Object;
+6660:      163: pop
+6661:      164: aload_1
+6662:      165: aconst_null
+6663:      166: putfield      #701                // Field com/intellij/ui/tabs/TabInfo.tabLabel:Lcom/intellij/ui/tabs/impl/TabLabel;
+6664:      169: aload_0
+6665:      170: getfield      #74                 // Field infoToPage:Ljava/util/HashMap;
+[...]
+6681:      204: aload         4
+6682:      206: if_acmpne     214
+6683:      209: aload_0
+6684:      210: aconst_null
+6685:      211: putfield      #1092               // Field tabLabelAtMouse:Lcom/intellij/ui/tabs/impl/TabLabel;
+6686:      214: aload_0
+6687:      215: invokevirtual #1833               // Method resetTabsCache:()V
+6688:      218: iload_3
+6689:      219: ifeq          227
+6690:      222: aload_0
+6691:      223: aconst_null
+6692:      224: invokespecial #1900               // Method setSelectedInfo:(Lcom/intellij/ui/tabs/TabInfo;)V
+6693:      227: aload_0
+6694:      228: iconst_0
+6695:      229: iconst_0
+6696:      230: invokespecial #1903               // Method updateContainer:(ZZ)V
+6697:      233: aload_0
+6698:      234: invokespecial #1907               // Method removeDeferred:()Lcom/intellij/openapi/util/ActionCallback;
+6699:      237: pop
+[...]
+9293:   public static final com.intellij.openapi.util.ActionCallback access$executeSelectionChange(com.intellij.ui.tabs.impl.JBTabsImpl, com.intellij.ui.tabs.TabInfo, boolean, boolean);

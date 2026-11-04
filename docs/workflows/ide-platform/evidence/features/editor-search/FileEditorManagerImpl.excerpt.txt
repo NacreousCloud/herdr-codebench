@@ -1,0 +1,158 @@
+# Focused javap excerpts. [...] = omitted original lines. Numbers are original dump lines.
+1: Compiled from "FileEditorManagerImpl.kt"
+2: public class com.intellij.openapi.fileEditor.impl.FileEditorManagerImpl extends com.intellij.openapi.fileEditor.ex.FileEditorManagerEx implements com.intellij.openapi.components.PersistentStateComponent<org.jdom.Element>, com.intellij.openapi.Disposable {
+[...]
+2162:   public com.intellij.openapi.vfs.VirtualFile getCurrentFile();
+[...]
+2168:       10: invokespecial #1328               // Method getClientFileEditorManager:()Lcom/intellij/openapi/fileEditor/ClientFileEditorManager;
+2169:       13: dup
+2170:       14: ifnull        25
+2171:       17: invokeinterface #1333,  1         // InterfaceMethod com/intellij/openapi/fileEditor/ClientFileEditorManager.getSelectedFile:()Lcom/intellij/openapi/vfs/VirtualFile;
+2172:       22: goto          27
+2173:       25: pop
+2174:       26: aconst_null
+[...]
+2180:       40: aconst_null
+2181:       41: areturn
+2182:       42: aload_0
+2183:       43: invokespecial #1205               // Method getActiveSplitterSync:()Lcom/intellij/openapi/fileEditor/impl/EditorsSplitters;
+2184:       46: invokevirtual #1336               // Method com/intellij/openapi/fileEditor/impl/EditorsSplitters.getCurrentFile$intellij_platform_ide_impl:()Lcom/intellij/openapi/vfs/VirtualFile;
+2185:       49: areturn
+2186:
+[...]
+2200:   public com.intellij.openapi.fileEditor.impl.EditorWindow getCurrentWindow();
+[...]
+2220:       50: aconst_null
+2221:       51: areturn
+2222:       52: aload_0
+2223:       53: invokespecial #1205               // Method getActiveSplitterSync:()Lcom/intellij/openapi/fileEditor/impl/EditorsSplitters;
+2224:       56: invokevirtual #1209               // Method com/intellij/openapi/fileEditor/impl/EditorsSplitters.getCurrentWindow:()Lcom/intellij/openapi/fileEditor/impl/EditorWindow;
+2225:       59: areturn
+2226:
+2227:   public void setCurrentWindow(com.intellij.openapi.fileEditor.impl.EditorWindow);
+[...]
+2230:        3: invokevirtual #1324               // Method com/intellij/codeWithMe/ClientId$Companion.isCurrentlyUnderLocalId:()Z
+2231:        6: ifeq          18
+2232:        9: aload_0
+2233:       10: invokespecial #1205               // Method getActiveSplitterSync:()Lcom/intellij/openapi/fileEditor/impl/EditorsSplitters;
+2234:       13: aload_1
+2235:       14: iconst_1
+2236:       15: invokevirtual #1388               // Method com/intellij/openapi/fileEditor/impl/EditorsSplitters.setCurrentWindow$intellij_platform_ide_impl:(Lcom/intellij/openapi/fileEditor/impl/EditorWindow;Z)V
+2237:       18: return
+2238:
+[...]
+3075:   public final com.intellij.openapi.fileEditor.FileEditorComposite openFile(com.intellij.openapi.vfs.VirtualFile, com.intellij.openapi.fileEditor.impl.EditorWindow, com.intellij.openapi.fileEditor.impl.FileEditorOpenOptions);
+[...]
+3106:       64: aload         4
+3107:       66: ifnonnull     376
+3108:       69: aload_3
+3109:       70: getfield      #1646               // Field com/intellij/openapi/fileEditor/impl/FileEditorOpenOptions.openMode:Lcom/intellij/openapi/fileEditor/impl/FileEditorManagerImpl$OpenMode;
+3110:       73: dup
+3111:       74: ifnonnull     90
+3112:       77: pop
+3113:       78: getstatic     #1651               // Field com/intellij/ide/IdeEventQueue.Companion:Lcom/intellij/ide/IdeEventQueue$Companion;
+3114:       81: invokevirtual #1656               // Method com/intellij/ide/IdeEventQueue$Companion.getInstance:()Lcom/intellij/ide/IdeEventQueue;
+3115:       84: invokevirtual #1660               // Method com/intellij/ide/IdeEventQueue.getTrueCurrentEvent:()Ljava/awt/AWTEvent;
+3116:       87: invokestatic  #1664               // Method com/intellij/openapi/fileEditor/impl/FileEditorManagerImplKt.getOpenMode:(Ljava/awt/AWTEvent;)Lcom/intellij/openapi/fileEditor/impl/FileEditorManagerImpl$OpenMode;
+3117:       90: astore        5
+3118:       92: aload         5
+3119:       94: getstatic     #1669               // Field com/intellij/openapi/fileEditor/impl/FileEditorManagerImpl$OpenMode.NEW_WINDOW:Lcom/intellij/openapi/fileEditor/impl/FileEditorManagerImpl$OpenMode;
+3120:       97: if_acmpne     334
+3121:      100: aload_3
+3122:      101: getfield      #1672               // Field com/intellij/openapi/fileEditor/impl/FileEditorOpenOptions.reuseOpen:Z
+3123:      104: ifeq          275
+3124:      107: aload_0
+3125:      108: getfield      #28                 // Field project:Lcom/intellij/openapi/project/Project;
+[...]
+3175:      238: aload         7
+3176:      240: aload_1
+3177:      241: aload_3
+3178:      242: getfield      #1741               // Field com/intellij/openapi/fileEditor/impl/FileEditorOpenOptions.requestFocus:Z
+3179:      245: invokevirtual #1744               // Method com/intellij/openapi/fileEditor/impl/EditorWindow.setSelectedComposite:(Lcom/intellij/openapi/vfs/VirtualFile;Z)V
+3180:      248: aload_3
+3181:      249: getfield      #1741               // Field com/intellij/openapi/fileEditor/impl/FileEditorOpenOptions.requestFocus:Z
+3182:      252: ifeq          266
+3183:      255: aload         7
+3184:      257: iconst_1
+[...]
+3209:      316: aload_1
+3210:      317: aload_0
+3211:      318: aload_3
+3212:      319: getfield      #1772               // Field com/intellij/openapi/fileEditor/impl/FileEditorOpenOptions.isSingletonEditorInWindow:Z
+3213:      322: aload_1
+3214:      323: aload_0
+3215:      324: aload_3
+3216:      325: invokedynamic #1782,  0           // InvokeDynamic #18:invoke:(Lcom/intellij/openapi/vfs/VirtualFile;Lcom/intellij/openapi/fileEditor/impl/FileEditorManagerImpl;Lcom/intellij/openapi/fileEditor/impl/FileEditorOpenOptions;)Lkotlin/jvm/functions/Function1;
+3217:      330: invokevirtual #1786               // Method com/intellij/ui/docking/impl/DockManagerImpl.createNewDockContainerFor$intellij_platform_ide_impl:(Lcom/intellij/openapi/vfs/VirtualFile;Lcom/intellij/openapi/fileEditor/impl/FileEditorManagerImpl;ZLkotlin/jvm/functions/Function1;)Lcom/intellij/openapi/fileEditor/FileEditorComposite;
+3218:      333: areturn
+3219:      334: aload         5
+[...]
+3222:      342: aload_0
+3223:      343: aload_1
+3224:      344: aload_3
+3225:      345: getfield      #1741               // Field com/intellij/openapi/fileEditor/impl/FileEditorOpenOptions.requestFocus:Z
+3226:      348: aload_3
+3227:      349: getfield      #1792               // Field com/intellij/openapi/fileEditor/impl/FileEditorOpenOptions.forceFocus:Z
+3228:      352: aload_3
+3229:      353: getfield      #1796               // Field com/intellij/openapi/fileEditor/impl/FileEditorOpenOptions.internalHint:Lcom/intellij/openapi/fileEditor/impl/FileEditorOpenOptionsHint;
+3230:      356: invokespecial #1800               // Method openInRightSplit:(Lcom/intellij/openapi/vfs/VirtualFile;ZZLcom/intellij/openapi/fileEditor/impl/FileEditorOpenOptionsHint;)Lcom/intellij/openapi/fileEditor/FileEditorComposite;
+3231:      359: astore        6
+3232:      361: aload         6
+3233:      363: ifnull        376
+[...]
+3242:      381: aload_0
+3243:      382: aload_3
+3244:      383: aload_1
+3245:      384: invokevirtual #1804               // Method getWindowToOpen:(Lcom/intellij/openapi/fileEditor/impl/FileEditorOpenOptions;Lcom/intellij/openapi/vfs/VirtualFile;)Lcom/intellij/openapi/fileEditor/impl/EditorWindow;
+3246:      387: astore        4
+3247:      389: getstatic     #1758               // Field Companion:Lcom/intellij/openapi/fileEditor/impl/FileEditorManagerImpl$Companion;
+3248:      392: aload_1
+[...]
+3260:      416: aload_1
+3261:      417: aconst_null
+3262:      418: aload_3
+3263:      419: invokevirtual #1808               // Method openFileImpl:(Lcom/intellij/openapi/fileEditor/impl/EditorWindow;Lcom/intellij/openapi/vfs/VirtualFile;Lcom/intellij/platform/fileEditor/FileEntry;Lcom/intellij/openapi/fileEditor/impl/FileEditorOpenOptions;)Lcom/intellij/openapi/fileEditor/FileEditorComposite;
+3264:      422: areturn
+3265:
+[...]
+3287:   public java.lang.Object openFile(com.intellij.openapi.vfs.VirtualFile, com.intellij.openapi.fileEditor.impl.FileEditorOpenOptions, kotlin.coroutines.Continuation<? super com.intellij.openapi.fileEditor.FileEditorComposite>);
+[...]
+3290:        1: aload_1
+3291:        2: aload_2
+3292:        3: aload_3
+3293:        4: invokestatic  #1826               // Method openFile$suspendImpl:(Lcom/intellij/openapi/fileEditor/impl/FileEditorManagerImpl;Lcom/intellij/openapi/vfs/VirtualFile;Lcom/intellij/openapi/fileEditor/impl/FileEditorOpenOptions;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;
+3294:        7: areturn
+3295:
+[...]
+4454:   public final com.intellij.openapi.fileEditor.FileEditorComposite openFileImpl(com.intellij.openapi.fileEditor.impl.EditorWindow, com.intellij.openapi.vfs.VirtualFile, com.intellij.platform.fileEditor.FileEntry, com.intellij.openapi.fileEditor.impl.FileEditorOpenOptions);
+[...]
+4508:      109: aconst_null
+4509:      110: sipush        4093
+4510:      113: aconst_null
+4511:      114: invokestatic  #1836               // Method com/intellij/openapi/fileEditor/impl/FileEditorOpenOptions.copy$default:(Lcom/intellij/openapi/fileEditor/impl/FileEditorOpenOptions;ZZZZZIZLcom/intellij/openapi/fileEditor/impl/FileEditorManagerImpl$OpenMode;ZZZLcom/intellij/openapi/fileEditor/impl/FileEditorOpenOptionsHint;ILjava/lang/Object;)Lcom/intellij/openapi/fileEditor/impl/FileEditorOpenOptions;
+4512:      117: invokespecial #2081               // Method openFileUsingClient:(Lcom/intellij/openapi/vfs/VirtualFile;Lcom/intellij/openapi/fileEditor/impl/FileEditorOpenOptions;)Lcom/intellij/openapi/fileEditor/FileEditorComposite;
+4513:      120: areturn
+4514:      121: aload         5
+4515:      123: invokevirtual #1634               // Method com/intellij/openapi/vfs/VirtualFile.isValid:()Z
+[...]
+4528:      155: aload         5
+4529:      157: aload_3
+4530:      158: aload         4
+4531:      160: invokestatic  #2092               // Method openFileImpl$open:(Lcom/intellij/openapi/fileEditor/impl/EditorWindow;Lcom/intellij/openapi/fileEditor/impl/FileEditorManagerImpl;Lcom/intellij/openapi/vfs/VirtualFile;Lcom/intellij/platform/fileEditor/FileEntry;Lcom/intellij/openapi/fileEditor/impl/FileEditorOpenOptions;)Lcom/intellij/openapi/fileEditor/FileEditorComposite;
+4532:      163: astore        6
+4533:      165: aload         6
+4534:      167: instanceof    #637                // class com/intellij/openapi/fileEditor/impl/EditorComposite
+4535:      170: ifeq          232
+4536:      173: aload         4
+4537:      175: getfield      #2095               // Field com/intellij/openapi/fileEditor/impl/FileEditorOpenOptions.waitForCompositeOpen:Z
+4538:      178: ifeq          222
+4539:      181: aload         6
+4540:      183: checkcast     #637                // class com/intellij/openapi/fileEditor/impl/EditorComposite
+[...]
+4569:      243: aload         5
+4570:      245: aload_3
+4571:      246: aconst_null
+4572:      247: invokespecial #2107               // Method com/intellij/openapi/fileEditor/impl/FileEditorManagerImpl$openFileImpl$2."<init>":(Lcom/intellij/openapi/fileEditor/impl/FileEditorOpenOptions;Lcom/intellij/openapi/fileEditor/impl/FileEditorManagerImpl;Lcom/intellij/openapi/fileEditor/impl/EditorWindow;Lcom/intellij/openapi/vfs/VirtualFile;Lcom/intellij/platform/fileEditor/FileEntry;Lkotlin/coroutines/Continuation;)V
+4573:      250: checkcast     #125                // class kotlin/jvm/functions/Function2
+4574:      253: invokestatic  #2113               // Method com/intellij/openapi/progress/CoroutinesKt.runBlockingCancellable:(Lkotlin/jvm/functions/Function2;)Ljava/lang/Object;
+4575:      256: checkcast     #1755               // class com/intellij/openapi/fileEditor/FileEditorComposite

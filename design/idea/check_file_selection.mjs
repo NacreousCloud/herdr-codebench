@@ -18,8 +18,8 @@ const overrides = {
 };
 const module = new vm.SourceTextModule(source, { context });
 await module.link(id => {
-  const statement = [...source.matchAll(/import\s*\{([^}]+)\}\s*from\s*"([^"]+)"/g)].find(match => match[2] === id);
-  const names = statement[1].split(",").map(name => name.trim());
+  const statements = [...source.matchAll(/import\s*\{([^}]+)\}\s*from\s*"([^"]+)"/g)].filter(match => match[2] === id);
+  const names = [...new Set(statements.flatMap(statement => statement[1].split(",").map(name => name.trim().split(/\s+as\s+/)[0])))];
   return new vm.SyntheticModule(names, function () {
     for (const name of names) this.setExport(name, overrides[name] ?? (() => {}));
   }, { context });

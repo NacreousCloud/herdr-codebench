@@ -2,6 +2,8 @@
 
 `tokens.json`은 추출 색·치수의 원본, `ui.js`는 컴포넌트와 동작의 원본이다. 모드에서는 생성된 `./idea-design.js`를 import한다. 모드 사이 상대경로 import나 생성 파일의 직접 수정은 하지 않는다.
 
+작업 중 표시는 `uiSpinner(() => svg(localAsset), {size,tip})`를 사용한다. 설치 IDEA의 Apache-2.0 `process/step_1.svg`와 8×125ms 주기를 기준으로 한 중립색 8-spoke SVG다. 실제 working 상태에서만 GPUI native `.spin(1000)`을 붙이고 JS 타이머는 만들지 않는다. IDEA의 이산 프레임과 달리 GPUI에서는 연속 회전하며 codebench의 기존 표시를 유지한다.
+
 ```sh
 python3 design/idea/sync_ui.py
 python3 design/idea/sync_ui.py --check
@@ -16,6 +18,22 @@ python3 design/idea/sync_ui.py --check --mod my-new-mode
 
 ## 조립 단위
 
+소스/리뷰는 `mods/codenav/editor-surface.js`의 `editorGeometry`·`editorGutter`·`editorLine`·`editorViewport`·`editorSurface`를 공유한다. 문서/토큰/diff 상태/선택/댓글은 각 뷰가 소유하고, 숫자 열 수·마커·행 내용을 공통 표면에 제공한다. 텍스트 원점과 hit test는 같은 geometry를 쓴다. 탭이 숨겨진 표면에는 canvas 색 native path로 상단 코너를 실제로 마스킹한다.
+
+IDEA의 `terminal-panel`은 `idea-content`의 아래 자식이다. 위의 `idea-upper`는 기존 sidebar/work-body/editor/tool-right를 함께 담아 하단 도구가 열릴 때 모두 위로 줄어든다. 기존 노드와 도구 stack/terminal payload는 이동만 하며 재구성하지 않는다. `memory.js`는 이 위 행의 세로 비율을 저장한다. codebench의 별도 split 계약은 유지한다.
+
+리뷰 툴바는 같은 action 중복을 렌더에서 제거하고 소스 열기를 하나만 제공한다. 이전/다음 변경은 위/아래, 전체 파일 context는 이름과 체크 상태로 표시한다. 삭제 파일의 소스 열기, 변경이 없는 행 이동 등 불가능한 동작은 비활성이다.
+
+툴 위치 설정은 위치별 목록과 위/아래 순서 버튼, 이동 대상, stripe 표시 체크를 제공한다. 위치·순서·표시는 Apply 전 로컬 draft이며 `codenav.toolOrder`는 위치별 안정적인 tool 이름 배열이다. 숨긴 항목도 설정 목록에는 남아 있고, 미지 항목/미지 위치는 저장 시 보존한다. 파일 drag/drop 및 drag preview UI는 제거했다.
+
+키맵은 액션과 개별 chord 선택 후 추가/변경/제거할 수 있다. 실제 키 기록 외에 `cmd-shift-o` 텍스트 입력도 가능하다. `keymap-model.js`는 staged edits와 latest-file CAS를 검증하고 원래의 terminal forwarder만 동기화한다. 모드 소유 shortcut의 제거/재할당은 소스의 하드코딩 fallback보다 우선한다.
+
+`tokens.json`의 `herdr.editor.metrics`는 첨부 IDEA 화면을 기준으로 선택한 Herdr 편집기 배치 값이다(추출한 upstream 수치와 구분). `IDEA.editorBreadcrumbHeight`(compact22/normal26), `editorTextInset`(4/8), `editorGutterInset`(8), `editorMarkerWidth`(18)를 제공한다. 텍스트 시작 좌표는 렌더링·마우스 hit test·인라인 코멘트가 같은 값을 사용한다.
+
+메뉴 및 도구 모음 설정의 단일 트리는 Main Toolbar의 Left/Center/Right, Tool Windows의 위치별 도구, 헤더·팝업 메뉴 그룹을 포함한다. 펼침·검색·키보드 이동과 선택 항목 스크롤을 지원한다. 도구를 선택하면 표시 체크와 위치 이동 버튼이 나오며 위/아래 버튼은 해당 위치 안의 순서를 바꾼다. 모든 변경은 Apply 전 draft다.
+
+Markdown preview eye는 헤더의 편집 버튼 바로 왼쪽에 배치한다. 네이티브 편집 중에도 같은 헤더의 앞쪽 액션으로 유지하며 기존 mode/dirty 버퍼를 보존한다. 하단 preview bar와 일반 파일의 eye는 만들지 않는다. Git edge marker는 공통 editor-surface에서 absolute 장식으로 그리며 숫자/이동 아이콘/텍스트 원점에 영향을 주지 않는다. `lineAdded`/`lineModified`/`lineDeleted` 의미 색과 `editorChangeMarkerWidth`/`Radius` 치수를 사용한다.
+
 | 함수 | 소유 영역 |
 | --- | --- |
 | `uiButton(id,label,action,{primary,disabled,small})` | 텍스트 버튼, 클릭, 비활성 |
@@ -23,7 +41,7 @@ python3 design/idea/sync_ui.py --check --mod my-new-mode
 | `uiInputBox(input,{focused,error,mono})` | 입력 element 바깥 배경·오류/포커스 틀 |
 | `uiListRow(id,children,{selected,focused,disabled,onClick,interactive,indent})` | 밀도·행 선택·들여쓰기; indent는 px. virtual renderer는 handler 없이 interactive로 hover만 사용 |
 | `uiCheckbox(id,label,action,{checked,disabled})` | 체크·비활성 상태와 클릭. checked 상태는 호출자가 소유 |
-| `uiStripeButton(id,graphic,action,{active,tip})` | stripe hit area와 inset 선택 배경·아이콘·tooltip |
+| `uiStripeButton(id,graphic,action,{active,tip,side})` | stripe hit area와 inset 선택 배경·아이콘·tooltip. side는 left/right, 인접 island inset을 고려해 시각 여백 대칭 |
 | `uiTreeRow(id,label,{depth,selected,expanded,graphic,shortcut,onClick,disabled})` | depth×14 들여쓰기·펼침 표식·선택. expanded 미지정은 leaf, 실제 펼침 상태는 호출자가 소유 |
 | `uiSettingsShell(id,{title,sidebar,content,footer,width,height,sidebarWidth})` | 설정 제목/좌측열/본문/하단 영역과 명시 크기. 기본900×700/좌측145. 갤러리 settings variant는640×420을 명시하고 개인 설정을 쓰지 않음 |
 | `uiSeparator()`, `uiCaption(text)` | 구분선·보조 설명 |
@@ -35,6 +53,7 @@ python3 design/idea/sync_ui.py --check --mod my-new-mode
 | `uiPopupSize(count,{width,maxHeight,extraHeight})` | `{width,height}` 명시 크기 계산 |
 | `uiDialog(id,{title,body,footer})` | 제목·flex 본문·footer. 기본 높이360, 호출자가 `.h(높이)`로 실제 필요 크기 지정 |
 | `uiIslandBottom()` | 레이아웃이 소유한 섬 아래 마감. 외부 gap을 추가하지 않음 |
+| `uiEditorFooter(children)` | Markdown 등 편집기 로컬 모드의 하단 제어. 호출자가 실제 상태/핸들러를 소유 |
 
 모든 action/onClose는 `(event,cx)`를 받는다. 자식 element와 입력 상태는 호출자가 소유한다. 입력/검색/저장/오류 상태를 이 모듈이 가짜로 생성하지 않는다. 컨트롤 행은 UI 글자 크기가 커지면 최소 높이도 늘려 잘림을 줄인다. `IDEA`의 기본 compact 값은 Island radius8/gap4, row22, input24, tab32/fill24, header31, toolbar32/button26, stripe32/icon16, status24다. tab32는 선정한 근사값이며 Java TabbedPane36을 editor bar의 관측값으로 취급하지 않는다.
 
@@ -105,7 +124,7 @@ openOverlay({ mod: "codenav", props: { view: "designpreview" },
 
 ## 레이아웃 공통 키맵
 
-Shift 두 번은 Herdr/GPUI의 modifier-release 시퀀스 `shift shift`를 `keys.json`의 `layout:idea`에 등록한다. `terminal` override는 `codenav.key:shift shift`로 전달하고 Status가 IDEA에서만 전체 검색을 연다. 다른 레이아웃에서는 modifier 시퀀스를 터미널에 재전송하지 않는다. 개별 뷰의 `on_modifiers_changed`로 중복 감지하지 않는다. 설정 키맵은 실제 `keys()` 바인딩의 `Search Everywhere`를 `⇧ ⇧`로 표시한다.
+전체 검색 기본값은 `cmd-shift-space`(⌘⇧Space)다. `terminal` override는 `codenav.key:cmd-shift-space`로 전달하고 Status가 IDEA에서 전체 검색을 연다. 다른 레이아웃은 원래 키를 터미널에 전달한다. Herdr modifier 시퀀스의 입력 중 오작동을 피하기 위해 기존 `shift shift` 기본값은 제거했다. 설치 스크립트는 이전의 정확한 기본 action만 마이그레이션하고 개인 바인딩을 보존한다. 설정 키맵과 빈 편집기 안내는 실제 `keys()` 바인딩을 표시한다.
 
 설치 시 빠진 바인딩만 병합하며 기존 키 충돌은 보존·출력하고 변경 전 파일을 백업한다. Herdr 최초 실행 전에는 기본 키맵을 대신 생성하지 않고 최초 실행을 안내한다.
 
@@ -113,7 +132,7 @@ Shift 두 번은 Herdr/GPUI의 modifier-release 시퀀스 `shift shift`를 `keys
 
 ## 툴 윈도우 설정
 
-툴 윈도우의 기본 위치·줄 표시·레이아웃 복원은 IdeaSettings의 `windows` 페이지에 통합한다. `openToolSettings()`와 기존 `codenav.tool-settings`는 `openIdeaSettings("windows")`로 연결한다. 별도 ToolSettings dialog는 만들지 않는다.
+툴 윈도우의 기본 위치·줄 표시·레이아웃 복원은 IdeaSettings의 `toolbars` 단일 트리에 통합한다. `openToolSettings()`와 기존 `codenav.tool-settings`의 `openIdeaSettings("windows")` 진입은 같은 페이지의 Tool Windows 루트를 선택한다. 별도 windows 페이지나 dialog는 만들지 않는다.
 
 위치/표시는 다른 설정과 같은 draft 및 Apply/OK/Cancel 수명을 따른다. 일반 Apply에서는 수정된 툴의 위치만 arrange에 전달한다. 명시적 레이아웃 복원은 Apply 후 현재 draft의 전체 알려진 위치를 적용한다. 표시만 바꿀 때는 레이아웃을 재배치하지 않으며 알 수 없는 미래 설정과 동시에 바뀐 다른 항목을 유지한다.
 
@@ -129,4 +148,6 @@ Project는 에디터/리뷰의 현재 파일이 바뀔 때 선택과 anchor를 �
 
 탭 등록·스택 선택·빈 탭 줄의 표시 여부는 항상 보이는 Status의 `routeEditor`가 담당한다. 숨겨진 탭 줄도 탐색기에서 파일을 열면 복귀한다. 지연 콜백은 현재 스페이스와 현재 파일/리뷰를 다시 확인하고, 닫힌 탭의 이전 클릭 콜백은 파일을 다시 열지 않는다. 리뷰의 현재 파일은 스페이스와 저장소 경계를 모두 검사한다.
 
-IDEA에서 마지막 탭을 닫으면 editor-area는 유지하고 editor-tabs만 숨긴다. 빈 화면은 code child의 `emptyEditor`를 사용하며 제목·탭 도구줄 없이 중앙 안내를 보여준다. 드롭한 첫 파일은 실제 openPath로 연다. codebench는 마지막 탭을 닫으면 영역을 숨기는 기존 동작을 유지한다. 회귀 검사: `node --experimental-vm-modules design/idea/check_tabs.mjs`.
+IDEA에서 마지막 탭을 닫으면 editor-area는 유지하고 editor-tabs만 숨긴다. 빈 화면은 code child의 `emptyEditor`를 사용하며 제목·탭 도구줄 없이 중앙 안내를 보여준다. 파일 drag/drop은 지원하지 않는다. codebench는 마지막 탭을 닫으면 영역을 숨기는 기존 동작을 유지한다. 회귀 검사: `node --experimental-vm-modules design/idea/check_tabs.mjs`.
+
+언어 서버 설정은 `lsp-install-guide.js`의 OS별 순수 안내 모델과 `lsp-setup.js`의 공통 settings shell을 사용한다. 언어별 선택과 로컬 폴더, LLM용 안내 복사, 실제 감지/초기화를 구분한다. 설치 명령을 자동 실행하지 않으며 선택·폴더 변경/닫기 뒤 오래된 응답은 버린다.

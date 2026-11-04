@@ -52,211 +52,491 @@
           "background": "canvas"
         },
         {
-          "id": "sidebar",
+          "id": "idea-content",
           "type": "column",
-          "size": {
-            "px": 300
-          },
-          "min": 120,
           "background": "canvas",
-          "children": [
-            {
-              "id": "left-bar",
-              "type": "block",
-              "size": {
-                "px": 31
-              },
-              "content": {
-                "mod": "codenav",
-                "props": {
-                  "view": "toolheader",
-                  "side": "left"
-                }
-              },
-              "radius": 8,
-              "background": "canvas"
-            },
-            {
-              "id": "sidebar-views",
-              "type": "stack",
-              "active": "view-files",
-              "children": [
-                {
-                  "id": "view-files",
-                  "type": "block",
-                  "content": {
-                    "mod": "activity",
-                    "props": {
-                      "view": "files"
-                    }
-                  },
-                  "radius": 10
-                },
-                {
-                  "id": "view-review",
-                  "type": "block",
-                  "content": {
-                    "mod": "codenav",
-                    "props": {
-                      "view": "review",
-                      "part": "side"
-                    }
-                  },
-                  "radius": 10
-                },
-                {
-                  "id": "view-structure",
-                  "type": "block",
-                  "content": {
-                    "mod": "codenav",
-                    "props": {
-                      "view": "structure"
-                    }
-                  },
-                  "radius": 10
-                },
-                {
-                  "id": "view-search",
-                  "type": "block",
-                  "content": {
-                    "mod": "activity",
-                    "props": {
-                      "view": "search"
-                    }
-                  },
-                  "radius": 10
-                },
-                {
-                  "id": "left-empty",
-                  "type": "block",
-                  "content": {
-                    "mod": "codenav",
-                    "props": {
-                      "view": "toolempty",
-                      "side": "left"
-                    }
-                  },
-                  "radius": 10
-                }
-              ]
-            },
-            {
-              "id": "island-left-bottom",
-              "type": "block",
-              "size": {
-                "px": 8
-              },
-              "min": 8,
-              "max": 8,
-              "background": "canvas",
-              "content": {
-                "mod": "codenav",
-                "props": {
-                  "view": "islandbottom"
-                }
-              }
-            }
-          ],
-          "radius": 8,
           "gap": 0,
           "padding": [
-            2,
-            2
-          ]
-        },
-        {
-          "id": "work-body",
-          "type": "column",
+            0,
+            0
+          ],
           "children": [
             {
-              "id": "editor-area",
-              "type": "column",
+              "id": "idea-upper",
+              "type": "row",
+              "background": "canvas",
+              "gap": 0,
+              "padding": [
+                0,
+                0
+              ],
               "children": [
                 {
-                  "id": "editor-tabs",
-                  "type": "block",
-                  "content": {
-                    "mod": "codenav",
-                    "props": {
-                      "view": "tabs"
-                    }
-                  },
+                  "id": "sidebar",
+                  "type": "column",
                   "size": {
-                    "px": 32
+                    "px": 300
                   },
-                  "radius": 8
-                },
-                {
-                  "id": "editor-stack",
-                  "type": "stack",
+                  "min": 120,
+                  "background": "canvas",
                   "children": [
                     {
-                      "id": "editor-code",
-                      "type": "block",
-                      "content": {
-                        "mod": "codenav",
-                        "props": {
-                          "view": "code",
-                          "slot": true
-                        }
+                      "id": "left-main",
+                      "type": "column",
+                      "size": {
+                        "weight": 1
                       },
-                      "radius": 10
+                      "min": 80,
+                      "hidden": false,
+                      "background": "canvas",
+                      "children": [
+                        {
+                          "id": "left-bar",
+                          "type": "block",
+                          "size": {
+                            "px": 31
+                          },
+                          "content": {
+                            "mod": "codenav",
+                            "props": {
+                              "view": "toolheader",
+                              "side": "left"
+                            }
+                          },
+                          "radius": 8,
+                          "background": "canvas"
+                        },
+                        {
+                          "id": "sidebar-views",
+                          "type": "stack",
+                          "active": "view-files",
+                          "children": [
+                            {
+                              "id": "view-files",
+                              "type": "block",
+                              "content": {
+                                "mod": "activity",
+                                "props": {
+                                  "view": "files"
+                                }
+                              },
+                              "radius": 10
+                            },
+                            {
+                              "id": "view-review",
+                              "type": "block",
+                              "content": {
+                                "mod": "codenav",
+                                "props": {
+                                  "view": "review",
+                                  "part": "side"
+                                }
+                              },
+                              "radius": 10
+                            },
+                            {
+                              "id": "view-structure",
+                              "type": "block",
+                              "content": {
+                                "mod": "codenav",
+                                "props": {
+                                  "view": "structure"
+                                }
+                              },
+                              "radius": 10
+                            },
+                            {
+                              "id": "view-search",
+                              "type": "block",
+                              "content": {
+                                "mod": "activity",
+                                "props": {
+                                  "view": "search"
+                                }
+                              },
+                              "radius": 10
+                            },
+                            {
+                              "id": "left-empty",
+                              "type": "block",
+                              "content": {
+                                "mod": "codenav",
+                                "props": {
+                                  "view": "toolempty",
+                                  "side": "left"
+                                }
+                              },
+                              "radius": 10
+                            }
+                          ]
+                        },
+                        {
+                          "id": "island-left-bottom",
+                          "type": "block",
+                          "size": {
+                            "px": 8
+                          },
+                          "min": 8,
+                          "max": 8,
+                          "background": "canvas",
+                          "content": {
+                            "mod": "codenav",
+                            "props": {
+                              "view": "islandbottom",
+                              "side": "left"
+                            }
+                          }
+                        }
+                      ],
+                      "radius": 8,
+                      "gap": 0,
+                      "padding": [
+                        2,
+                        2
+                      ]
                     },
                     {
-                      "id": "editor-text",
-                      "type": "block",
-                      "content": {
-                        "mod": "activity",
-                        "props": {
-                          "view": "editor",
-                          "slot": true
-                        }
+                      "id": "left-aux",
+                      "type": "column",
+                      "size": {
+                        "weight": 1
                       },
-                      "radius": 10
-                    },
-                    {
-                      "id": "editor-review",
-                      "type": "block",
-                      "content": {
-                        "mod": "codenav",
-                        "props": {
-                          "view": "review",
-                          "part": "main"
+                      "min": 80,
+                      "hidden": true,
+                      "background": "canvas",
+                      "children": [
+                        {
+                          "id": "left2-bar",
+                          "type": "block",
+                          "size": {
+                            "px": 31
+                          },
+                          "content": {
+                            "mod": "codenav",
+                            "props": {
+                              "view": "toolheader",
+                              "side": "left2"
+                            }
+                          },
+                          "background": "canvas",
+                          "radius": 8
+                        },
+                        {
+                          "id": "left2-views",
+                          "type": "stack",
+                          "active": "left2-empty",
+                          "children": [
+                            {
+                              "id": "left2-empty",
+                              "type": "block",
+                              "content": {
+                                "mod": "codenav",
+                                "props": {
+                                  "view": "toolempty",
+                                  "side": "left2"
+                                }
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "id": "island-left2-bottom",
+                          "type": "block",
+                          "size": {
+                            "px": 8
+                          },
+                          "min": 8,
+                          "max": 8,
+                          "background": "canvas",
+                          "content": {
+                            "mod": "codenav",
+                            "props": {
+                              "view": "islandbottom",
+                              "side": "left2"
+                            }
+                          }
                         }
-                      },
-                      "radius": 10
+                      ],
+                      "radius": 8,
+                      "gap": 0,
+                      "padding": [
+                        2,
+                        2
+                      ]
                     }
                   ],
-                  "active": "editor-code"
+                  "radius": 8,
+                  "gap": 0,
+                  "padding": [
+                    0,
+                    0
+                  ]
                 },
                 {
-                  "id": "island-editor-bottom",
-                  "type": "block",
-                  "size": {
-                    "px": 8
-                  },
-                  "min": 8,
-                  "max": 8,
-                  "background": "canvas",
-                  "content": {
-                    "mod": "codenav",
-                    "props": {
-                      "view": "islandbottom"
+                  "id": "work-body",
+                  "type": "column",
+                  "children": [
+                    {
+                      "id": "editor-area",
+                      "type": "column",
+                      "children": [
+                        {
+                          "id": "editor-tabs",
+                          "type": "block",
+                          "content": {
+                            "mod": "codenav",
+                            "props": {
+                              "view": "tabs"
+                            }
+                          },
+                          "size": {
+                            "px": 32
+                          },
+                          "radius": 8
+                        },
+                        {
+                          "id": "editor-stack",
+                          "type": "stack",
+                          "children": [
+                            {
+                              "id": "editor-code",
+                              "type": "block",
+                              "content": {
+                                "mod": "codenav",
+                                "props": {
+                                  "view": "code",
+                                  "slot": true
+                                }
+                              },
+                              "radius": 10
+                            },
+                            {
+                              "id": "editor-text",
+                              "type": "block",
+                              "content": {
+                                "mod": "activity",
+                                "props": {
+                                  "view": "editor",
+                                  "slot": true
+                                }
+                              },
+                              "radius": 10
+                            },
+                            {
+                              "id": "editor-review",
+                              "type": "block",
+                              "content": {
+                                "mod": "codenav",
+                                "props": {
+                                  "view": "review",
+                                  "part": "main"
+                                }
+                              },
+                              "radius": 10
+                            }
+                          ],
+                          "active": "editor-code"
+                        },
+                        {
+                          "id": "island-editor-bottom",
+                          "type": "block",
+                          "size": {
+                            "px": 8
+                          },
+                          "min": 8,
+                          "max": 8,
+                          "background": "canvas",
+                          "content": {
+                            "mod": "codenav",
+                            "props": {
+                              "view": "islandbottom",
+                              "side": "editor"
+                            }
+                          }
+                        }
+                      ],
+                      "size": {
+                        "weight": 3
+                      },
+                      "min": 30,
+                      "background": "canvas",
+                      "radius": 8,
+                      "gap": 0,
+                      "padding": [
+                        2,
+                        2
+                      ]
                     }
-                  }
+                  ],
+                  "min": 80,
+                  "gap": 0,
+                  "padding": [
+                    0,
+                    0
+                  ]
+                },
+                {
+                  "id": "tool-right",
+                  "type": "column",
+                  "size": {
+                    "px": 300
+                  },
+                  "min": 120,
+                  "hidden": true,
+                  "background": "canvas",
+                  "children": [
+                    {
+                      "id": "right-main",
+                      "type": "column",
+                      "size": {
+                        "weight": 1
+                      },
+                      "min": 80,
+                      "hidden": true,
+                      "background": "canvas",
+                      "children": [
+                        {
+                          "id": "right-bar",
+                          "type": "block",
+                          "size": {
+                            "px": 31
+                          },
+                          "content": {
+                            "mod": "codenav",
+                            "props": {
+                              "view": "toolheader",
+                              "side": "right"
+                            }
+                          },
+                          "radius": 8,
+                          "background": "canvas"
+                        },
+                        {
+                          "id": "right-views",
+                          "type": "stack",
+                          "active": "right-empty",
+                          "children": [
+                            {
+                              "id": "right-empty",
+                              "type": "block",
+                              "content": {
+                                "mod": "codenav",
+                                "props": {
+                                  "view": "toolempty",
+                                  "side": "right"
+                                }
+                              },
+                              "radius": 10
+                            }
+                          ]
+                        },
+                        {
+                          "id": "island-right-bottom",
+                          "type": "block",
+                          "size": {
+                            "px": 8
+                          },
+                          "min": 8,
+                          "max": 8,
+                          "background": "canvas",
+                          "content": {
+                            "mod": "codenav",
+                            "props": {
+                              "view": "islandbottom",
+                              "side": "right"
+                            }
+                          }
+                        }
+                      ],
+                      "radius": 8,
+                      "gap": 0,
+                      "padding": [
+                        2,
+                        2
+                      ]
+                    },
+                    {
+                      "id": "right-aux",
+                      "type": "column",
+                      "size": {
+                        "weight": 1
+                      },
+                      "min": 80,
+                      "hidden": true,
+                      "background": "canvas",
+                      "children": [
+                        {
+                          "id": "right2-bar",
+                          "type": "block",
+                          "size": {
+                            "px": 31
+                          },
+                          "content": {
+                            "mod": "codenav",
+                            "props": {
+                              "view": "toolheader",
+                              "side": "right2"
+                            }
+                          },
+                          "background": "canvas",
+                          "radius": 8
+                        },
+                        {
+                          "id": "right2-views",
+                          "type": "stack",
+                          "active": "right2-empty",
+                          "children": [
+                            {
+                              "id": "right2-empty",
+                              "type": "block",
+                              "content": {
+                                "mod": "codenav",
+                                "props": {
+                                  "view": "toolempty",
+                                  "side": "right2"
+                                }
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "id": "island-right2-bottom",
+                          "type": "block",
+                          "size": {
+                            "px": 8
+                          },
+                          "min": 8,
+                          "max": 8,
+                          "background": "canvas",
+                          "content": {
+                            "mod": "codenav",
+                            "props": {
+                              "view": "islandbottom",
+                              "side": "right2"
+                            }
+                          }
+                        }
+                      ],
+                      "radius": 8,
+                      "gap": 0,
+                      "padding": [
+                        2,
+                        2
+                      ]
+                    }
+                  ],
+                  "radius": 8,
+                  "gap": 0,
+                  "padding": [
+                    0,
+                    0
+                  ]
                 }
               ],
               "size": {
                 "weight": 3
               },
-              "min": 30,
-              "background": "canvas",
-              "radius": 8,
-              "gap": 0,
-              "padding": [
-                2,
-                2
-              ]
+              "min": 30
             },
             {
               "id": "terminal-panel",
@@ -355,7 +635,8 @@
                   "content": {
                     "mod": "codenav",
                     "props": {
-                      "view": "islandbottom"
+                      "view": "islandbottom",
+                      "side": "bottom"
                     }
                   }
                 }
@@ -369,81 +650,6 @@
                 2
               ]
             }
-          ],
-          "min": 80,
-          "gap": 0,
-          "padding": [
-            0,
-            0
-          ]
-        },
-        {
-          "id": "tool-right",
-          "type": "column",
-          "size": {
-            "px": 300
-          },
-          "min": 120,
-          "hidden": true,
-          "background": "canvas",
-          "children": [
-            {
-              "id": "right-bar",
-              "type": "block",
-              "size": {
-                "px": 31
-              },
-              "content": {
-                "mod": "codenav",
-                "props": {
-                  "view": "toolheader",
-                  "side": "right"
-                }
-              },
-              "radius": 8,
-              "background": "canvas"
-            },
-            {
-              "id": "right-views",
-              "type": "stack",
-              "active": "right-empty",
-              "children": [
-                {
-                  "id": "right-empty",
-                  "type": "block",
-                  "content": {
-                    "mod": "codenav",
-                    "props": {
-                      "view": "toolempty",
-                      "side": "right"
-                    }
-                  },
-                  "radius": 10
-                }
-              ]
-            },
-            {
-              "id": "island-right-bottom",
-              "type": "block",
-              "size": {
-                "px": 8
-              },
-              "min": 8,
-              "max": 8,
-              "background": "canvas",
-              "content": {
-                "mod": "codenav",
-                "props": {
-                  "view": "islandbottom"
-                }
-              }
-            }
-          ],
-          "radius": 8,
-          "gap": 0,
-          "padding": [
-            2,
-            2
           ]
         },
         {

@@ -7,124 +7,34 @@
 // "codenav.symbols" and "codenav.problems".
 import { div, svg, image } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
-import { run, theme, layout, shared, setShared, spaces, panes, window, props, openOverlay, closeOverlay, exec, notify, pickFolder } from "herdr";
+import { run, theme, layout, shared, setShared, spaces, panes, window, props, openOverlay, closeOverlay, keys, focused } from "herdr";
+import { uiNotify as notify } from "./idea-design.js";
 import { T } from "./i18n.js";
-import { find, icon, iconButton, location, openPath, editorSpec, basename, tilde, sectionHeader } from "./common.js";
-import { KIND, kindColor } from "./code.js";
-import { openEverywhere } from "./everywhere.js";
+import { find, icon, iconButton, openPath, editorSpec, editorKey, basename, tilde, editorSnapshot as forShown } from "./common.js";
+
+
 import { runStore, isRunning, runConfig, stopConfig, openRunConfigs } from "./run.js";
 import { ideaImage, symbolImage, toolImage } from "./ideaicons.js";
-import { IDEA, uiSize, ideaUI, popupSurface, uiIconButton, uiStripeButton, uiToolHeader, uiIslandBottom, MenuController, uiMenu } from "./idea-design.js";
+import { IDEA, uiSize, ideaUI, uiIconButton, uiStripeButton, uiToolHeader, uiIslandBottom, MenuController, uiMenu, uiColors, uiNoticeCard, uiTreeRow, uiListRow, uiSeparator, uiSpinner } from "./idea-design.js";
 import { ensureIdeaIslands } from "./islands.js";
 import { openIdeaSettings } from "./settings.js";
+import { ACTION_GROUPS, getAction, actionPresentation, effectiveShortcuts, formatShortcut } from "./actions.js";
+import { groupItems } from "./toolbar-model.js";
 
-export const TOOLS = {
-  project: { child: "view-files", icon: "folder", idea: "project", label: "Project", key: "⌘1", content: { mod: "activity", props: { view: "files" } },
-    headerActions: [
-      { id: "new-file", icon: "file-plus", label: "New File…", command: "activity.project-new-file" },
-      { id: "new-folder", icon: "folder-plus", label: "New Folder…", command: "activity.project-new-folder" },
-      { id: "refresh", icon: "refresh", label: "Refresh", command: "activity.project-refresh" },
-      { id: "collapse", icon: "collapse", label: "Collapse folders", command: "activity.project-collapse" },
-    ] },
-  commit: { child: "view-review", icon: "git-commit", idea: "commit", label: "Commit", key: "⌘0", content: { mod: "codenav", props: { view: "review", part: "side" } } },
-  structure: { child: "view-structure", icon: "layers", idea: "structure", label: "Structure", key: "⌘7" },
-  find: { child: "view-search", icon: "search", idea: "find", label: "Find", key: "⌘3", content: { mod: "activity", props: { view: "search" } } },
-  terminal: { child: "bottom-terminal", icon: "terminal", idea: "terminal", label: "Terminal", key: "⌥F12", get content() { return { tab: "active", pane: { background: "surface", border: { width: 0, color: "surface" }, focus: { width: 0, color: "surface" }, radius: IDEA.islandRadius, gap: IDEA.islandGap } }; } },
-  problems: { child: "bottom-problems", icon: "alert", idea: "problems", label: "Problems", key: "⌘6" },
-  notifications: { child: "bottom-notifications", icon: "message", idea: "notifications", label: "Notifications", key: "" },
-  agents: { child: "bottom-agents", icon: "terminal", idea: "services", label: "Agents", key: "", content: { mod: "codenav", props: { view: "agents" } } },
-};
-// The three places a tool window can be. Each stack keeps an empty child, so a
-// side whose tools all moved away still has one.
-export const SIDES = {
-  left: { column: "sidebar", stack: "sidebar-views", empty: "left-empty", bar: "left-bar", label: "Left" },
-  right: { column: "tool-right", stack: "right-views", empty: "right-empty", bar: "right-bar", label: "Right" },
-  bottom: { column: "terminal-panel", stack: "bottom-stack", empty: "bottom-empty", bar: "bottom-bar", label: "Bottom" },
-};
-
-// Which side a tool window is on now: the stack holding it.
-export function sideOf(name) {
-  const l = layout(), child = TOOLS[name]?.child;
-  return Object.keys(SIDES).find((k) => (find(l, SIDES[k].stack)?.children ?? []).some((c) => c.id === child)) ?? null;
-}
-export const toolsOn = (side) => Object.keys(TOOLS).filter((n) => sideOf(n) === side);
-
-export function toolOpen(name) {
-  const side = SIDES[sideOf(name)], l = layout();
-  return Boolean(side && find(l, side.column) && !find(l, side.column).hidden && find(l, side.stack)?.active === TOOLS[name].child);
-}
-// Tool windows taken off the stripes (shared "codenav.toolHidden"); their keys still open them.
-export const hiddenTools = () => new Set(shared("codenav.toolHidden") ?? []);
-export function setToolHidden(name, hidden) {
-  const set = hiddenTools();
-  if (hidden === set.has(name)) return;
-  hidden ? set.add(name) : set.delete(name);
-  setShared("codenav.toolHidden", [...set]);
-}
-
-// Like IntelliJ's stripe buttons and Cmd+1…: shows the tool window, or folds it when it is the one showing.
-export function toggleTool(name, show = false) {
-  const side = SIDES[sideOf(name)], l = layout();
-  const column = side && find(l, side.column), stack = side && find(l, side.stack);
-  if (!column || !stack) return;
-  if (toolOpen(name) && !show) return run("layout.hide", { id: side.column });
-  setToolHidden(name, false);
-  if (shared("codenav.lastTool") !== name) setShared("codenav.lastTool", name);
-  if (stack.active !== TOOLS[name].child) run("layout.select", { stack: side.stack, child: TOOLS[name].child });
-  if (column.hidden) run("layout.show", { id: side.column });
-}
-// Shift+Esc: folds the tool window opened last, else whichever side shows.
-export function hideActiveTool() {
-  const last = shared("codenav.lastTool"), l = layout();
-  const side = last && toolOpen(last) ? SIDES[sideOf(last)] : ["bottom", "right", "left"].map((k) => SIDES[k]).find((x) => find(l, x.column) && !find(l, x.column).hidden);
-  if (side) run("layout.hide", { id: side.column });
-}
-// Puts tool windows on sides ({name: side}) in one layout edit. A moved one
-// shows where it lands (with `show`); a side left with none folds.
-export function arrange(want, show = false) {
-  const tree = JSON.parse(JSON.stringify(layout()));
-  const stack = (k) => find(tree, SIDES[k].stack), column = (k) => find(tree, SIDES[k].column);
-  if (Object.keys(SIDES).some((k) => !stack(k) || !column(k))) return;
-  let changed = false;
-  for (const [name, to] of Object.entries(want)) {
-    const from = sideOf(name), child = TOOLS[name]?.child;
-    if (!from || !SIDES[to] || from === to) continue;
-    const src = stack(from), node = src.children.find((c) => c.id === child);
-    if (!node) continue;
-    src.children = src.children.filter((c) => c.id !== child);
-    if (src.active === child) src.active = src.children.find((c) => c.id !== SIDES[from].empty)?.id ?? SIDES[from].empty;
-    stack(to).children = [...stack(to).children, node];
-    if (show) { stack(to).active = child; column(to).hidden = false; }
-    changed = true;
-  }
-  if (!changed) return;
-  for (const k of Object.keys(SIDES)) if (stack(k).active === SIDES[k].empty) column(k).hidden = true;
-  run("layout.set", { layout: tree });
-}
-export const moveTool = (name, to) => arrange({ [name]: to }, true);
-
-// The default sides (Settings → tool windows), kept in shared "codenav.toolSides".
-export const DEFAULT_SIDES = { project: "left", commit: "left", structure: "left", find: "left", terminal: "bottom", problems: "bottom", notifications: "bottom", agents: "bottom" };
-export const savedSides = () => ({ ...DEFAULT_SIDES, ...(shared("codenav.toolSides") ?? {}) });
-export const openToolSettings = () => openIdeaSettings("windows");
-
-// Cmd+Shift+F12: every tool window away for the editor, or back as they were.
-export function toggleAllTools() {
-  const l = layout(), open = Object.values(SIDES).filter((s) => find(l, s.column) && !find(l, s.column).hidden).map((s) => s.column);
-  if (open.length) { setShared("codenav.toolsHidden", open); for (const id of open) run("layout.hide", { id }); return; }
-  for (const id of shared("codenav.toolsHidden") ?? ["sidebar"]) run("layout.show", { id });
-}
+import { TOOLS, SIDES, sideOf, toolsOn, toolOpen, hiddenTools, hideSlot, setToolHidden, toggleTool, moveTool, savedSides } from "./tool-windows.js";
 
 const stopPress = (el) => el.on_mouse_down("left", (_e, cx) => cx.stop_propagation());
 
 // -- the stripes: the left one holds the left tools, then the bottom ones; the right one the right tools.
 // Right-click a button to move its tool window to another side.
 export class Stripe {
-  init(p) { this.edge = p?.side === "right" ? "right" : "left"; }
+  init(p) {
+    this.edge = p?.side === "right" ? "right" : "left";
+  }
   button(name, t) {
     const tool = TOOLS[name], on = toolOpen(name);
     return uiStripeButton(`st-${name}`, toolImage(tool.idea, IDEA.stripeIconSize, on), () => toggleTool(name),
-      { active: on, tip: `${T(tool.label)}  ${tool.key}` })
+      { active: on, side: this.edge, tip: `${T(tool.label)}  ${tool.key}` })
       .on_mouse_down("right", (_e, cx) => {
         cx.stop_propagation();
         openOverlay({ mod: "codenav", props: { view: "toolmenu", name }, kind: "popup", frame: "none", width: 240, height: 260 });
@@ -163,16 +73,20 @@ export class Stripe {
   render(cx) {
     if (this.edge === "left") { this.syncBars(cx); this.addMissing(cx); }
     const t = theme(), hidden = hiddenTools(), shown = (side) => toolsOn(side).filter((n) => !hidden.has(n));
-    const top = shown(this.edge), bottom = this.edge === "left" ? shown("bottom") : [];
-    return ideaUI(v_flex()).size_full().py(2).gap(2).items_center().bg(t.canvas)
-      .children(top.map((n) => this.button(n, t)))
+    const upper = shown(this.edge), lower = shown(`${this.edge}2`), bottom = this.edge === "left" ? shown("bottom") : [];
+    const separator = group => uiSeparator().id(`stripe-${this.edge}-${group}`).w(IDEA.stripeWidth - 12).mx(0).my(4);
+    return ideaUI(v_flex()).id(`stripe-${this.edge}`).size_full().py(2).gap(2).items_center().bg(t.canvas)
+      .children(upper.map((n) => this.button(n, t)))
+      .when(upper.length > 0 && lower.length > 0, el => el.child(separator("slots")))
+      .children(lower.map((n) => this.button(n, t)))
       .child(div().flex_1())
+      .when(bottom.length > 0 && upper.length + lower.length > 0, el => el.child(separator("bottom")))
       .children(bottom.map((n) => this.button(n, t)));
   }
 }
 
 export class IslandBottom {
-  init() {}
+  init(p) { this.side = p.side; }
   render() { return uiIslandBottom().size_full(); }
 }
 
@@ -181,12 +95,16 @@ export class ToolMenu {
   init(_p, cx) { this.menu = new MenuController(cx); this.menu.focus.focus(); }
   release() { this.menu.release(); }
   render(cx) {
-    const { name, overlay } = props() ?? {}, side = sideOf(name);
-    const entries = Object.keys(SIDES).filter((k) => k !== side).map((k) => ({ id: k, label: T(`Move to ${SIDES[k].label}`), action: () => moveTool(name, k) }));
+    const { name, overlay, group, items } = props() ?? {}, side = sideOf(name);
+    if (group) return uiMenu("group-menu", actionMenuRows(items ?? groupItems(group, shared("codenav.customization"), ACTION_GROUPS)), this.menu, cx,
+      { width: 280, maxHeight: 400, onClose: () => closeOverlay(overlay) });
+    const headerGroup = TOOLS[name]?.headerGroup;
+    const entries = [...(headerGroup ? [...actionMenuRows(groupItems(headerGroup, shared("codenav.customization"), ACTION_GROUPS), name), { separator: true }] : []),
+      ...Object.keys(SIDES).filter((k) => k !== side).map((k) => ({ id: k, label: T(`Move to ${SIDES[k].label}`), action: () => moveTool(name, k) }))];
     if (toolOpen(name)) entries.push({ id: "hide", label: T("Hide"), action: () => toggleTool(name) });
-    entries.push({ id: "remove", label: T("Remove from Stripe"), action: () => { if (toolOpen(name)) toggleTool(name); setToolHidden(name, true); } },
-      { id: "settings", label: T("Tool Window Settings…"), action: () => openToolSettings() });
-    return uiMenu("tool-menu", entries.flatMap(entry => entry.id === "settings" ? [{ separator: true }, entry] : [entry]), this.menu, cx,
+    entries.push({ id: "remove", label: T("Remove from Stripe"), action: () => { if (toolOpen(name)) toggleTool(name); setToolHidden(name, true); } }, { separator: true },
+      ...actionMenuRows(groupItems("ToolWindow.context", shared("codenav.customization"), ACTION_GROUPS), name));
+    return uiMenu("tool-menu", entries, this.menu, cx,
       { width: 240, maxHeight: 260, onClose: () => closeOverlay(overlay) });
   }
 }
@@ -198,7 +116,7 @@ export class ToolEmpty {
     const column = this.side && find(layout(), this.side.column);
     if (column && !column.hidden && find(layout(), this.side.stack)?.active === this.side.empty && !this.folding) {
       this.folding = true;
-      cx.timer.after(0, () => { this.folding = false; run("layout.hide", { id: this.side.column }); });
+      cx.timer.after(0, () => { this.folding = false; hideSlot(this.side); });
     }
     return uiIslandBottom().size_full();
   }
@@ -214,10 +132,13 @@ function avatar(name, size = 20) {
 }
 
 function widget(id, t, children, action) {
-  return stopPress(h_flex().id(id).h(28).px(8).gap(6).flex_none().items_center().rounded(6).cursor_pointer()
+  return stopPress(h_flex().id(id).h(IDEA.toolbarButtonSize).px(8).gap(6).flex_none().items_center().rounded(6).cursor_pointer()
     .hover((s) => s.bg(t.hover)).on_click(action))
     .children(children);
 }
+
+const toolbarLabel = (text, color, max = 220) => h_flex().h_full().min_w(0).max_w(max).items_center().text_color(color)
+  .child(div().truncate().child(text));
 
 // A toolbar button drawn with an IntelliJ icon.
 function ideaButton(id, name, tip, action) {
@@ -229,32 +150,85 @@ function runWidget(t) {
   const st = runStore(), c = st.configs[st.selected] ?? st.configs[0], running = isRunning(c);
   const showTerminal = () => toggleTool("terminal", true);
   const menu = () => openOverlay({ mod: "codenav", props: { view: "runmenu" }, kind: "popup", width: 320, height: Math.min(360, 60 + st.configs.length * 32) });
-  if (!c) return widget("tb-run-add", t, [toolImage("runAction", 16), div().text_color(t.muted).child(T("Add Configuration…"))], () => openRunConfigs());
-  return h_flex().gap(2).items_center()
-    .child(widget("tb-run-config", t, [toolImage("run", 15), div().text_color(t.foreground).max_w(200).truncate().child(c.name), icon("chevron-down", 12).text_color(t.muted)], menu))
+  if (!c) return widget("tb-run-add", t, [toolImage("runAction", 16), toolbarLabel(T("Add Configuration…"), t.muted)], () => openRunConfigs());
+  return h_flex().h(IDEA.toolbarButtonSize).flex_none().gap(2).items_center()
+    .child(widget("tb-run-config", t, [toolImage("run", 15), toolbarLabel(c.name, t.foreground, 200), icon("chevron-down", 12).text_color(t.muted)], menu))
     .child(ideaButton("tb-run", running ? "rerunAction" : "runAction", running ? T("Rerun '{name}'", { name: c.name }) : T("Run '{name}'", { name: c.name }), () => runConfig(c, showTerminal)))
     .when(running, (e) => e.child(ideaButton("tb-stop", "stopAction", T("Stop '{name}'", { name: c.name }), () => stopConfig(c))))
     .child(ideaButton("tb-run-more", "moreVertical", T("More"), menu));
 }
 
+function actionContext() {
+  const st = runStore(), config = st.configs[st.selected] ?? st.configs[0];
+  return { layout: shared("layout") ?? "idea", workspace: spaces().find(s => s.active), document: editorSpec(), area: shared("codenav.area"),
+    terminal: focused()?.terminal, runConfig: Boolean(config), running: isRunning(config), problemsOptions: shared("codenav.problemsOptions") ?? {} };
+}
+function dispatchAction(action, tool) {
+  if (action.id === "codenav.hide-active" && tool) { if (toolOpen(tool)) toggleTool(tool); return; }
+  run(action.command);
+}
+function actionButton(item, prefix, context = actionContext()) {
+  const action = getAction(item.action), presentation = actionPresentation(action, context);
+  if (!presentation.visible) return null;
+  const shortcut = effectiveShortcuts(action.id, keys(), { layout: "idea", mod: context.document?.edit ? "activity" : "codenav" }).map(formatShortcut).join(", ");
+  return uiIconButton(`${prefix}-${item.id}`, toolImage(item.icon ?? presentation.icon, IDEA.iconSize), () => {
+    if (actionPresentation(action, actionContext()).enabled) dispatchAction(action);
+  }, { tip: `${T(presentation.label)}${shortcut ? ` (${shortcut})` : ""}${presentation.reason ? ` · ${presentation.reason}` : ""}`, active: presentation.selected, disabled: !presentation.enabled });
+}
+function widgetAction(name) {
+  if (name === "project") return () => openOverlay({ mod: "codenav", props: { view: "projects" }, kind: "popup", frame: "none", width: 480, height: Math.min(400, 43 + spaces().length * IDEA.rowHeight) });
+  if (name === "run") return () => openOverlay({ mod: "codenav", props: { view: "runmenu" }, kind: "popup", frame: "none", width: 320, height: 360 });
+  return null;
+}
+function actionMenuRows(items, tool, context = props()?.context ?? actionContext()) {
+  return items.flatMap(item => {
+    if (item.kind === "separator") return [{ separator: true }];
+    if (item.kind === "widget") {
+      const action = widgetAction(item.widget);
+      return [{ id: item.id, label: T(item.widget === "run" ? "Run Configurations" : item.widget === "project" ? "Project" : "Branch"), disabled: !action, action }];
+    }
+    const action = getAction(item.action), presentation = actionPresentation(action, context);
+    if (!presentation.visible) return [];
+    return [{ id: item.id, label: `${presentation.selected ? "✓ " : ""}${T(presentation.label)}`, disabled: !presentation.enabled,
+      icon: () => toolImage(item.icon ?? action.icon, 16), shortcut: effectiveShortcuts(action.id, keys(), { layout: "idea", mod: "codenav" }).map(formatShortcut).join(", "),
+      action: () => dispatchAction(action, tool) }];
+  });
+}
+
 export class Toolbar {
   init() {}
+  item(item, t, space, context) {
+    if (item.kind === "separator") return div().w(1).h(18).mx(5).flex_none().bg(uiColors().separator);
+    if (item.kind === "action") return actionButton(item, "tb", context);
+    if (item.kind !== "widget") return null;
+    if (item.widget === "run") return runWidget(t);
+    if (item.widget === "project") return widget("tb-project", t, [avatar(space?.name ?? "~"), toolbarLabel(space?.name ?? "~", t.foreground).font_semibold(), icon("chevron-down", 12).text_color(t.muted)], widgetAction("project"));
+    if (item.widget === "branch" && space?.branch) return h_flex().id("tb-branch").h(IDEA.toolbarButtonSize).px(8).gap(6).flex_none().items_center()
+      .child(icon("git-branch", 14).text_color(t.muted)).child(toolbarLabel(space.branch, t.foreground));
+    return null;
+  }
   render() {
-    const t = theme(), w = window(), space = spaces().find((s) => s.active);
+    const t = theme(), w = window(), space = spaces().find((s) => s.active), context = actionContext();
     const mac = w?.platform === "macos" && !w?.fullscreen;
+    const sections = Object.fromEntries(["left", "center", "right"].map(side => [side, groupItems(`MainToolbar.${side}`, shared("codenav.customization"), ACTION_GROUPS)
+      .filter(item => item.kind !== "action" || actionPresentation(item.action, context).visible)
+      .filter(item => item.kind !== "widget" || item.widget !== "branch" || Boolean(space?.branch))]));
+    const estimate = item => item.kind === "widget" ? item.widget === "project" ? 180 : item.widget === "branch" ? 160 : 270 : item.kind === "separator" ? 12 : IDEA.toolbarButtonSize + 4;
+    const overflow = [];
+    let need = Object.values(sections).flat().reduce((sum, item) => sum + estimate(item), 0) + (mac ? 110 : 40);
+    const available = this.width ?? 1400;
+    for (const side of ["right", "left", "center"]) while (need > available && sections[side].length) {
+      const item = sections[side].pop(); overflow.unshift(item); need -= estimate(item); if (overflow.length === 1) need += IDEA.toolbarButtonSize;
+    }
+    const group = side => h_flex().id(`tb-group-${side}`).h_full().min_w(0).gap(4).items_center()
+      .when(side !== "center", el => el.flex_1())
+      .when(side === "right", el => el.justify_end())
+      .children(sections[side].map(item => this.item(item, t, space, context)).filter(Boolean));
     return ideaUI(h_flex()).size_full().pl(mac ? 80 : 10).pr(8).gap(4).items_center().bg(t.canvas).text_size(uiSize())
-      .child(widget("tb-project", t, [avatar(space?.name ?? "~"), div().font_semibold().text_color(t.foreground).max_w(220).truncate().child(space?.name ?? "~"),
-        icon("chevron-down", 12).text_color(t.muted)],
-        () => openOverlay({ mod: "codenav", props: { view: "projects" }, kind: "popup", frame: "none", width: 480, height: Math.min(400, 43 + spaces().length * IDEA.rowHeight) })))
-      // The current branch, shown only (switching branches stays with the agent and git).
-      .when(Boolean(space?.branch), (el) => el.child(h_flex().h(28).px(8).gap(6).flex_none().items_center()
-        .child(icon("git-branch", 14).text_color(t.muted)).child(div().text_color(t.foreground).max_w(220).truncate().child(space.branch))))
-      .child(div().flex_1())
-      .child(runWidget(t))
-      .child(div().w(8))
-      .child(ideaButton("tb-everywhere", "search", T("Search Everywhere (Double Shift)"), () => openEverywhere("all")))
-      .child(ideaButton("tb-tools", "layout", T("Tool Window Settings…"), () => openToolSettings()))
-      .child(ideaButton("tb-settings", "settings", T("Settings"), () => openIdeaSettings()));
+      .on_size_change((size, cx) => { if (this.width !== size.width) { this.width = size.width; cx.notify(); } })
+      .on_mouse_down("right", (_event, cx) => { cx.stop_propagation(); openIdeaSettings("toolbars"); })
+      .child(group("left")).child(group("center")).child(group("right"))
+      .when(Boolean(overflow.length), el => el.child(uiIconButton("tb-overflow", toolImage("moreVertical", 16), () => openOverlay({ mod: "codenav", props: { view: "toolmenu", group: "MainToolbar.overflow", items: overflow, context: actionContext() }, kind: "popup", frame: "none", width: 280, height: Math.min(400, overflow.length * IDEA.rowHeight + 14) }), { tip: T("More") })));
   }
 }
 
@@ -270,7 +244,9 @@ export class ToolHeader {
       .on_click(() => run("tab.select", { id: c.id })))
       .child(lead?.icon ? (lead.tint ? svg(lead.icon).size(12).text_color(t.muted) : image(lead.icon).size(12)) : icon("terminal", 12))
       .child(div().max_w(150).truncate().child(name))
-      .when(c.status === "working", (el) => el.child(svg("mods/workspace-chrome/spinner.svg").size(11).flex_none().text_color(t.working).spin(900)))
+      .when(c.status === "working", (el) => el.child(shared("layout") === "idea"
+        ? uiSpinner(() => svg("mods/codenav/idea-icons/progress.svg"), { size: 12, tip: T("Working…") })
+        : svg("mods/workspace-chrome/spinner.svg").size(11).flex_none().text_color(t.working).spin(900)))
       .when(c.status === "blocked" || c.status === "done", (el) => el.child(div().size(6).rounded(3).bg(t[c.status])))
       .when(c.active, (el) => el.child(iconButton(`th-x-${c.id}`, "x", T("Close tab"), () => run("tab.close", { id: c.id }), { size: 16, icon: 10 })));
   }
@@ -287,49 +263,86 @@ export class ToolHeader {
         .when(active === "terminal", (e) => e.children(tabs.map((c) => this.tab(c, t)))
           .child(iconButton(`th-new-${this.side}`, "plus", T("New Terminal or Agent"), () => openOverlay({ mod: "codenav", props: { view: "newterminal" }, kind: "popup", frame: "none", width: 300, height: 400 }))))
         .when(active === "problems", (e) => e.child(problemsSummary(t)))
-        .when(active === "notifications", (e) => e.child(notificationsSummary(t))));
-    const actions = (TOOLS[active]?.headerActions ?? []).map(a =>
-      iconButton(`th-${active}-${a.id}`, a.icon, T(a.label), () => run(a.command)));
-    actions.push(iconButton(`th-hide-${this.side}`, "minus", T("Hide (Shift+Esc)"), () => run("layout.hide", { id: side.column })));
+        );
+    const actions = TOOLS[active]?.headerGroup
+      ? groupItems(TOOLS[active].headerGroup, shared("codenav.customization"), ACTION_GROUPS).map(item => item.kind === "separator" ? div().w(1).h(16).mx(3).bg(uiColors().separator) : item.kind === "action" ? actionButton(item, `th-${active}`) : null).filter(Boolean)
+      : (TOOLS[active]?.headerActions ?? []).map(a => iconButton(`th-${active}-${a.id}`, a.icon, T(a.label), () => run(a.command)));
+    actions.push(uiIconButton(`th-menu-${this.side}`, toolImage("moreVertical", 16), () => openOverlay({ mod: "codenav", props: { view: "toolmenu", name: active }, kind: "popup", frame: "none", width: 240, height: 260 })));
+    actions.push(iconButton(`th-hide-${this.side}`, "minus", T("Hide (Shift+Esc)"), () => hideSlot(side)));
     return uiToolHeader(`tool-header-${this.side}`, "", { content, actions }).size_full().min_w(0).rounded_t(IDEA.islandRadius);
   }
 }
 
 // -- Structure and Problems -------------------------------------------------------------------
-const forShown = (key) => { const v = shared(key), s = editorSpec(); return v && s && v.path === s.path ? v : null; };
 const jump = (path, line, col = 0) => openPath(`${path}:${line + 1}:${col + 1}`);
 
 export class Structure {
-  init() {}
+  init() { this.collapsed = new Set(); }
   render() {
-    const t = theme(), syms = forShown("codenav.symbols"), caret = forShown("codenav.caret");
-    const items = (syms?.items ?? []).filter((s) => s.kind !== "variable" || s.depth === 0);
-    const current = caret ? [...items].reverse().find((s) => s.start <= caret.line && caret.line <= s.end && s.kind !== "variable") : null;
+    const t = theme(), syms = forShown("codenav.symbols"), caret = forShown("codenav.caret"), items = syms?.items ?? [];
+    let hiddenDepth = Infinity;
     return ideaUI(v_flex()).size_full().bg(t.surface).text_color(t.foreground)
-      .child(!syms || !items.length ? div().px(12).text_size(uiSize(12)).text_color(t.dim)
-        .child(!editorSpec() ? T("Open a file to see its structure.") : !syms ? T("Waiting for the language server…") : T("No structure for this file."))
-        : div().id("tw-structure").flex_1().min_h(0).overflow_y_scrollbar().pb(8)
-          .children(items.slice(0, 1500).map((s, i) => h_flex().id(`tw-s-${i}`).h(IDEA.rowHeight).mx(4).rounded(4).pl(8 + s.depth * 18).pr(8).gap(6).items_center().text_size(uiSize()).cursor_pointer()
-            .when(current === s, (e) => e.bg(t.selected)).hover((e) => e.bg(t.hover))
-            .on_click(() => jump(syms.path, s.line, s.col))
-            .child(symbolImage(s.kind, syms.path, 15))
-            .child(div().flex_none().max_w(200).truncate().child(s.name))
-            .child(div().flex_1().min_w(0).truncate().text_size(uiSize(11)).text_color(t.dim).child(s.detail ?? "")))));
+      .child(!syms || !items.length ? div().px(12).py(4).text_color(t.dim).child(T(!editorSpec() ? "Open a file to see its structure." : !syms ? "Waiting for the language server…" : "No structure for this file."))
+        : v_flex().id("tw-structure").flex_1().min_h(0).overflow_y_scrollbar().pb(8).children(items.slice(0, 1500).flatMap((s, i) => {
+          if (s.depth > hiddenDepth) return [];
+          hiddenDepth = Infinity;
+          const key = `${s.start}:${s.col}:${s.name}`, parent = items[i + 1]?.depth > s.depth, collapsed = this.collapsed.has(key);
+          if (collapsed) hiddenDepth = s.depth;
+          return [uiTreeRow(`tw-s-${i}`, s.name, { depth: s.depth, expanded: parent ? !collapsed : undefined,
+            selected: Boolean(caret && s.line === caret.line), graphic: symbolImage(s.kind, syms.path, 15),
+            onClick: (_event, cx) => { if (parent) { collapsed ? this.collapsed.delete(key) : this.collapsed.add(key); cx.notify(); } jump(syms.path, s.line, s.col); },
+          }).tooltip(s.detail || s.name).child(div().min_w(0).truncate().text_color(t.dim).child(s.detail || ""))];
+        })));
   }
 }
 
 export class Problems {
-  init() {}
+  init(_props, cx) { this.selected = null; this.focus = cx.focus_handle(); }
+  release() { this.focus?.release(); }
+  data() {
+    const p = forShown("codenav.problems"), scope = shared("codenav.problemsScope") ?? "file", spec = editorSpec(), options = shared("codenav.problemsOptions") ?? {};
+    const all = Object.values(shared("codenav.problemFiles") ?? {}).filter(file => file.space === editorKey() && (file.on ?? null) === (spec?.on ?? null));
+    const files = (scope === "project" ? all : p ? [p] : []).map(file => ({ ...file, items: file.items.filter(item => !options.errorsOnly || item.severity === 1) })).filter(file => file.items.length);
+    return { p, scope, options, files, rows: files.flatMap(file => file.items.map(diagnostic => ({ file, diagnostic, id: JSON.stringify([file.on ?? null, file.path, diagnostic.line, diagnostic.col, diagnostic.source, diagnostic.code, diagnostic.message]) }))) };
+  }
+  activate(row) {
+    if (row) openPath(`${row.file.path}:${row.diagnostic.line + 1}:${row.diagnostic.col + 1}`, row.file.on);
+  }
+  select(row, cx, activate = false) {
+    this.selected = row.id;
+    if (activate || this.data().options.autoscroll) this.activate(row);
+    cx.notify();
+  }
+  key(event, cx) {
+    const rows = this.data().rows, at = rows.findIndex(row => row.id === this.selected);
+    const index = event.key === "down" ? Math.min(rows.length - 1, at + 1) : event.key === "up" ? Math.max(0, at < 0 ? rows.length - 1 : at - 1) : event.key === "home" ? 0 : event.key === "end" ? rows.length - 1 : null;
+    if (index !== null) { if (rows[index]) this.select(rows[index], cx); }
+    else if (event.key === "enter") this.activate(rows[at]);
+    else return;
+    cx.stop_propagation();
+  }
   render() {
-    const t = theme(), p = forShown("codenav.problems"), items = p?.items ?? [];
-    return ideaUI(v_flex()).size_full().pt(4).bg(t.surface).text_color(t.foreground)
-      .child(!items.length ? div().px(12).text_size(uiSize(12)).text_color(t.dim).child(p ? T("No problems in this file.") : T("Open a file to see its problems."))
-        : div().id("tw-problems").flex_1().min_h(0).overflow_y_scrollbar().pb(8)
-          .children(items.map((d, i) => h_flex().id(`tw-p-${i}`).min_h(24).px(12).gap(8).items_center().text_size(uiSize(12.5)).cursor_pointer()
-            .hover((e) => e.bg(t.hover)).on_click(() => jump(p.path, d.line, d.col))
-            .child(icon(d.severity === 1 ? "x" : "alert", 13).text_color(d.severity === 1 ? t.ansi1 : t.ansi3))
-            .child(div().flex_1().min_w(0).truncate().child(d.message))
-            .child(div().flex_none().text_size(uiSize(11)).text_color(t.dim).child(`${d.source ? `${d.source} · ` : ""}:${d.line + 1}`)))));
+    const t = theme(), { p, scope, options, files, rows } = this.data();
+    const renderRow = (row, indent) => {
+      const d = row.diagnostic;
+      return uiListRow(`problem-${row.id}`, [
+        icon(d.severity === 1 ? "x" : "alert", 14).text_color(d.severity === 1 ? t.ansi1 : d.severity === 2 ? t.ansi3 : t.muted),
+        div().flex_1().min_w(0).truncate().child(`${d.source ? d.source + " - " : ""}${d.code ? d.code + ": " : ""}${d.message}`),
+        div().flex_none().text_color(t.dim).child(`:${d.line + 1}`),
+      ], { indent, selected: this.selected === row.id, focused: this.focus.is_focused(), onClick: (event, cx) => this.select(row, cx, event.click_count > 1) }).tooltip(d.message);
+    };
+    return ideaUI(v_flex()).size_full().min_h(0).bg(t.surface).text_color(t.foreground)
+      .track_focus(this.focus).on_mouse_down("left", () => this.focus.focus()).on_key_down((event, cx) => this.key(event, cx))
+      .child(h_flex().flex_none().h(26).px(6).gap(4).items_center()
+        .child(div().flex_1().text_size(uiSize(11)).text_color(t.dim).child(scope === "project" ? T("Diagnostics from opened files") : T("Current file")))
+        .child(div().text_size(uiSize(11)).text_color(t.dim).child(`${rows.length} ${T("Problems")}`)))
+      .child(v_flex().id("tw-problems").flex_1().min_h(0).overflow_y_scrollbar().children(files.length ? files.flatMap(file => [
+        uiListRow(`problem-file-${file.path}`, [ideaImage(file.path, false, 16), div().flex_none().child(basename(file.path)), div().min_w(0).flex_1().truncate().text_color(t.dim).child(tilde(file.path)), div().flex_none().text_color(t.dim).child(String(file.items.length))], { interactive: false }),
+        ...(options.groupSource ? [...new Set(file.items.map(item => item.source || T("Other")))].flatMap(source => [
+          uiListRow(`problem-source-${file.path}-${source}`, [source], { indent: 20, interactive: false }),
+          ...rows.filter(row => row.file.path === file.path && (row.diagnostic.source || T("Other")) === source).map(row => renderRow(row, 36)),
+        ]) : rows.filter(row => row.file.path === file.path).map(row => renderRow(row, 24))),
+      ]) : [div().px(12).py(8).text_color(t.dim).child(T(options.errorsOnly ? "No errors in this scope." : scope === "project" ? "No problems in opened files." : p ? "No problems in this file." : "Open a file to see its problems."))]));
   }
 }
 
@@ -337,40 +350,28 @@ export class Problems {
 // "codenav.notifications" by the status item (status.js), newest first; click to go there.
 const ago = (at) => { const s = Math.max(0, Math.round((Date.now() - at) / 1000)); return s < 60 ? T("just now") : s < 3600 ? T("{n} min ago", { n: Math.floor(s / 60) }) : s < 86400 ? T("{n} h ago", { n: Math.floor(s / 3600) }) : new Date(at).toLocaleDateString(); };
 export class Notifications {
-  init() {}
+  init(_props, cx) { cx.timer.every(60000, cx => cx.notify()); }
   render() {
     const t = theme(), list = shared("codenav.notifications") ?? [];
-    return ideaUI(v_flex()).size_full().pt(4).bg(t.surface).text_color(t.foreground)
-      .child(!list.length ? div().px(12).text_size(uiSize(12)).text_color(t.dim).child(T("No notifications yet. Agents that finish or wait for you show here."))
-        : div().id("tw-notifications").flex_1().min_h(0).overflow_y_scrollbar().pb(8)
-          .children(list.map((n, i) => h_flex().id(`nt-${i}`).px(12).py(6).gap(10).items_start().cursor_pointer().hover((e) => e.bg(t.hover))
-            .on_click(() => {
-              setShared("codenav.notifications", (shared("codenav.notifications") ?? []).filter((x) => !(x.at === n.at && x.terminal === n.terminal)));
-              if (n.space) run("space.select", { id: n.space });
-              if (n.terminal) run("agent.focus", { terminal: n.terminal });
-            })
-            .child(div().mt(4).size(8).flex_none().rounded_full().bg(n.level === "blocked" ? t.blocked : t.done ?? t.ansi2))
-            .child(v_flex().flex_1().min_w(0).gap(2)
-              .child(div().truncate().text_size(uiSize(13)).child(n.title))
-              .child(div().truncate().text_size(uiSize(11.5)).text_color(t.dim).child(`${n.where} · ${ago(n.at)}`))))));
+    return ideaUI(v_flex()).size_full().min_h(0).bg(t.surface).text_color(t.foreground)
+      .child(h_flex().flex_none().h(32).px(14).items_center().text_color(t.dim)
+        .child(div().flex_1().child(T("Timeline")))
+        .child(div().id("notifications-clear").text_color(t.accent).cursor_pointer().on_click(() => run("codenav.notifications-clear")).child(T("Clear all"))))
+      .child(v_flex().id("tw-notifications").flex_1().min_h(0).overflow_y_scrollbar().px(7).gap(10).pb(8)
+        .children(list.length ? list.map((note, i) => uiNoticeCard(`notification-${note.id ?? i}`, { title: note.title, body: note.body || note.where }, {
+          graphic: div().mt(2).size(14).rounded_full().bg(note.level === "error" || note.level === "blocked" ? t.ansi1 : note.level === "warning" ? t.ansi3 : "#6587F5").flex().items_center().justify_center().text_color("#FFFFFF").text_size(11).child(note.level === "error" ? "!" : "i"),
+          trailing: div().flex_none().text_size(uiSize(11)).text_color(t.dim).child(ago(note.at)),
+          onClick: () => { if (note.action?.name) run(note.action.name, note.action.args ?? {}); else { if (note.space) run("space.select", { id: note.space }); if (note.terminal) run("agent.focus", { terminal: note.terminal }); } },
+        })) : [div().px(7).text_color(t.dim).child(T("No notifications yet. Agents that finish or wait for you show here."))]));
   }
 }
 
 // The header lines of Problems and Notifications.
 function problemsSummary(t) {
-  const p = forShown("codenav.problems"), items = p?.items ?? [], errors = items.filter((d) => d.severity === 1).length;
-  return h_flex().px(4).gap(8).items_center().text_size(uiSize(12)).text_color(t.muted)
-    .child(div().flex_none().child(p ? basename(p.path) : T("Current file")))
-    .child(div().flex_none().text_color(errors ? t.ansi1 : t.dim).child(T("{e} errors, {w} warnings", { e: errors, w: items.length - errors })));
+  const p = forShown("codenav.problems"), scope = shared("codenav.problemsScope") ?? "file";
+  return h_flex().gap(6).items_center().children([["file", `${T("File")}  ${p?.items?.length ?? 0}`], ["project", T("Project Errors")]].map(([id, label]) =>
+    uiListRow(`problem-scope-${id}`, [label], { selected: scope === id, onClick: () => setShared("codenav.problemsScope", id) }).flex_none()));
 }
-function notificationsSummary(t) {
-  const list = shared("codenav.notifications") ?? [];
-  return h_flex().px(4).gap(10).items_center().text_size(uiSize(12)).text_color(t.muted)
-    .child(div().flex_none().child(T("{n} notifications", { n: list.length })))
-    .when(list.length > 0, (e) => e.child(stopPress(div().id("nt-clear").px(6).py(2).rounded(4).cursor_pointer().hover((s) => s.bg(t.hover)).text_color(t.accent)
-      .on_click(() => setShared("codenav.notifications", []))).child(T("Clear all"))));
-}
-
 // -- the status bar's path: folders › file › symbols, then Ln:Col ----------------------------
 export class Crumbs {
   init() {}
@@ -381,24 +382,19 @@ export class Crumbs {
       .child(h_flex().flex_1().min_w(0).gap(5).items_center().overflow_hidden()
         .children(parts.flatMap((p, i) => [i ? div().flex_none().text_color(t.dim).child("›") : null, div().flex_none().max_w(220).truncate()
           .when(i === parts.length - 1, (e) => e.text_color(t.foreground)).child(p)]).filter(Boolean)))
-      .when(Boolean(caret), (e) => e.child(div().flex_none().child(`${caret.line + 1}:${caret.col + 1}`)).child(div().flex_none().child("LF")).child(div().flex_none().child("UTF-8")));
+      .when(Boolean(caret) && shared("layout") !== "idea", (e) => e.child(div().flex_none().child(`${caret.line + 1}:${caret.col + 1}`)).child(div().flex_none().child("LF")).child(div().flex_none().child("UTF-8")));
   }
 }
 
 // -- popups ------------------------------------------------------------------------------------
-const popupRow = (id, t, children, action) => h_flex().id(id).h(IDEA.rowHeight).px(10).gap(6).flex_none().items_center().rounded(4).text_size(uiSize()).cursor_pointer()
-  .hover((s) => s.bg(t.hover)).on_click(action).children(children);
-
 export class Projects {
   init(_p, cx) { this.menu = new MenuController(cx, Math.max(0, spaces().findIndex((s) => s.active))); this.menu.focus.focus(); }
   release() { this.menu.release(); }
   render(cx) {
     const t = theme(), { overlay } = props() ?? {}, list = spaces();
     const done = () => closeOverlay(overlay);
-    const openFolder = () => {
-      done();
-      pickFolder({ prompt: T("Open Folder…") }).then((folder) => { if (folder) run("space.new", { folder }); }).catch(() => {});
-    };
+    // The persistent status view owns the asynchronous picker after this menu closes.
+    const openFolder = () => run("codenav.open-folder");
     const rows = list.map(s => ({ id: `pj-${s.id}`, label: s.name, icon: () => avatar(s.name, 18),
       shortcut: s.machine ? `${s.machine}:${s.folder ?? ""}` : tilde(s.folder ?? ""), action: () => run("space.select", { id: s.id }) }));
     rows.push({ separator: true }, { id: "pj-open", label: T("Open Folder…"), icon: () => icon("folder", 14).text_color(t.muted), action: openFolder });

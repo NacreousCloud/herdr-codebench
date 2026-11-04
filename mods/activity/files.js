@@ -1,21 +1,23 @@
 // Explorer: a lazy file tree of the focused terminal's repo (or folder), with git
 // marks. Clicking a file opens it in the editor pane beside the terminal.
 // File actions like VS Code's: right-click menu, Ctrl+C / Ctrl+X / Ctrl+V (also
-// files copied in a file manager), Delete, F2, drag files in from the desktop.
+// files copied in a file manager), Delete and F2.
 // They work the same on remote machines (see io.js).
 // Built from Herdr's shipped `files` mod, reshaped for the sidebar.
 import { div } from "gpui-kit";
-import { IDEA, isIdea, uiSize, ideaUI, uiListRow } from "./idea-design.js";
+import { IDEA, isIdea, uiSize, ideaUI, uiListRow, uiColors } from "./idea-design.js";
 import { T } from "./i18n.js";
 import { v_flex, h_flex } from "gpui-base";
-import { exec, watchFolder, theme, focused, shared, setShared, window, openOverlay, run, notify, home, nextCommand } from "herdr";
+import { exec, watchFolder, theme, focused, shared, setShared, window, openOverlay, run, home, nextCommand } from "herdr";
+import { uiNotify } from "./idea-design.js";
+const notify = note => uiNotify({ ...note, group: "codenav.files" });
 import { MOD, editorSpec, location, locationKey, basename, openInEditor, iconButton, viewHeader, icon, statusColor } from "./common.js";
 
 import { OP, CLIP, request, openDialog, menuHeight } from "./fileops.js";
 import { transfer, pasteImage, remove, rename, create, copyFilesToSystem, readSystemClipboard, sameMachine, sh, SEP } from "./io.js";
 import { openExternally } from "./viewer.js";
 import { fileImage } from "./ficons/index.js";
-import { ideaName, IDEA_STATUS } from "./ficons/idea.js";
+import { ideaName, IDEA_STATUS, toolImage } from "./ficons/idea.js";
 
 const PER_FOLDER = 500, TOTAL = 5000;
 const STATUS = ["--no-optional-locks", "-c", "core.fsmonitor=false", "status", "--porcelain=v1", "-z", "--no-renames", "--untracked-files=normal", "--ignored=matching"];
@@ -59,7 +61,7 @@ export default class Files {
   init(_props, cx) {
     this.saved = new Map();
     this.entries = new Map(); this.folders = new Set(); this.pending = new Set(); this.marks = {}; this.dirty = new Set();
-    this.sel = new Set(); this.anchor = null; this.flat = []; this.busy = null; this.note = null;
+    this.sel = new Set(); this.anchor = null; this.focusPath = null; this.flat = []; this.busy = null; this.note = null;
     this.focus = cx.focus_handle();
     // Requests posted before this view started (shared is persisted) are old news.
     this.opSeen = shared(OP)?.seq ?? null;
@@ -122,7 +124,7 @@ export default class Files {
       this.shownIdentity = null;
       this.entries = new Map(); this.folders = new Set(this.saved.get(next)); this.pending = new Set();
       this.marks = {}; this.dirty = new Set(); this.watched = null; this.error = null; this.limited = false; this.loading = false;
-      this.sel = new Set(); this.anchor = null;
+      this.sel = new Set(); this.anchor = null; this.focusPath = null;
     }
     if (!cwd || this.loading) return;
     const context = this.context;
@@ -190,7 +192,7 @@ export default class Files {
     // loads, and leave later manual tree selection alone until the file changes.
     cx.timer.after(0, cx => {
       if (!this.current(context) || this.shownIdentity !== identity) return;
-      this.sel = new Set(rel ? [rel] : []); this.anchor = rel;
+      this.sel = new Set(rel ? [rel] : []); this.anchor = rel; this.focusPath = rel;
       if (rel) {
         const parts = rel.split("/"), parents = parts.slice(0, -1).map((_part, i) => parts.slice(0, i + 1).join("/"));
         for (const path of parents) this.folders.add(path);
@@ -256,7 +258,7 @@ export default class Files {
   }
 
   openMenu(path, cx) {
-    if (path && !this.sel.has(path)) { this.sel = new Set([path]); this.anchor = path; }
+    if (path && !this.sel.has(path)) { this.sel = new Set([path]); this.anchor = path; this.focusPath = path; }
     if (!path) this.sel = new Set();
     const target = this.target(path ?? "");
     if (!target) return;
@@ -291,7 +293,7 @@ export default class Files {
     const reveal = (folder, names = []) => {
       const rel = folder === target.root ? "" : folder.slice(target.root.length + 1);
       if (rel) { const parts = rel.split("/"); for (let i = 1; i <= parts.length; i++) this.folders.add(parts.slice(0, i).join("/")); }
-      if (names.length) { this.sel = new Set(names.map((n) => (rel ? `${rel}/${n}` : n))); this.anchor = [...this.sel][0]; }
+      if (names.length) { this.sel = new Set(names.map((n) => (rel ? `${rel}/${n}` : n))); this.anchor = [...this.sel][0]; this.focusPath = this.anchor; }
     };
     switch (op.op) {
       case "copy": case "cut":
@@ -311,10 +313,6 @@ export default class Files {
         this.busy = `${cut ? "Moving" : "Copying"} ${items.length} item${items.length === 1 ? "" : "s"}…`; cx.notify();
         const names = await transfer(items, target.folder, on, cut);
         if (cut) setShared(CLIP, null);
-        reveal(target.folder, names);
-      });
-      case "drop": return task(`Copying ${op.paths.length} item${op.paths.length === 1 ? "" : "s"}${on ? ` to ${on}` : ""}…`, async () => {
-        const names = await transfer(op.paths.map((path) => ({ path, on: null })), target.folder, on, false);
         reveal(target.folder, names);
       });
       case "download": return task("Downloading…", async () => {
@@ -356,12 +354,37 @@ export default class Files {
     }
   }
 
-  // Keys while the tree has the keyboard (click it first), like VS Code's Explorer.
+  // IDEA keeps the focused row separate from the stable Shift-range anchor.
+  // Only visible rows participate; a removed/hidden cursor falls back to its
+  // nearest visible parent instead of jumping to an unrelated first row.
+  treeCursor() {
+    const visible = new Set(this.flat.map(row => row.path));
+    for (let path of [this.focusPath, this.anchor, ...this.sel]) {
+      while (path) {
+        if (visible.has(path)) return path;
+        path = path.includes("/") ? parentOf(path) : null;
+      }
+    }
+    return null;
+  }
+
+  // Keys while the tree has the keyboard. Codebench retains its original
+  // selection semantics; IDEA adds hierarchy traversal and anchored ranges.
   key(e, cx) {
     const m = e.modifiers, k = e.key, idea = isIdea(), ctrl = idea ? m.platform : m.control || m.platform;
-    const cur = this.anchor && this.flat.find((r) => r.path === this.anchor) ? this.anchor : null;
+    const cur = idea ? this.treeCursor() : this.anchor && this.flat.find((r) => r.path === this.anchor) ? this.anchor : null;
     const idx = cur ? this.flat.findIndex((r) => r.path === cur) : -1;
-    const go = (i) => { const r = this.flat[Math.max(0, Math.min(this.flat.length - 1, i))]; if (r) { this.sel = new Set([r.path]); this.anchor = r.path; } };
+    const go = (i, extend = idea && m.shift) => {
+      const r = this.flat[Math.max(0, Math.min(this.flat.length - 1, i))];
+      if (!r) return;
+      if (extend) {
+        const anchor = this.flat.some(row => row.path === this.anchor) ? this.anchor : cur ?? r.path;
+        const a = this.flat.findIndex(row => row.path === anchor), b = this.flat.indexOf(r);
+        this.sel = new Set(this.flat.slice(Math.min(a, b), Math.max(a, b) + 1).map(row => row.path));
+        this.anchor = anchor;
+      } else { this.sel = new Set([r.path]); this.anchor = r.path; }
+      if (idea) { this.focusPath = r.path; this.focus.focus(); }
+    };
     if (idea && ctrl && m.shift && !m.alt && k === "c") {
       const t = this.target();
       if (t) cx.write_to_clipboard((t.items.length ? t.items.map((i) => i.path) : [t.root]).join("\n"));
@@ -382,11 +405,18 @@ export default class Files {
     else if (k === "end") go(this.flat.length - 1);
     else if ((k === "right" || k === "left") && cur) {
       const r = this.flat[idx];
-      if (r.dir && (k === "right") !== this.folders.has(cur)) this.toggle(cur, cx);
-      else if (k === "left" && cur.includes("/")) go(this.flat.findIndex((x) => x.path === parentOf(cur)));
+      if (r.dir && (k === "right") !== this.folders.has(cur)) {
+        if (idea) go(idx, false);
+        this.toggle(cur, cx);
+      }
+      else if (idea && k === "right" && r.dir && this.flat[idx + 1]?.path.startsWith(cur + "/")) go(idx + 1, false);
+      else if (k === "left" && cur.includes("/")) {
+        const parent = this.flat.findIndex((x) => x.path === parentOf(cur));
+        if (parent >= 0) go(parent, false);
+      }
     }
     else if (k === "enter" && cur) { const r = this.flat[idx]; r.dir ? this.toggle(cur, cx) : this.open(cur); }
-    else if (k === "escape") { this.sel = new Set(); this.anchor = null; }
+    else if (k === "escape") { this.sel = new Set(); this.anchor = null; this.focusPath = null; }
     else return;
     cx.stop_propagation(); cx.notify();
   }
@@ -398,6 +428,7 @@ export default class Files {
 
   click(entry, path, e, cx) {
     this.focus.focus();
+    if (isIdea()) this.focusPath = path;
     const m = e.modifiers;
     if (m.control || m.platform) {
       const sel = new Set(this.sel);
@@ -411,13 +442,6 @@ export default class Files {
     this.sel = new Set([path]); this.anchor = path;
     entry.dir ? this.toggle(path, cx) : this.open(path);
     cx.notify();
-  }
-
-  // Files dropped from the desktop: into the folder (or the file's folder) they fell on.
-  drop(paths, rel, cx) {
-    const target = this.target(rel);
-    if (!target || !paths?.length) return;
-    this.perform({ op: "drop", target: { ...target, items: [] }, paths }, cx);
   }
 
   rows(prefix, depth, out, t, openPath) {
@@ -435,17 +459,17 @@ export default class Files {
       const cut = this.cut.has(abs);
       this.flat.push({ path, dir: entry.dir });
       const row = idea ? uiListRow(`file-${path}`, [], {
-        selected: chosen || current, focused: chosen && this.focus.is_focused(), disabled: false, indent: depth * 14,
+        selected: chosen || current, focused: chosen && this.focus.is_focused(), disabled: false, indent: (depth + 1) * 14,
         onClick: (e, cx) => this.click(entry, path, e, cx),
-      }).mx(4)
+      }).mx(4).relative()
+        .children(Array.from({ length: depth + 1 }, (_item, level) => div().absolute().left(14 + level * 14).top(0).bottom(0).w(1).bg(uiColors().guide).opacity(0.65)))
         : h_flex().id(`file-${path}`).h(24).flex_none().pl(6 + depth * 14).pr(10).gap(5).items_center().cursor_pointer()
         .when(chosen, (el) => el.bg(t.selected)).when(!chosen && current, (el) => el.bg(t.hover)).when(!idea || !chosen, (el) => el.hover((s) => s.bg(t.hover)))
         .on_click((e, cx) => this.click(entry, path, e, cx));
       out.push(row
         .when(cut, (el) => el.opacity(0.5))
         .on_mouse_down("right", (_e, cx) => { cx.stop_propagation(); this.openMenu(path, cx); })
-        .on_drop((e, cx) => { cx.stop_propagation(); this.drop(e.paths, path, cx); })
-        .child(entry.dir ? icon(`chevron-${open ? "down" : "right"}`, 12).text_color(t.dim) : div().w(12).flex_none())
+        .child(entry.dir ? idea ? toolImage(open ? "chevronDown" : "chevronRight", 12) : icon(`chevron-${open ? "down" : "right"}`, 12).text_color(t.dim) : div().w(12).flex_none())
         .child(fileImage(path, entry.dir, open))
         .child(div().flex_1().min_w(0).truncate().when(idea && current, el => el.font_semibold()).when(Boolean(color), (el) => el.text_color(color)).child(idea && !entry.dir ? ideaName(entry.name) : entry.name))
         .when(Boolean(mark), (el) => el.child(div().text_size(10).text_color(color).child(mark))));
@@ -465,6 +489,8 @@ export default class Files {
     const file = this.shownFile();
     const openPath = sameMachine(file?.on, this.context?.on) ? file?.path : null;
     const root = this.context?.root ?? this.context?.cwd;
+    const localHome = idea && !this.context?.on ? home() : null;
+    const rootPath = localHome && root?.startsWith(localHome + "/") ? "~" + root.slice(localHome.length) : root;
     return ideaUI(v_flex().id("activity-files").size_full().min_h(0).bg(idea ? t.surface : t.chrome).text_color(t.foreground).text_size(13))
       .when(!idea, el => el.child(viewHeader("Explorer", [
         iconButton("files-new", "file-plus", T("New File…"), () => { const t = this.target(); if (t) openDialog("new-file", t); }),
@@ -472,19 +498,24 @@ export default class Files {
         iconButton("files-refresh", "refresh", T("Refresh"), (_e, cx) => this.refresh(cx)),
         iconButton("files-collapse", "collapse", T("Collapse folders"), (_e, cx) => this.collapseAll(cx)),
       ])))
-      .child(h_flex().h(idea ? IDEA.rowHeight : 24).flex_none().px(8).gap(5).items_center()
+      .child(idea ? uiListRow("files-project-root", [
+        toolImage("chevronDown", 12), toolImage("module", 16),
+        div().min_w(0).truncate().font_semibold().child(basename(root) || T("No folder")),
+        ...(root ? [div().flex_1().min_w(0).truncate().text_color(uiColors().secondary)
+          .child((this.context?.on ? `${this.context.on}:` : "") + rootPath)] : []),
+      ]).mx(4).tooltip((this.context?.on ? `${this.context.on}:` : "") + (root ?? ""))
+      : h_flex().h(24).flex_none().px(8).gap(5).items_center()
         .child(icon("chevron-down", 12).text_color(t.dim))
-        .child(div().flex_1().min_w(0).truncate().text_size(idea ? uiSize() : 11).font_semibold().text_color(t.foreground)
-          .child((this.context?.on ? `${this.context.on}: ` : "") + (idea ? basename(root) || T("No folder") : (basename(root) || "No folder").toUpperCase()))))
+        .child(div().flex_1().min_w(0).truncate().text_size(11).font_semibold().text_color(t.foreground)
+          .child((this.context?.on ? `${this.context.on}: ` : "") + (basename(root) || "No folder").toUpperCase())))
       .child(v_flex().id("files-tree").flex_1().min_h(0).overflow_y_scrollbar().pb(8)
         .track_focus(this.focus).on_key_down((e, cx) => this.key(e, cx))
         .on_mouse_down("left", () => this.focus.focus())
         .on_mouse_down("right", (_e, cx) => this.openMenu(null, cx))
-        .on_drop((e, cx) => this.drop(e.paths, "", cx))
         .children(this.rows("", 0, [], t, openPath))
         .when(Boolean(this.error) || !this.entries.get("")?.length, (el) => el.child(div().px(14).py(8).text_size(uiSize(12)).text_color(idea && this.error ? t.ansi1 : t.dim)
           .child(this.error || (this.loading ? "Loading files…" : root ? "Empty folder" : "Focus a terminal to browse its folder"))))
-        // Room below the rows to right-click or drop on the folder itself.
+        // Room below the rows to right-click on the folder itself.
         .child(div().h(48).flex_none())
         .when(this.limited, (el) => el.child(div().px(14).py(8).text_size(uiSize(11)).text_color(t.dim).child(T("Limited to 500 entries per folder, 5,000 total")))))
       .when(Boolean(this.busy || this.note), (el) => el.child(h_flex().flex_none().px(12).py(6).gap(6).items_center().border_t(1).border_color(t.border).text_size(uiSize(11.5))

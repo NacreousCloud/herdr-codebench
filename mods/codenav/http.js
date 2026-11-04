@@ -6,13 +6,15 @@
 // Environments come from http-client.env.json and http-client.private.env.json,
 // looked for from the file's folder up to the repository; the chosen one is kept per folder in shared "codenav.httpEnv".
 import { div } from "gpui-kit";
-import { v_flex, h_flex } from "gpui-base";
-import { theme, shared, setShared, props, closeOverlay, openOverlay, readTextFile, writeTextFile, exec } from "herdr";
+import { h_flex } from "gpui-base";
+import { shared, setShared, props, closeOverlay, openOverlay, readTextFile, writeTextFile, exec, run } from "herdr";
 import { T } from "./i18n.js";
-import { IDEA, isIdea, uiSize, ideaUI, popupSurface, MenuController, uiMenu } from "./idea-design.js";
+import { IDEA, isIdea, uiSize, ideaUI, MenuController, uiMenu, uiNotify, uiIconButton } from "./idea-design.js";
 import { basename } from "./common.js";
 import { toolImage } from "./ideaicons.js";
 import { runConfig } from "./run.js";
+import { ACTION_GROUPS, getAction, actionPresentation } from "./actions.js";
+import { groupItems } from "./toolbar-model.js";
 
 const METHOD = /^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS|TRACE|CONNECT|WEBSOCKET|GRPC|GRAPHQL)\s+\S/;
 export const isHttp = (path) => /\.(http|rest)$/i.test(path ?? "");
@@ -115,9 +117,10 @@ export async function runHttp(path, lines, envs, req, after) {
   if (shared("codenav.httpGlobals")) setShared("codenav.httpGlobals", null);
   const saved = kept.get(dir) ?? {}, names = globalNames(lines);
   const reqs = req ? [req] : httpRequests(lines);
+  if (!reqs.length) { uiNotify({ group: "codenav.http", title: T("No HTTP requests in this file"), level: "warning" }); return; }
   const text = [...(req ? [] : lines.slice(0, reqs[0]?.start ?? 0)), ...reqs.flatMap((r, i) => withGlobals(lines.slice(r.start, r.end), saved, names, i === 0))].join("\n") + "\n";
   const made = await privateCopy(dir, text);
-  if (!made) return;
+  if (!made) { uiNotify({ group: "codenav.http", title: T("Could not prepare HTTP request"), body: T("Check that the request folder is writable."), level: "error" }); return; }
   const { copy: tmp, report } = made;
   // The copy holds kept values: gone when the run ends, even by Ctrl+C.
   runConfig({ name: "HTTP", command: `(trap ${sq(`rm -f ${sq(tmp)}`)} EXIT INT TERM; ${opts} -r ${sq(report)} ${sq(tmp)})`, folder: dir }, after);
@@ -146,11 +149,21 @@ export function httpBar(t, view, cx) {
   const env = chosenEnv(view.shown.path, h.envs);
   const btn = (id, children, tip, action) => h_flex().id(id).h(26).px(7).gap(6).flex_none().items_center().rounded(5).cursor_pointer()
     .hover((s) => s.bg(t.hover)).tooltip(tip).on_mouse_down("left", (_e, cx) => cx.stop_propagation()).on_click(() => action()).children(children);
+  const defaultActions = [
+    btn("http-all", [toolImage("runAll", 16)], T("Run All Requests in File"), () => runHttp(view.shown.path, view.lines, h.envs, null, () => view.showTerminal())),
+    div().w(1).h(16).mx(4).bg(t.input),
+  ];
+  const toolbarItems = isIdea() ? groupItems("HTTP.toolbar", shared("codenav.customization") ?? {}, ACTION_GROUPS).map(item => {
+    if (item.kind === "separator") return div().w(1).h(16).mx(4).bg(t.input);
+    const action = getAction(item.action);
+    if (!action) return div();
+    const presentation = actionPresentation(action, { layout: "idea", document: view.shown, hasWorkspace: true });
+    return uiIconButton(`http-custom-${item.id}`, toolImage(item.icon ?? action.icon, 16), () => run(action.command),
+      { tip: T(action.label), disabled: !presentation.enabled, active: presentation.selected });
+  }) : defaultActions;
   return h_flex().h(isIdea() ? IDEA.toolHeaderHeight : 34).flex_none().px(10).gap(6).items_center().border_b(1).border_color(t.border).bg(isIdea() ? t.surface : t.chrome).text_size(uiSize(12.5))
     .when(isIdea(), (e) => ideaUI(e))
-    .child(btn("http-all", [toolImage("runAll", 16)], T("Run All Requests in File"),
-      () => runHttp(view.shown.path, view.lines, h.envs, null, () => view.showTerminal())))
-    .child(div().w(1).h(16).mx(4).bg(t.input))
+    .children(toolbarItems)
     .child(div().text_color(t.muted).child(T("Run with:")))
     .child(btn("http-env", [div().text_color(t.foreground).child(env ?? T("No environment")), toolImage("chevronDown", 14)], T("Environment"),
       () => openOverlay({ mod: "codenav", props: { view: "httpenv", dir: dirOf(view.shown.path), names: h.envs.names }, kind: "popup", width: 220, height: Math.min(300, 50 + h.envs.names.length * 30) })))

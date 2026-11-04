@@ -1,0 +1,67 @@
+# Focused javap excerpts; [...] = omitted original lines. Prefix = full dump line; bytecode offsets remain original.
+1: Compiled from "ProblemsView.java"
+2: public final class com.intellij.analysis.problemsView.toolWindow.ProblemsView implements com.intellij.openapi.project.DumbAware,com.intellij.openapi.wm.ToolWindowFactory {
+3:   public static final java.lang.String ID = "Problems View";
+[...]
+5:   static final boolean $assertionsDisabled;
+[...]
+245:   private static void createContent(com.intellij.ui.content.ContentManager, com.intellij.analysis.problemsView.toolWindow.ProblemsViewTab);
+[...]
+268:       51: invokespecial #160                // Method java/lang/IllegalArgumentException."<init>":(Ljava/lang/String;)V
+269:       54: athrow
+270:       55: aload_0
+271:       56: invokeinterface #163,  1          // InterfaceMethod com/intellij/ui/content/ContentManager.getFactory:()Lcom/intellij/ui/content/ContentFactory;
+272:       61: aload_2
+273:       62: aload_1
+274:       63: iconst_0
+275:       64: invokeinterface #167,  2          // InterfaceMethod com/intellij/analysis/problemsView/toolWindow/ProblemsViewTab.getName:(I)Ljava/lang/String;
+276:       69: iconst_0
+277:       70: invokeinterface #171,  4          // InterfaceMethod com/intellij/ui/content/ContentFactory.createContent:(Ljavax/swing/JComponent;Ljava/lang/String;Z)Lcom/intellij/ui/content/Content;
+278:       75: astore_3
+279:       76: aload_3
+280:       77: iconst_0
+281:       78: invokeinterface #177,  2          // InterfaceMethod com/intellij/ui/content/Content.setCloseable:(Z)V
+282:       83: aload_1
+283:       84: aload_3
+284:       85: invokeinterface #183,  2          // InterfaceMethod com/intellij/analysis/problemsView/toolWindow/ProblemsViewTab.customizeTabContent:(Lcom/intellij/ui/content/Content;)V
+285:       90: aload_0
+286:       91: aload_3
+287:       92: invokeinterface #187,  2          // InterfaceMethod com/intellij/ui/content/ContentManager.addContent:(Lcom/intellij/ui/content/Content;)V
+288:       97: return
+289:
+290:   private static void selectionChanged(boolean, com.intellij.ui.content.Content);
+[...]
+302:       20: ifnull        30
+303:       23: aload_2
+304:       24: iload_0
+305:       25: invokeinterface #190,  2          // InterfaceMethod com/intellij/analysis/problemsView/toolWindow/ProblemsViewTab.selectionChangedTo:(Z)V
+306:       30: return
+307:
+308:   private static void visibilityChanged(boolean, com.intellij.ui.content.Content);
+[...]
+320:       20: ifnull        30
+321:       23: aload_2
+322:       24: iload_0
+323:       25: invokeinterface #193,  2          // InterfaceMethod com/intellij/analysis/problemsView/toolWindow/ProblemsViewTab.visibilityChangedTo:(Z)V
+324:       30: return
+325:
+[...]
+407:   public void createToolWindowContent(com.intellij.openapi.project.Project, com.intellij.openapi.wm.ToolWindow);
+[...]
+426:       38: astore        5
+427:       40: invokestatic  #246                // InterfaceMethod com/intellij/analysis/problemsView/toolWindow/ProblemsViewPanelProvider.getEP:()Lcom/intellij/openapi/extensions/ExtensionPointName;
+428:       43: aload_1
+429:       44: invokevirtual #250                // Method com/intellij/openapi/extensions/ExtensionPointName.getExtensionList:(Lcom/intellij/openapi/extensions/AreaInstance;)Ljava/util/List;
+430:       47: invokeinterface #256,  1          // InterfaceMethod java/util/List.iterator:()Ljava/util/Iterator;
+431:       52: astore        6
+432:       54: aload         6
+[...]
+443:       87: ifnull        161
+444:       90: aload         4
+445:       92: aload         8
+446:       94: invokestatic  #218                // Method createContent:(Lcom/intellij/ui/content/ContentManager;Lcom/intellij/analysis/problemsView/toolWindow/ProblemsViewTab;)V
+447:       97: aload         8
+448:       99: instanceof    #51                 // class com/intellij/analysis/problemsView/toolWindow/HighlightingPanel
+449:      102: ifeq          161
+[...]
+561:   static {};

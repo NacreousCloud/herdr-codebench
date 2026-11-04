@@ -1,12 +1,12 @@
 // Developer gallery. All actions affect this view's local example state only.
-import { div } from "gpui-kit";
+import { div, svg } from "gpui-kit";
 import { h_flex, v_flex, InputState, Input } from "gpui-base";
 import { props, openOverlay, closeOverlay } from "herdr";
 import {
   IDEA, isCompact, uiSize, uiColors, ideaUI, uiButton, uiIconButton,
   uiInputBox, uiListRow, uiSeparator, uiCaption, uiToolbar, uiToolHeader,
   uiTab, uiPopupSize, uiDialog, uiIslandBottom, MenuController, uiMenu,
-  uiCheckbox, uiStripeButton, uiTreeRow, uiSettingsShell,
+  uiCheckbox, uiStripeButton, uiTreeRow, uiSettingsShell, uiEditorFooter, uiSpinner,
 } from "./idea-design.js";
 import { toolImage } from "./ideaicons.js";
 
@@ -106,12 +106,13 @@ export default class DesignPreview {
         h_flex().flex_none().gap(10).child(sampleInput(2, { error: true }, "Error")).child(sampleInput(3, { mono: true }, "Monospace")),
       ]))
       .child(section("Checkbox and stripe buttons: local state only", [
+        h_flex().gap(8).items_center().children([uiSpinner(() => svg("mods/codenav/idea-icons/progress.svg")), caption("Working — native animation, 1000 ms cycle")]),
         h_flex().flex_none().gap(16).items_center()
           .child(uiCheckbox("preview-checkbox", "Toggle example", (_e, eventCx) => { this.checked = !this.checked; this.update(`Checkbox ${this.checked ? "checked" : "unchecked"}`, eventCx); }, { checked: this.checked }))
           .child(uiCheckbox("preview-checkbox-disabled", "Disabled", () => {}, { checked: true, disabled: true })),
         h_flex().flex_none().gap(8).items_center().children(["project", "terminal"].map((name, i) => uiStripeButton(`preview-stripe-${i}`, toolImage(name, 16, this.stripe === i), (_e, eventCx) => {
           this.stripe = this.stripe === i ? -1 : i; this.update(`Stripe ${name} ${this.stripe === i ? "active" : "inactive"} — local only`, eventCx);
-        }, { active: this.stripe === i, tip: `${name} — sample` }))),
+        }, { active: this.stripe === i, tip: `${name} — sample`, side: i === 0 ? "left" : "right" }))),
       ]))
       .child(section("Tree rows and settings shell", [
         uiTreeRow("preview-tree-parent", "Example folder", { expanded: this.expanded, graphic: toolImage("project", 16), selected: this.treeSelected === 0,
@@ -134,6 +135,7 @@ export default class DesignPreview {
         uiToolbar("preview-toolbar", [uiIconButton("preview-toolbar-add", toolImage("add", 16), (_e, eventCx) => this.update("Toolbar action — local only", eventCx)), uiButton("preview-menu", "Open 100-row menu…", () => this.openMenu(), { small: true })]),
         uiToolHeader("preview-tool-header", "Tool window header", { actions: [uiIconButton("preview-header-settings", toolImage("settings", 16), (_e, eventCx) => this.update("Header action — local only", eventCx))] }),
         uiIslandBottom(),
+        uiEditorFooter(uiIconButton("preview-markdown-mode", toolImage("markdown", 12), (_e, eventCx) => this.update("Markdown footer mode — local example only", eventCx), { size: 20, tip: "Markdown preview — lower editor control" })),
       ]))
       .child(section("Semantic colors from uiColors()", swatchRows))
       .child(section("Empty / loading / failure composition examples", [

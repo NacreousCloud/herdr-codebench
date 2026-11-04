@@ -1,0 +1,39 @@
+{
+  "checked_at": "2026-11-04T15:18:17.034137+09:00",
+  "transport": "live Herdr-owned Go engine, authenticated localhost HTTP; no token retained",
+  "kotlin_super": {
+    "ok": true,
+    "source": "InfraErrorCode.kt",
+    "member": "code",
+    "targets": [
+      {
+        "file": "BaseError.kt",
+        "line_1based": 26
+      }
+    ]
+  },
+  "spring_markers": {
+    "source": "M3u8Service.kt",
+    "counts": {
+      "spring": 5,
+      "spring-bean": 1
+    }
+  },
+  "spring_injection": {
+    "name": "playlistService",
+    "candidate_count": 1,
+    "targets": [
+      "src/main/kotlin/com/altools/alsong/bgm/service/PlaylistService.kt"
+    ]
+  },
+  "spring_beans": {
+    "count": 71
+  },
+  "spring_endpoints": {
+    "count": 18
+  },
+  "spring_properties": {
+    "count": 244
+  },
+  "engine_version": "0.1.0-36516d926918"
+}

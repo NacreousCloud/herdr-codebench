@@ -1,0 +1,177 @@
+# Focused javap excerpts; [...] = omitted original lines. Prefix = full dump line; bytecode offsets remain original.
+1: Compiled from "NotificationsConfigurationImpl.java"
+2: public final class com.intellij.notification.impl.NotificationsConfigurationImpl extends com.intellij.notification.NotificationsConfiguration implements com.intellij.openapi.components.PersistentStateComponent<org.jdom.Element>, com.intellij.openapi.Disposable {
+3:   private static final com.intellij.openapi.diagnostic.Logger LOG;
+[...]
+5:   private static final java.lang.String SHOW_BALLOONS_ATTRIBUTE = "showBalloons";
+[...]
+7:   private static final java.lang.String SYSTEM_NOTIFICATIONS_ATTRIBUTE = "systemNotifications";
+[...]
+9:   private static final java.lang.String NOTIFICATION_ANNOUNCING_MODE_ATTRIBUTE = "notificationsAnnouncingMode";
+[...]
+11:   private static final java.lang.String NOTIFICATION_LOCATION_ATTRIBUTE = "notificationLocation";
+[...]
+13:   private static final java.util.Comparator<com.intellij.notification.impl.NotificationSettings> NOTIFICATION_SETTINGS_COMPARATOR;
+[...]
+15:   private final java.util.Map<java.lang.String, com.intellij.notification.impl.NotificationSettings> myIdToSettingsMap;
+[...]
+17:   private final java.util.Map<java.lang.String, java.lang.String> myToolWindowCapable;
+[...]
+19:   public boolean SHOW_BALLOONS;
+[...]
+21:   public boolean SYSTEM_NOTIFICATIONS;
+[...]
+23:   private com.intellij.notification.NotificationAnnouncingMode NOTIFICATION_ANNOUNCING_MODE;
+[...]
+25:   private com.intellij.notification.NotificationLocation NOTIFICATION_LOCATION;
+[...]
+222:   private static com.intellij.notification.impl.NotificationSettings getDefaultSettings(java.lang.String);
+223:     Code:
+224:        0: aload_0
+225:        1: invokestatic  #40                 // Method com/intellij/notification/NotificationGroup.findRegisteredGroup:(Ljava/lang/String;)Lcom/intellij/notification/NotificationGroup;
+226:        4: astore_1
+227:        5: aload_1
+228:        6: ifnull        27
+229:        9: new           #107                // class com/intellij/notification/impl/NotificationSettings
+230:       12: dup
+231:       13: aload_0
+232:       14: aload_1
+233:       15: invokevirtual #147                // Method com/intellij/notification/NotificationGroup.getDisplayType:()Lcom/intellij/notification/NotificationDisplayType;
+234:       18: aload_1
+235:       19: invokevirtual #151                // Method com/intellij/notification/NotificationGroup.isLogByDefault:()Z
+236:       22: iconst_0
+237:       23: invokespecial #154                // Method com/intellij/notification/impl/NotificationSettings."<init>":(Ljava/lang/String;Lcom/intellij/notification/NotificationDisplayType;ZZ)V
+238:       26: areturn
+239:       27: new           #107                // class com/intellij/notification/impl/NotificationSettings
+240:       30: dup
+241:       31: aload_0
+242:       32: getstatic     #157                // Field com/intellij/notification/NotificationDisplayType.BALLOON:Lcom/intellij/notification/NotificationDisplayType;
+243:       35: iconst_1
+244:       36: iconst_0
+245:       37: invokespecial #154                // Method com/intellij/notification/impl/NotificationSettings."<init>":(Ljava/lang/String;Lcom/intellij/notification/NotificationDisplayType;ZZ)V
+246:       40: areturn
+247:
+[...]
+359:   public boolean areNotificationsEnabled();
+360:     Code:
+361:        0: aload_0
+362:        1: getfield      #19                 // Field SHOW_BALLOONS:Z
+363:        4: ireturn
+364:
+[...]
+450:   public void changeSettings(java.lang.String, com.intellij.notification.NotificationDisplayType, boolean, boolean);
+[...]
+458:       13: bipush        21
+459:       15: invokestatic  #468                // Method $$$reportNull$$$0:(I)V
+460:       18: aload_0
+461:       19: new           #107                // class com/intellij/notification/impl/NotificationSettings
+462:       22: dup
+463:       23: aload_1
+464:       24: aload_2
+465:       25: iload_3
+466:       26: iload         4
+467:       28: invokespecial #154                // Method com/intellij/notification/impl/NotificationSettings."<init>":(Ljava/lang/String;Lcom/intellij/notification/NotificationDisplayType;ZZ)V
+468:       31: invokevirtual #194                // Method changeSettings:(Lcom/intellij/notification/impl/NotificationSettings;)V
+469:       34: return
+470:
+471:   public synchronized void changeSettings(com.intellij.notification.impl.NotificationSettings);
+[...]
+475:        4: bipush        22
+476:        6: invokestatic  #468                // Method $$$reportNull$$$0:(I)V
+477:        9: aload_1
+478:       10: invokevirtual #221                // Method com/intellij/notification/impl/NotificationSettings.getGroupId:()Ljava/lang/String;
+479:       13: astore_2
+480:       14: aload_1
+481:       15: aload_2
+482:       16: invokestatic  #144                // Method getDefaultSettings:(Ljava/lang/String;)Lcom/intellij/notification/impl/NotificationSettings;
+483:       19: invokevirtual #224                // Method com/intellij/notification/impl/NotificationSettings.equals:(Ljava/lang/Object;)Z
+484:       22: ifeq          44
+485:       25: aload_0
+486:       26: getfield      #10                 // Field myIdToSettingsMap:Ljava/util/Map;
+487:       29: aload_2
+488:       30: invokeinterface #133,  2          // InterfaceMethod java/util/Map.remove:(Ljava/lang/Object;)Ljava/lang/Object;
+489:       35: pop
+490:       36: aload_2
+491:       37: iconst_0
+492:       38: invokestatic  #137                // Method com/intellij/notification/NotificationGroup.fireGroupEvent:(Ljava/lang/String;Z)V
+493:       41: goto          61
+494:       44: aload_0
+495:       45: getfield      #10                 // Field myIdToSettingsMap:Ljava/util/Map;
+496:       48: aload_2
+497:       49: aload_1
+498:       50: invokeinterface #197,  3          // InterfaceMethod java/util/Map.put:(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;
+499:       55: pop
+500:       56: aload_2
+501:       57: iconst_1
+502:       58: invokestatic  #137                // Method com/intellij/notification/NotificationGroup.fireGroupEvent:(Ljava/lang/String;Z)V
+503:       61: return
+504:
+[...]
+524:   public synchronized org.jdom.Element getState();
+[...]
+529:        6: invokespecial #234                // Method org/jdom/Element."<init>":(Ljava/lang/String;)V
+530:        9: astore_1
+531:       10: aload_0
+532:       11: getfield      #10                 // Field myIdToSettingsMap:Ljava/util/Map;
+533:       14: invokeinterface #51,  1           // InterfaceMethod java/util/Map.values:()Ljava/util/Collection;
+534:       19: iconst_0
+535:       20: anewarray     #107                // class com/intellij/notification/impl/NotificationSettings
+536:       23: invokeinterface #109,  2          // InterfaceMethod java/util/Collection.toArray:([Ljava/lang/Object;)[Ljava/lang/Object;
+537:       28: checkcast     #113                // class "[Lcom/intellij/notification/impl/NotificationSettings;"
+538:       31: astore_2
+539:       32: aload_2
+540:       33: getstatic     #115                // Field NOTIFICATION_SETTINGS_COMPARATOR:Ljava/util/Comparator;
+541:       36: invokestatic  #119                // Method java/util/Arrays.sort:([Ljava/lang/Object;Ljava/util/Comparator;)V
+542:       39: aload_2
+543:       40: astore_3
+[...]
+555:       59: astore        6
+556:       61: aload_1
+557:       62: aload         6
+558:       64: invokevirtual #237                // Method com/intellij/notification/impl/NotificationSettings.save:()Lorg/jdom/Element;
+559:       67: invokevirtual #241                // Method org/jdom/Element.addContent:(Lorg/jdom/Element;)Lorg/jdom/Element;
+560:       70: pop
+561:       71: iinc          5, 1
+562:       74: goto          48
+563:       77: aload_0
+564:       78: getfield      #19                 // Field SHOW_BALLOONS:Z
+565:       81: ifne          93
+566:       84: aload_1
+567:       85: ldc           #245                // String showBalloons
+568:       87: ldc           #247                // String false
+569:       89: invokevirtual #249                // Method org/jdom/Element.setAttribute:(Ljava/lang/String;Ljava/lang/String;)Lorg/jdom/Element;
+570:       92: pop
+571:       93: aload_0
+572:       94: getfield      #23                 // Field SYSTEM_NOTIFICATIONS:Z
+573:       97: ifne          109
+574:      100: aload_1
+575:      101: ldc           #253                // String systemNotifications
+576:      103: ldc           #247                // String false
+577:      105: invokevirtual #249                // Method org/jdom/Element.setAttribute:(Ljava/lang/String;Ljava/lang/String;)Lorg/jdom/Element;
+578:      108: pop
+579:      109: aload_0
+580:      110: getfield      #201                // Field NOTIFICATION_ANNOUNCING_MODE:Lcom/intellij/notification/NotificationAnnouncingMode;
+581:      113: ifnull        130
+582:      116: aload_1
+583:      117: ldc           #255                // String notificationsAnnouncingMode
+584:      119: aload_0
+585:      120: getfield      #201                // Field NOTIFICATION_ANNOUNCING_MODE:Lcom/intellij/notification/NotificationAnnouncingMode;
+586:      123: invokevirtual #257                // Method com/intellij/notification/NotificationAnnouncingMode.getStringValue:()Ljava/lang/String;
+587:      126: invokevirtual #249                // Method org/jdom/Element.setAttribute:(Ljava/lang/String;Ljava/lang/String;)Lorg/jdom/Element;
+588:      129: pop
+589:      130: aload_0
+590:      131: getfield      #210                // Field NOTIFICATION_LOCATION:Lcom/intellij/notification/NotificationLocation;
+591:      134: ifnull        152
+592:      137: aload_1
+593:      138: ldc_w         #260                // String notificationLocation
+594:      141: aload_0
+595:      142: getfield      #210                // Field NOTIFICATION_LOCATION:Lcom/intellij/notification/NotificationLocation;
+596:      145: invokevirtual #262                // Method com/intellij/notification/NotificationLocation.getStringValue:()Ljava/lang/String;
+597:      148: invokevirtual #249                // Method org/jdom/Element.setAttribute:(Ljava/lang/String;Ljava/lang/String;)Lorg/jdom/Element;
+598:      151: pop
+599:      152: aload_1
+600:      153: areturn
+[...]
+728:   public java.lang.Object getState();
+[...]
+750:   static {};
