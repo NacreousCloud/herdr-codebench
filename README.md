@@ -49,7 +49,9 @@
 - 저장소의 `.git`을 지켜보다 바뀌면 다시 읽습니다(원격 스페이스는 10초마다)
 
 ### 터미널의 파일을 코드 뷰로
-Herdr는 터미널 링크의 Cmd+클릭을 macOS 기본 앱으로 넘기고 이를 가로챌 방법이 없어서, 대신 두 가지를 둡니다.
+Herdr는 터미널 링크의 Cmd+클릭을 macOS 기본 앱으로 넘기고 모드가 이를 가로챌 방법이 없어서, 아래 방법들을 둡니다.
+
+- **Cmd+클릭 (Herdr Open)**: `tools/open-handler/install.sh`가 `~/Applications/Herdr Open.app`을 만들고 코드·텍스트·Markdown 확장자(md, json, yaml, ts, js, py, sh 등, 인자로 고를 수 있음)의 macOS 기본 앱으로 등록합니다. 이 앱은 Herdr가 codebench나 idea 레이아웃일 때 파일을 코드 뷰에서 엽니다(`herdr-app do activity.open:<절대 경로>`). 그 밖에는 원래 기본 앱(설치 때 가장 많던 앱, `~/.config/herdr-app/open-fallback`의 번들 ID)으로 엽니다. Finder 더블클릭 같은 다른 앱에서 연 파일도 같은 규칙을 따릅니다. 원래 앱은 `~/.config/herdr-app/open-handlers.backup.json`에 남고, `tools/open-handler/uninstall.sh`로 되돌립니다. Markdown은 나란히 미리보기로 열리고, 눈 아이콘이나 Ctrl+Shift+V로 편집 → 나란히 → 미리보기만을 바꿉니다.
 
 - **터미널 우클릭 → "선택한 경로를 코드 뷰에서 열기"**: 경로를 선택하고 고르면 그 줄로 엽니다. 이 레이아웃의 터미널 우클릭 메뉴는 codenav가 그리며, Herdr 기본 메뉴의 터미널 항목(분할, 확대, 우클릭 전달, 닫기)도 함께 있습니다. 선택 내용을 읽으려고 클립보드를 씁니다.
 - **Cmd+Shift+O → "이 터미널의 파일"**: 화면과 최근 출력(800줄)에 나온 경로를 최근 것부터 모아 보여줍니다.

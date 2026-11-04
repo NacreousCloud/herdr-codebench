@@ -3,8 +3,19 @@
 import { div } from "gpui-kit";
 import { T } from "./i18n.js";
 import { h_flex, v_flex } from "gpui-base";
-import { theme, shared, nextCommand, layout, run } from "herdr";
-import { shownViews, activeView, showView, narrow, icon, find } from "./common.js";
+import { theme, shared, nextCommand, layout, run, exec } from "herdr";
+import { shownViews, activeView, showView, narrow, icon, find, openInEditor } from "./common.js";
+
+// "activity.open:<absolute path>": a file opened from outside (the Herdr Open
+// handler app, so a Cmd+click on a path in a terminal) lands in the editor.
+async function openPath(path) {
+  if (!path.startsWith("/")) return;
+  const dir = path.slice(0, path.lastIndexOf("/")) || "/";
+  const r = await exec("git", ["-C", dir, "rev-parse", "--show-toplevel"]).catch(() => null);
+  const top = r?.code === 0 ? r.stdout.trim() : "";
+  const root = top && path.startsWith(`${top}/`) ? top : dir;
+  openInEditor({ kind: "file", path, root, rel: path.slice(root.length + 1) });
+}
 
 export default class Bar {
   init(_props, cx) {
@@ -17,6 +28,7 @@ export default class Bar {
         const views = shownViews();
         const v = views.find((x) => x.id === c || x.id === `view-${c}`);
         if (v) showView(v.id);
+        else if (c.startsWith("open:")) await openPath(c.slice(5));
         else if (c === "next" || c === "prev") {
           const i = views.findIndex((x) => x.id === activeView());
           showView(views[(i + (c === "next" ? 1 : views.length - 1)) % views.length].id);
