@@ -100,6 +100,16 @@
                   "part": "side"
                 }
               }
+            },
+            {
+              "id": "view-graph",
+              "type": "block",
+              "content": {
+                "mod": "activity",
+                "props": {
+                  "view": "graph"
+                }
+              }
             }
           ],
           "active": "view-files"

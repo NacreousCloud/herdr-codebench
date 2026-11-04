@@ -3,11 +3,13 @@
 import { div } from "gpui-kit";
 import { T } from "./i18n.js";
 import { h_flex, v_flex } from "gpui-base";
-import { theme, shared, nextCommand } from "herdr";
-import { shownViews, activeView, showView, narrow, icon } from "./common.js";
+import { theme, shared, nextCommand, layout, run } from "herdr";
+import { shownViews, activeView, showView, narrow, icon, find } from "./common.js";
 
 export default class Bar {
   init(_props, cx) {
+    // Also from a timer: a window that isn't drawing (covered, on another desktop) doesn't render.
+    cx.timer.after(500, (cx) => this.addGraph(cx));
     // Keys: "activity.view-files" etc. (see keys.json in the repo).
     cx.spawn(async (cx) => {
       for (;;) {
@@ -37,7 +39,24 @@ export default class Bar {
       .child(div().absolute().bottom(0).left(8).w(24).h(2).rounded(1).bg(active ? t.accent : "#00000000"));
   }
 
-  render() {
+  // Git Graph came after codebench layouts were arranged: join the sidebar once
+  // (install.sh keeps an arranged layout, so it can't bring the block itself).
+  addGraph(cx) {
+    if (this.addedGraph || shared("layout") !== "codebench") return;
+    const stack = find(layout(), "sidebar-views");
+    if (!stack || find(layout(), "view-graph")) return;
+    this.addedGraph = true;
+    cx.timer.after(0, () => {
+      const tree = JSON.parse(JSON.stringify(layout())), views = find(tree, "sidebar-views");
+      if (!views || find(tree, "view-graph")) return;
+      const at = views.children.findIndex((c) => c.id === "view-review");
+      views.children.splice(at < 0 ? views.children.length : at + 1, 0, { id: "view-graph", type: "block", content: { mod: "activity", props: { view: "graph" } } });
+      run("layout.set", { layout: tree });
+    });
+  }
+
+  render(cx) {
+    this.addGraph(cx);
     const t = theme();
     const active = activeView(), views = shownViews();
     if (narrow()) {

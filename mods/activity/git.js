@@ -159,7 +159,7 @@ export default class Git {
 
   fileRow(f, staged, t, openSpec) {
     const parts = f.path.split("/"), name = parts.pop(), id = `${staged ? "s" : "w"}-${f.path}`;
-    const selected = openSpec?.kind === "diff" && openSpec.rel === f.path && Boolean(openSpec.staged) === staged && openSpec.root === this.root;
+    const selected = openSpec?.kind === "diff" && !openSpec.commit && openSpec.rel === f.path && Boolean(openSpec.staged) === staged && openSpec.root === this.root;
     const confirming = this.confirm === id;
     const color = f.status === "U" ? t.ansi2 : statusColor(f.status === "!" ? "U" : f.status, t);
     const hot = this.hovered === id;

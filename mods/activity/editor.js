@@ -136,7 +136,10 @@ export default class EditorPane {
         lines = [`@@ -0,0 +1,${body.length} @@ new file`, ...body.map((l) => `+${l}`)];
       }
     } else {
-      const r = await exec("git", [...READ, "diff", ...(spec.staged ? ["--cached"] : []), "--no-ext-diff", "--no-textconv", "--no-color", "--", spec.rel], { cwd: spec.root, on: spec.on });
+      // A commit's change to the file (Git Graph): against its first parent.
+      const args = spec.commit ? ["show", "--format=", "--diff-merges=first-parent", "--no-ext-diff", "--no-textconv", "--no-color", spec.commit, "--", spec.rel]
+        : ["diff", ...(spec.staged ? ["--cached"] : []), "--no-ext-diff", "--no-textconv", "--no-color", "--", spec.rel];
+      const r = await exec("git", [...READ, ...args], { cwd: spec.root, on: spec.on });
       if (r.code !== 0) throw new Error(r.stderr.trim());
       const all = r.stdout.replace(/\n$/, "").split("\n"), first = all.findIndex((l) => l.startsWith("@@"));
       lines = first < 0 ? [/Binary files/.test(r.stdout) ? "Binary file changed" : "No changes"] : all.slice(first, first + 3000);
@@ -256,7 +259,7 @@ export default class EditorPane {
     this.sync(cx);
     const t = theme(), s = this.shown, idea = isIdea();
     const title = s ? (idea ? s.path.split("/").pop() : s.rel ?? s.path.split("/").pop()) : "No file";
-    const sub = !s ? "" : s.kind === "diff" ? (s.untracked ? "Untracked" : s.staged ? "Staged changes" : "Working tree changes")
+    const sub = !s ? "" : s.kind === "diff" ? (s.commit ? `${T("Commit")} ${s.commit.slice(0, 8)}` : s.untracked ? "Untracked" : s.staged ? "Staged changes" : "Working tree changes")
       : `${s.on ? `${s.on}: ` : ""}${tilde(s.path)}${s.line ? ` · line ${s.line}` : ""}${this.readonly ? " · read-only" : ""}${this.viewer?.subtitle() ? ` · ${this.viewer.subtitle()}` : ""}`;
     const header = ideaUI(h_flex().h(idea ? IDEA.toolHeaderHeight : 34).flex_none().pl(12).pr(6).gap(8).items_center()
       .when(!idea, (e) => e.border_b(1).border_color(t.border)).bg(idea ? t.surface : t.chrome))
