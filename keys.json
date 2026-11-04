@@ -23,6 +23,7 @@
     "cmd-shift-o": "codenav.terminal-files",
     "ctrl-alt-2": "activity.view-files",
     "ctrl-alt-5": "activity.view-graph",
+    "ctrl-alt-6": "activity.view-running",
     "cmd-alt-1": "layout.toggle:sidebar",
     "cmd-alt-2": "layout.toggle:tools",
     "cmd-alt-3": "layout.toggle:editor-area",

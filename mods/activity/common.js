@@ -30,6 +30,7 @@ export const VIEWS = [
   { id: "view-git", icon: "git-branch", label: "Source Control" },
   { id: "view-review", icon: "review", label: "Review" },
   { id: "view-graph", icon: "git-graph", label: "Git Graph" },
+  { id: "view-running", icon: "server", label: "Sessions & Ports" },
 ];
 // The views this layout has (Review comes with the codenav mod's layouts).
 export const shownViews = () => VIEWS.filter((v) => find(layout(), v.id));

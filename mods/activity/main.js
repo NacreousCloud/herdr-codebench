@@ -5,6 +5,7 @@
 //   search — text search (rg / git grep / grep)
 //   git    — Source Control: stage, unstage, discard, commit, pull, push, log
 //   graph  — Git Graph: every branch as lanes with refs, stashes, worktrees (graphmenu / graphprompt)
+//   running — tmux sessions and listening localhost ports (sessmenu / sessprompt)
 //   spaces — Spaces by machine (this computer, ssh machines): tabs, Open Folder…
 //   agents — running agents with title / model / status, and resumable session history
 //   editor — the editor area (or a pane): text, diffs, images, PDFs, media
@@ -25,8 +26,9 @@ import Agents from "./agents.js";
 import Footer from "./footer.js";
 import { FileMenu, FilePrompt } from "./fileops.js";
 import Graph, { GraphMenu, GraphPrompt } from "./graph.js";
+import Running, { SessMenu, SessPrompt } from "./running.js";
 
-const VIEWS = { bar: Bar, files: Files, search: Search, git: Git, editor: EditorPane, titlebar: Titlebar, panelbar: PanelBar, spaces: Spaces, agents: Agents, remote: Spaces, menu: FileMenu, fileprompt: FilePrompt, footer: Footer, graph: Graph, graphmenu: GraphMenu, graphprompt: GraphPrompt };
+const VIEWS = { bar: Bar, files: Files, search: Search, git: Git, editor: EditorPane, titlebar: Titlebar, panelbar: PanelBar, spaces: Spaces, agents: Agents, remote: Spaces, menu: FileMenu, fileprompt: FilePrompt, footer: Footer, graph: Graph, graphmenu: GraphMenu, graphprompt: GraphPrompt, running: Running, sessmenu: SessMenu, sessprompt: SessPrompt };
 
 export default class Activity extends View {
   init(initProps, cx) {

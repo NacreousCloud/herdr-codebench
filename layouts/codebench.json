@@ -110,6 +110,16 @@
                   "view": "graph"
                 }
               }
+            },
+            {
+              "id": "view-running",
+              "type": "block",
+              "content": {
+                "mod": "activity",
+                "props": {
+                  "view": "running"
+                }
+              }
             }
           ],
           "active": "view-files"

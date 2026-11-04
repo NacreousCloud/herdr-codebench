@@ -17,6 +17,11 @@ async function openPath(path) {
   openInEditor({ kind: "file", path, root, rel: path.slice(root.length + 1) });
 }
 
+const LATE_VIEWS = [
+  { id: "view-graph", view: "graph", after: "view-review" },
+  { id: "view-running", view: "running", after: "view-graph" },
+];
+
 export default class Bar {
   init(_props, cx) {
     // Also from a timer: a window that isn't drawing (covered, on another desktop) doesn't render.
@@ -51,18 +56,22 @@ export default class Bar {
       .child(div().absolute().bottom(0).left(8).w(24).h(2).rounded(1).bg(active ? t.accent : "#00000000"));
   }
 
-  // Git Graph came after codebench layouts were arranged: join the sidebar once
-  // (install.sh keeps an arranged layout, so it can't bring the block itself).
+  // Views added after codebench layouts were arranged join the sidebar once
+  // (install.sh keeps an arranged layout, so it can't bring the blocks itself).
   addGraph(cx) {
-    if (this.addedGraph || shared("layout") !== "codebench") return;
+    if (this.addedViews || shared("layout") !== "codebench") return;
     const stack = find(layout(), "sidebar-views");
-    if (!stack || find(layout(), "view-graph")) return;
-    this.addedGraph = true;
+    const missing = LATE_VIEWS.filter((v) => !find(layout(), v.id));
+    if (!stack || !missing.length) return;
+    this.addedViews = true;
     cx.timer.after(0, () => {
       const tree = JSON.parse(JSON.stringify(layout())), views = find(tree, "sidebar-views");
-      if (!views || find(tree, "view-graph")) return;
-      const at = views.children.findIndex((c) => c.id === "view-review");
-      views.children.splice(at < 0 ? views.children.length : at + 1, 0, { id: "view-graph", type: "block", content: { mod: "activity", props: { view: "graph" } } });
+      if (!views) return;
+      for (const v of LATE_VIEWS) {
+        if (find(tree, v.id)) continue;
+        const at = views.children.findIndex((c) => c.id === v.after);
+        views.children.splice(at < 0 ? views.children.length : at + 1, 0, { id: v.id, type: "block", content: { mod: "activity", props: { view: v.view } } });
+      }
       run("layout.set", { layout: tree });
     });
   }
