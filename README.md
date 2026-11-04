@@ -101,6 +101,7 @@ Herdr를 한 번 실행한 뒤 설치하세요. `install.sh`는 `keys.json`의 �
 | --- | --- |
 | Ctrl+Alt+1 | 스페이스 목록 열기/닫기 (Herdr 줄의 사이드바 버튼은 좁은 목록으로 접기/펼치기) |
 | Ctrl+Alt+2…4 | 탐색기 / 검색 / 리뷰 |
+| Cmd+1 / Cmd+2 / Cmd+3 | 사이드바 / 편집기 영역 / 터미널 패널 토글 (codebench에서는 Herdr 기본의 Cmd+숫자 탭 선택 대신) |
 | Ctrl+Alt+R | 리뷰 열기 |
 | Ctrl+Alt+5 | Git 그래프 |
 | Cmd+Shift+O | 포커스된 터미널에 나온 파일 목록 |
