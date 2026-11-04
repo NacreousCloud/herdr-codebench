@@ -298,6 +298,7 @@ const KO = {
   "Code review of {head} against {base}{committed}. Please address these comments:": "코드 리뷰: {head}을(를) {base} 기준으로 비교했습니다{committed}. 아래 코멘트를 반영해 주세요:",
   " (committed changes)": " (커밋된 변경만)",
   " (removed lines)": " (삭제된 줄)",
+  "Keep awake: while an agent is working (click: always)": "잠자기 방지: 에이전트 작업 중에만 (클릭: 항상)", "Keep awake: always (click: off)": "잠자기 방지: 항상 (클릭: 끄기)", "Keep awake: off (click: while an agent is working)": "잠자기 방지: 꺼짐 (클릭: 에이전트 작업 중에만)", "Mac stays awake": "Mac이 잠들지 않습니다", "Mac may sleep": "Mac이 잠들 수 있습니다", "{n} agents working": "에이전트 {n}개 작업 중", "Always": "항상", "Off": "끔",
 };
 
 export function T(en, vars) {

@@ -20,6 +20,7 @@ import { peek } from "./lsp.js";
 import { isIdea, uiSize, ideaUI } from "./idea-design.js";
 import { openIdeaSettings } from "./settings.js";
 import { recordLocation } from "./locations.js";
+import { syncCaffeinate, stopCaffeinate, caffeinateMode, setCaffeinateMode, awake, working } from "./caffeinate.js";
 
 // Keys bound in keys.json's terminal section (programs in Kitty keyboard mode
 // would get them otherwise): what each does in the shown layout.
@@ -62,7 +63,26 @@ function recordAgents(self, cx) {
   if (add.length) cx.timer.after(0, () => setShared("codenav.notifications", [...add, ...(shared("codenav.notifications") ?? [])].slice(0, 100)));
 }
 
+const CAFFEINATE_TIP = {
+  auto: "Keep awake: while an agent is working (click: always)",
+  on: "Keep awake: always (click: off)",
+  off: "Keep awake: off (click: while an agent is working)",
+};
+
 export default class Status {
+  caffeinateChip(t) {
+    const mode = caffeinateMode(), on = awake();
+    const state = on ? T("Mac stays awake") : T("Mac may sleep");
+    const n = working();
+    return h_flex().id("cn-st-caffeinate").px(6).h(20).gap(3).items_center().rounded(4).cursor_pointer()
+      .hover((e) => e.bg(t.hover).text_color(t.foreground))
+      .tooltip(`${T(CAFFEINATE_TIP[mode])}\n${state}${mode === "auto" && n ? ` · ${T("{n} agents working", { n })}` : ""}`)
+      .on_click((_e, cx) => { setCaffeinateMode(); cx.notify(); })
+      .child(div().text_color(on ? t.ansi3 : t.dim).child("☕"))
+      .when(mode !== "auto", (e) => e.child(div().text_size(uiSize(10.5)).text_color(on ? t.ansi3 : t.dim).child(mode === "on" ? T("Always") : T("Off"))));
+  }
+
+
   init(_p, cx) {
     this.servers = [];
     cx.spawn(async (cx) => {
@@ -104,6 +124,8 @@ export default class Status {
           const [kind, ...query] = c.slice(5).split(":");
           openEverywhere({ all: "all", class: "classes", file: "files", symbol: "symbols", action: "actions", recent: "recent", locations: "locations" }[kind] ?? "all", query.join(":"));
         }
+        else if (c === "caffeinate") setCaffeinateMode();
+        else if (c.startsWith("caffeinate:")) setCaffeinateMode(c.slice(11));
         else if (c === "lang") setLang(lang() === "ko" ? "en" : "ko");
         else if (c.startsWith("lang:")) setLang(c.slice(5));
         cx.notify();
@@ -118,7 +140,11 @@ export default class Status {
     cx.timer.every(4000, (cx) => poll(cx));
   }
 
+  // The layout is going (switched away, closed): the Mac may sleep again.
+  release() { stopCaffeinate(); }
+
   render(cx) {
+    syncCaffeinate(this, cx);
     recordAgents(this, cx);
     followSpace(this, cx);
     routeEditor(this, cx);
@@ -132,6 +158,7 @@ export default class Status {
       .child(h_flex().id("cn-st-lsp").gap(5).items_center().tooltip(tip)
         .child(div().size(7).rounded_full().bg(this.servers === null ? t.dim : busy ? t.ansi3 : servers.length ? t.ansi2 : t.dim))
         .child(servers.length ? servers.map((s) => s.command).filter((v, i, a) => a.indexOf(v) === i).join(" · ") : "LSP"))
+      .child(this.caffeinateChip(t))
       .child(div().id("cn-st-lang").px(6).h(20).flex().items_center().rounded(4).cursor_pointer().hover((e) => e.bg(t.hover).text_color(t.foreground))
         .tooltip(T("Language: English (click for 한국어)"))
         .on_click(() => setLang(lang() === "ko" ? "en" : "ko"))
