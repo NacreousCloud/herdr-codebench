@@ -1,80 +1,97 @@
-// Client of bridge/lsp_bridge.py: the bridge keeps the language servers running,
-// this asks it one short question at a time over localhost. Each request carries
-// the token the bridge wrote to its state file (readable by this user only), and
-// the bridge's answer to "health" must name the pid from that file.
-import { hc, exec, appHome, home, readTextFile } from "herdr";
-
-const PORT = 47821;
-const URL = `http://127.0.0.1:${PORT}`;
-const SCRIPT = () => `${appHome()}/mods/codenav/bridge/lsp_bridge.py`;
-const STATE = () => `${home()}/.cache/herdr-codenav/bridge.json`;
-
-let starting = null;
-let state = null;
-
+// Native Go engine owns LSP processes and Spring navigation; the UI owns buffers.
+import { hc, exec, appHome, home, readTextFile, window } from "herdr";
+const PORT = 47822, ENGINE = "herdr-codebench-go", NAME = "codenav-engine";
+const STATE = () => `${home()}/.cache/herdr-codenav/engine.json`;
+const DIRECTORY = () => `${appHome()}/data/codebench-engine`;
+let starting = null, state = null, prepared = null, verified = null;
 async function readState() {
-  const text = await readTextFile(STATE()).catch(() => null);
-  try { state = text ? JSON.parse(text) : null; } catch { state = null; }
+  try { state = JSON.parse(await readTextFile(STATE())); } catch { state = null; }
   return state;
 }
-
 async function post(method, body) {
   if (!state) await readState();
-  if (!state?.token) throw new Error("connect: no bridge");
-  const r = await fetch(`${URL}/${method}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "X-Codenav-Token": state.token },
-    body: JSON.stringify(body ?? {}),
+  if (!state?.token || state.port !== PORT || state.engine !== ENGINE) throw new Error("connect: no Go engine");
+  const response = await fetch(`http://127.0.0.1:${PORT}/${method}`, {
+    method: "POST", headers: { "Content-Type": "application/json", "X-Codenav-Token": state.token }, body: JSON.stringify(body ?? {}),
   });
-  if (r.status === 403) { state = null; throw new Error("connect: bridge token changed"); }
-  const data = await r.json();
-  if (!data.ok) throw new Error(data.error);
+  if (response.status === 401 || response.status === 403) { state = null; verified = null; prepared = null; throw new Error("connect: engine identity changed"); }
+  const data = await response.json();
+  if (!data.ok) throw new Error(data.error || "Engine request failed");
   return data.result;
 }
-
-// Ours: it knows the token and is the process the state file names.
-async function alive() {
-  try {
-    await readState();
-    const h = await post("health");
-    return h?.pid === state?.pid;
-  } catch { return false; }
+async function prepare() {
+  if (prepared) return prepared;
+  const manifest = JSON.parse(await readTextFile(`${DIRECTORY()}/manifest.json`).catch(() => "null"));
+  if (!manifest?.version) throw new Error("Go engine is not installed. Run python3 engine/install.py.");
+  const platform = window()?.platform, os = platform === "macos" ? "darwin" : platform;
+  const result = platform === "windows"
+    ? await exec("powershell", ["-NoProfile", "-NonInteractive", "-Command", "[System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString().ToLowerInvariant()"])
+    : await exec("uname", ["-m"]);
+  if (result.code) throw new Error("Cannot determine engine architecture");
+  const value = result.stdout.trim().toLowerCase(), arch = { arm64: "arm64", aarch64: "arm64", x86_64: "amd64", amd64: "amd64", x64: "amd64" }[value];
+  if (!arch || !manifest.targets?.some(target => target.os === os && target.arch === arch)) throw new Error(`Unsupported engine platform: ${os}/${value}`);
+  const binary = `${DIRECTORY()}/${os}-${arch}/herdr-engine${os === "windows" ? ".exe" : ""}`;
+  const check = await exec(binary, ["--version"]);
+  if (check.code || !check.stdout.includes(manifest.version)) throw new Error("Installed engine does not match its manifest. Run python3 engine/install.py.");
+  prepared = { binary, version: manifest.version }; return prepared;
 }
-
-// A python3 with pygments (syntax colors) if there is one; PATHs differ between shells.
-const FIND_PYTHON = 'for p in python3 /usr/local/bin/python3 /opt/homebrew/bin/python3 /usr/bin/python3; do "$p" -c "import pygments" 2>/dev/null && { command -v "$p"; exit 0; }; done; command -v python3';
-async function python() {
-  const r = await exec("sh", ["-c", FIND_PYTHON]).catch(() => null);
-  return r?.stdout.trim().split("\n").pop() || "python3";
+async function health() {
+  try { await readState(); const value = await post("health"); return value?.pid === state?.pid && value?.engine === ENGINE ? value : null; }
+  catch { return null; }
 }
-
-// Starts the bridge in a herdr-core terminal without Herdr labels, so it stays
-// out of the window and outlives it.
-function ensureBridge(sleep) {
-  if (!starting) {
-    starting = (async () => {
-      if (await alive()) return true;
-      await hc(["run", "--bg", "--no-parent", "--name", "codenav-lsp", "--", await python(), "-I", SCRIPT(), "--port", String(PORT)]).catch(() => null);
-      for (let i = 0; i < 40; i++) {
-        await sleep(150);
-        if (await alive()) return true;
-      }
-      return false;
-    })().finally(() => { starting = null; });
+const samePath = (a, b) => typeof a === "string" && a.replace(/\\/g, "/") === b.replace(/\\/g, "/");
+async function ownedHelpers(name, binary, pid) {
+  const listing = JSON.parse((await hc(["ls", "--json"])).stdout || "{}");
+  const matches = [];
+  for (const item of listing.terminals ?? []) {
+    if (item.name !== name) continue;
+    const detail = JSON.parse((await hc(["get", item.address, "--json"])).stdout || "{}");
+    const owns = name === NAME ? samePath(detail.argv?.[0], binary) && detail.pid === pid
+      : detail.argv?.includes("-I") && detail.argv.some(argument => samePath(argument, `${appHome()}/mods/codenav/bridge/lsp_bridge.py`));
+    if (detail.name === name && owns) matches.push(item.address);
   }
+  return matches;
+}
+async function retirePython() {
+  try { for (const address of await ownedHelpers("codenav-lsp")) await hc(["kill", address]); } catch { /* Go is already usable. */ }
+}
+function ensureEngine(sleep) {
+  if (!starting) starting = (async () => {
+    const config = await prepare(), existing = await health();
+    if (existing?.version === config.version) { verified = existing.pid; await retirePython(); return true; }
+    if (existing) {
+      const owned = await ownedHelpers(NAME, config.binary, existing.pid);
+      if (!owned.length) throw new Error("Another engine owns this port; it was left running.");
+      for (const address of owned) await hc(["kill", address]);
+      for (let attempt = 0; attempt < 50; attempt++) {
+        await sleep(100);
+        if (!(await health())) break;
+        if (attempt === 49) throw new Error("Previous engine is still shutting down");
+      }
+      state = null;
+    }
+    const launched = await hc(["run", "--bg", "--no-parent", "--name", NAME, "--", config.binary,
+      "--port", String(PORT), "--state", STATE(), "--config", `${appHome()}/mods/codenav/bridge/servers.json`]);
+    if (launched.code) throw new Error(launched.stderr || "Could not start Go engine");
+    for (let attempt = 0; attempt < 40; attempt++) {
+      await sleep(100);
+      const current = await health();
+      if (current?.version === config.version) { verified = current.pid; await retirePython(); return true; }
+    }
+    throw new Error("Go engine did not become ready");
+  })().finally(() => { starting = null; });
   return starting;
 }
-
 export async function lsp(method, body, sleep) {
+  if (!verified) await ensureEngine(sleep);
   try { return await post(method, body); }
-  catch (e) {
-    if (!/fetch|connect|refused|network/i.test(String(e.message ?? e))) throw e;
-    if (!(await ensureBridge(sleep))) throw new Error("LSP bridge did not start (python3 needed)");
-    return post(method, body);
+  catch (error) {
+    if (!/fetch|connect|refused|network/i.test(String(error.message ?? error))) throw error;
+    verified = null; state = null; prepared = null;
+    await ensureEngine(sleep); return post(method, body);
   }
 }
-
-// Asks a running bridge only; never starts one (null when none answers).
+// Status polling never starts a service.
 export async function peek(method) {
   try { return await post(method); } catch { return null; }
 }
