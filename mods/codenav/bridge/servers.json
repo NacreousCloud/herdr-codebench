@@ -67,11 +67,6 @@
     "root": "nearest",
     "commands": [
       [
-        "tsc",
-        "--lsp",
-        "--stdio"
-      ],
-      [
         "typescript-language-server",
         "--stdio"
       ],

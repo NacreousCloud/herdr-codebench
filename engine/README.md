@@ -35,6 +35,19 @@ LSP programs, installed separately with their SDK/toolchains. Cross-compiling th
 engine does not bundle those servers or establish that every toolchain runs on
 every OS. `/info` reports availability without starting a language server.
 
+Click **LSP** in the status bar, use Find Action → **Language Server Setup**, or
+open Settings → Tools → Language Servers. The guide asks for Java, Kotlin,
+TypeScript, JavaScript, Go, Swift or Rust, shows the current OS's SDK/LSP install
+steps with copyable commands and official documentation, checks executable
+discovery, then starts the real server for the chosen project. Install commands
+are guidance and are not executed automatically. JavaScript and TypeScript use
+the same TypeScript language server.
+
+The engine owns each stdio language-server process. Do not launch another stdio
+server manually in a terminal; use **Start LSP** after installing its executable.
+The readiness result requires a successful LSP initialize exchange. Discovering
+an executable alone does not establish that the SDK, project or server works.
+
 The engine supports hover, definition/type/implementation, references,
 document/workspace symbols, diagnostics and super declarations. Positions and
 token spans use zero-based UTF-16. Syntax colors use a lightweight lexical scanner;
@@ -105,7 +118,7 @@ random token. Do not commit or log this state file. Requests are JSON POSTs to
 `http://127.0.0.1:47822/METHOD` with `X-Codenav-Token` from that file. Responses
 are `{ "ok": true, "result": ... }` or `{ "ok": false, "error": "..." }`.
 
-Methods: `health`, `status`, `tokens`, `info`, `hover`, `definition`, `references`,
+Methods: `health`, `status`, `setup_status`, `setup_start`, `tokens`, `info`, `hover`, `definition`, `references`,
 `symbols`, `diagnostics`, `workspace_symbols`, `related`, `spring_markers`,
 `spring_project`. Source requests use `{path,line,col}`; `related` adds
 `kind:"super"` and optional `{owner:{line,col},name}`, or Spring marker fields.
@@ -117,3 +130,11 @@ The listener binds IPv4 loopback only, rejects browser Origin/non-loopback Host,
 requires a token, bounds request/frame sizes and cleans up its owned state and
 child servers on shutdown. The engine does not change project-file permissions
 or global environment settings.
+
+Setup requests use `{lang,root}`: `lang` is a configured engine language ID and
+`root` is the absolute existing project folder (optional for `setup_status`).
+The response is `{lang,installed,command,root,running,error}` inside the existing
+envelope. `installed` means executable discovery; only `running` confirms actual
+initialization. Status never starts a language server. Start does not create or
+open a synthetic file; it applies the normal workspace-root rules and returns
+the server's actual root. Explicit user overrides remain authoritative.

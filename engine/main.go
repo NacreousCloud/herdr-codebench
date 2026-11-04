@@ -234,7 +234,7 @@ func (e *Engine) Handler(token string) http.Handler {
 }
 func knownRoute(route string) bool {
 	switch route {
-	case "health", "status", "tokens", "info", "hover", "definition", "references", "symbols", "diagnostics", "workspace_symbols", "related", "spring_markers", "spring_project":
+	case "health", "status", "setup_status", "setup_start", "tokens", "info", "hover", "definition", "references", "symbols", "diagnostics", "workspace_symbols", "related", "spring_markers", "spring_project":
 		return true
 	}
 	return false
@@ -300,6 +300,10 @@ func (e *Engine) dispatch(ctx context.Context, route string, req Request) (any, 
 		return map[string]any{"pid": os.Getpid(), "started": e.started.Unix(), "engine": engineName, "version": version}, nil
 	case "status":
 		return e.status(), nil
+	case "setup_status":
+		return e.setupStatus(req)
+	case "setup_start":
+		return e.setupStart(ctx, req)
 	case "info":
 		if req.Path == "" {
 			return nil, errors.New("path is required")

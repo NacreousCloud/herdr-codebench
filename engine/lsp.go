@@ -29,6 +29,7 @@ type Position struct {
 	Col  int `json:"col"`
 }
 type Request struct {
+	Lang      string    `json:"lang"`
 	Path      string    `json:"path"`
 	Kind      string    `json:"kind"`
 	Name      string    `json:"name"`

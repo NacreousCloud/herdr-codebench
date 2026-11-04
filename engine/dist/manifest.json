@@ -1,50 +1,50 @@
 {
   "engine": "herdr-codebench-go",
-  "version": "0.1.0-36516d926918",
-  "source_sha256": "36516d926918095a7acd743b776baa66dc9d9314f37702f1531aa8b387d7f4d6",
+  "version": "0.1.0-8049c1ec7054",
+  "source_sha256": "8049c1ec70542780fdf646a34fee242903155dfdddea8cff624c807bd563e9e8",
   "go": "go1.27.1",
   "targets": [
     {
       "os": "darwin",
       "arch": "amd64",
       "file": "darwin-amd64/herdr-engine",
-      "size": 7683120,
-      "sha256": "5d5437c5bc5ce1de6cdee8193f18034e942b7e55b6d4fe2499eecce21067d743"
+      "size": 7691424,
+      "sha256": "40ee4ad002405f06d82b4253be30a6cc77107f9d8eed96e736d93fa769cf4fad"
     },
     {
       "os": "darwin",
       "arch": "arm64",
       "file": "darwin-arm64/herdr-engine",
-      "size": 7098818,
-      "sha256": "804652f2ab5225560dbee10eed2bb527632b98ab7736a60f91cfe903a260c6de"
+      "size": 7115426,
+      "sha256": "d04aa2cf6791e6fa8a1b33f86423f6cc8dc3a36a8b175d09e2a78af4135d80b1"
     },
     {
       "os": "linux",
       "arch": "amd64",
       "file": "linux-amd64/herdr-engine",
-      "size": 7524476,
-      "sha256": "40af00ec1252fb6040b4599a5ec9fdb47a05b5b41a9a1cc1a407c0067e7dcdc9"
+      "size": 7536764,
+      "sha256": "54575765af1266874b8f3c8416111a677bd56179fa71a954695c9cdeeff8d4e9"
     },
     {
       "os": "linux",
       "arch": "arm64",
       "file": "linux-arm64/herdr-engine",
       "size": 6946940,
-      "sha256": "e9bd392fc3a67b2f58b0bf89c0851ad55e141d4a30684debf410684911bf6929"
+      "sha256": "582fb5f893661dc939767f955ada6c64d20cd7d969408d9237b008c8b90c21d2"
     },
     {
       "os": "windows",
       "arch": "amd64",
       "file": "windows-amd64/herdr-engine.exe",
-      "size": 7755264,
-      "sha256": "6c4776b65c8acb928ab00efaabebfc73530c8a01540dea2b246eda0f39f25741"
+      "size": 7767552,
+      "sha256": "af684c11d6517e4f0bf435baf0a9e7d3693ddeefa1d5fdbd9919a4b21043dbea"
     },
     {
       "os": "windows",
       "arch": "arm64",
       "file": "windows-arm64/herdr-engine.exe",
-      "size": 7029248,
-      "sha256": "e9ed6ddcc28a9aec39600a3b2949378a6f9ffbe7b3caeedaef639199b96bff7c"
+      "size": 7040512,
+      "sha256": "3379732284e7cddd12d32ea59664d4f941f91072797d4e6fe3df0b659c1ed9fb"
     }
   ]
 }

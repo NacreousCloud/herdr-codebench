@@ -34,7 +34,7 @@ def main():
         name = "herdr-engine.exe" if goos == "windows" else "herdr-engine"
         path = ROOT / "dist" / target / name
         path.parent.mkdir(parents=True, exist_ok=True)
-        env = {**os.environ, "GOOS": goos, "GOARCH": goarch, "CGO_ENABLED": "0"}
+        env = {**os.environ, "GOCACHE": os.environ.get("GOCACHE", str(ROOT / ".cache/go-build")), "GOOS": goos, "GOARCH": goarch, "CGO_ENABLED": "0"}
         subprocess.run(["go", "build", "-trimpath", "-buildvcs=false", "-ldflags", f"-s -w -buildid= -X main.version={version}", "-o", str(path), "."], cwd=ROOT, env=env, check=True)
         path.chmod(0o755)
         data = path.read_bytes()
