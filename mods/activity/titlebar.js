@@ -11,9 +11,9 @@ import { find, AREA, iconButton, icon, location, basename, editorSpec, showView 
 // them, a row puts them side by side (layouts that have one).
 const BODY = "work-body";
 const toggles = (side, tools) => [
-  tools ? { id: "tools", icon: "layout-sidebar", tip: "Toggle Primary Side Bar (Cmd+1)" } : { id: "sidebar", icon: "layout-sidebar", tip: "Toggle Primary Side Bar (Ctrl+Shift+B)" },
-  { id: AREA, icon: side ? "layout-editor-left" : "layout-editor", tip: "Toggle Editor Area (Cmd+2)" },
-  { id: "terminal-panel", icon: side ? "layout-panel-right" : "layout-panel", tip: "Toggle Terminal Panel (Cmd+3)" },
+  tools ? { id: "tools", icon: "layout-sidebar", tip: "Toggle Primary Side Bar (Option+1)" } : { id: "sidebar", icon: "layout-sidebar", tip: "Toggle Primary Side Bar (Ctrl+Shift+B)" },
+  { id: AREA, icon: side ? "layout-editor-left" : "layout-editor", tip: "Toggle Editor Area (Option+2)" },
+  { id: "terminal-panel", icon: side ? "layout-panel-right" : "layout-panel", tip: "Toggle Terminal Panel (Option+3)" },
 ];
 
 function setSplit(dir) {
