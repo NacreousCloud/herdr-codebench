@@ -22,7 +22,8 @@ assert.equal(model.restoreKnownGroups(edited, groups).groups.unknown.future, tru
 
 const source = await readFile(new URL("../../mods/codenav/tools.js", import.meta.url), "utf8");
 const context = vm.createContext({ console, Date, Math });
-const store = { layout: "idea" }, buttons = [], menus = [], opened = [], dispatched = [];
+const store = { layout: "idea" }, buttons = [], menus = [], opened = [], dispatched = [], copiedDiagnostics = [], attachmentRequests = [], hovers = [], taskJobs = [];
+let commandResolve;
 let activeFile = { path: "/repo/App.kt", on: null }, cx, layoutTree;
 function element(type = "div") {
   const state = { type, nodes: [], calls: [] };
@@ -60,10 +61,21 @@ const overrides = {
   T: value => value, icon: element, iconButton: button, toolImage: element, ideaImage: element, symbolImage: element,
   IDEA: { iconSize: 16, toolbarButtonSize: 26, rowHeight: 22, stripeWidth: 32 },
   ideaUI: el => el, uiColors: () => ({}), uiSize: () => 13,
+  isIdea: () => store.layout === "idea",
+  nextCommand: () => new Promise(resolve => { commandResolve = resolve; }),
+  diagnosticKey: entry => JSON.stringify([entry.on ?? null, entry.path, entry.diagnostic.line, entry.diagnostic.message]),
+  uiDiagnosticColors: severity => ({ effect: severity === 1 ? "#error" : "#warning" }),
+  uiDiagnosticLabel: (_diagnostic, options) => { assert.equal(options.summary, true); return "One-line diagnostic summary"; },
+  uiSelectableText: (id, text) => element("selectable").id(id).child(text),
+  canAttachDiagnostics: entries => entries.length > 0,
+  copyDiagnostics: entries => copiedDiagnostics.push(entries),
+  requestDiagnosticAttachment: entries => attachmentRequests.push(entries),
+  diagnosticCardOptions: entries => ({ entries }),
+  uiDiagnosticTooltip: (id, trigger, diagnostics, options) => { hovers.push({ id, diagnostics, options }); return element("diagnostic-hover").id(id).child(trigger); },
   uiIconButton: button, uiStripeButton: button, uiToolHeader: element, uiIslandBottom: element,
   uiSpinner: factory => factory().spin(1000),
   uiSeparator: element,
-  uiListRow: (id, children, opts) => element("row").id(id).children(children), uiTreeRow: element, uiNoticeCard: element,
+  uiListRow: (id, children, opts) => element("row").id(id).row_options(opts).children(children), uiTreeRow: element, uiNoticeCard: element,
   openPath: (path, on) => opened.push({ path, on }),
   MenuController: class { constructor() { this.focus = { focus() {} }; } release() {} },
   uiMenu: (_id, rows) => { menus.push(rows); return element("menu"); },
@@ -107,7 +119,7 @@ assert.ok(buttons.some(item => item.id === "tb-overflow"), "narrow window retain
 const diagnostics = [{ severity: 2, line: 2, col: 1, source: "compiler", message: "warning" }, { severity: 1, line: 7, col: 3, source: "lint", message: "error" }];
 store["codenav.problems"] = { path: "/repo/App.kt", on: null, space: "one", items: diagnostics };
 const problems = new Problems();
-cx = { notify() {}, stop_propagation() {}, focus_handle: () => ({ focus() {}, is_focused: () => true, release() {} }) };
+cx = { notify() {}, stop_propagation() {}, spawn: task => taskJobs.push(task(cx)), focus_handle: () => ({ focus() {}, is_focused: () => true, release() {} }) };
 problems.init({}, cx);
 let rows = problems.data().rows;
 problems.select(rows[0], cx); assert.equal(opened.length, 0, "selecting a problem preserves the current editor when autoscroll is off");
@@ -115,6 +127,38 @@ problems.key({ key: "enter" }, cx); assert.equal(opened.at(-1).path, "/repo/App.
 store["codenav.problemsOptions"] = { autoscroll: true, errorsOnly: true };
 rows = problems.data().rows; assert.equal(rows.length, 1);
 problems.select(rows[0], cx); assert.equal(opened.at(-1).path, "/repo/App.kt:8:4");
+const fullMessage = "No overload matches this call.\n  Overload 1: nested detail\r\n  Overload 2: another detail";
+diagnostics[1].message = fullMessage;
+const problemTree = nodes(problems.render());
+const renderedProblem = problemTree.find(node => node.type === "row" && node.id.startsWith("problem-["));
+assert.ok(renderedProblem.calls.some(([name]) => name === "overflow_hidden"), "diagnostic rows clip their fixed-height contents");
+const summaryBox = renderedProblem.nodes[1], summaryText = summaryBox.nodes[0];
+assert.ok(summaryBox.calls.some(([name]) => name === "h_full") && summaryBox.calls.some(([name]) => name === "overflow_hidden"));
+assert.equal(summaryText.type, "selectable"); assert.equal(summaryText.nodes[0], "One-line diagnostic summary");
+assert.ok(summaryText.calls.some(([name]) => name === "truncate") && summaryText.calls.some(([name]) => name === "whitespace_nowrap"));
+assert.equal(hovers.at(-1).diagnostics[0].message, fullMessage, "full multiline text remains in hover content");
+buttons.find(item => item.id.startsWith("problem-copy-")).action({}, cx);
+assert.equal(copiedDiagnostics.at(-1)[0].diagnostic.message, fullMessage);
+buttons.find(item => item.id.startsWith("problem-attach-")).action({}, cx);
+assert.equal(attachmentRequests.at(-1)[0].path, "/repo/App.kt");
+commandResolve("problems-copy-all"); await new Promise(resolve => setImmediate(resolve));
+assert.equal(copiedDiagnostics.at(-1).length, 1, "shared header copy reaches the real owner and follows current Errors Only filter");
+commandResolve("problems-attach-all"); await new Promise(resolve => setImmediate(resolve));
+assert.equal(attachmentRequests.at(-1).length, 1);
+store["codenav.problemsOptions"] = {};
+commandResolve("problems-copy-all"); await new Promise(resolve => setImmediate(resolve));
+assert.equal(copiedDiagnostics.at(-1).length, 2, "all shown diagnostic entries copied without truncating their messages");
+store["codenav.problemsScope"] = "project";
+store["codenav.problemFiles"] = {
+  first: store["codenav.problems"],
+  second: { path: "/repo/Other.kt", on: null, space: "one", items: [{ severity: 2, line: 0, col: 0, message: "Other file\nAll details" }] },
+  foreign: { path: "/elsewhere/Private.kt", on: null, space: "another-space", items: diagnostics },
+};
+assert.equal(problems.data().rows.length, 3, "project selection contains both local files");
+commandResolve("problems-copy-all"); await new Promise(resolve => setImmediate(resolve));
+assert.equal(copiedDiagnostics.at(-1).length, 3, "project scope copies all known shown files while excluding another workspace");
+assert.equal(copiedDiagnostics.at(-1)[2].diagnostic.message, "Other file\nAll details");
+store["codenav.problemsScope"] = "file";
 activeFile = { path: "/repo/App.kt", on: "other-machine" };
 assert.equal(problems.data().rows.length, 0, "same path from a different machine is not this file's diagnostics");
 problems.release();

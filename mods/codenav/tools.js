@@ -7,7 +7,7 @@
 // "codenav.symbols" and "codenav.problems".
 import { div, svg, image } from "gpui-kit";
 import { v_flex, h_flex } from "gpui-base";
-import { run, theme, layout, shared, setShared, spaces, panes, window, props, openOverlay, closeOverlay, keys, focused } from "herdr";
+import { run, theme, layout, shared, setShared, spaces, panes, window, props, openOverlay, closeOverlay, keys, focused, nextCommand } from "herdr";
 import { uiNotify as notify } from "./idea-design.js";
 import { T } from "./i18n.js";
 import { find, icon, iconButton, openPath, editorSpec, editorKey, basename, tilde, editorSnapshot as forShown } from "./common.js";
@@ -15,7 +15,11 @@ import { find, icon, iconButton, openPath, editorSpec, editorKey, basename, tild
 
 import { runStore, isRunning, runConfig, stopConfig, openRunConfigs } from "./run.js";
 import { ideaImage, symbolImage, toolImage } from "./ideaicons.js";
-import { IDEA, uiSize, ideaUI, uiIconButton, uiStripeButton, uiToolHeader, uiIslandBottom, MenuController, uiMenu, uiColors, uiNoticeCard, uiTreeRow, uiListRow, uiSeparator, uiSpinner } from "./idea-design.js";
+import { IDEA, isIdea, uiSize, ideaUI, uiIconButton, uiStripeButton, uiToolHeader, uiIslandBottom, MenuController, uiMenu, uiColors, uiNoticeCard, uiTreeRow, uiListRow, uiSeparator, uiSpinner,
+  uiDiagnosticLabel, uiDiagnosticTooltip, uiDiagnosticColors, uiSelectableText } from "./idea-design.js";
+import { diagnosticKey } from "./diagnostic-model.js";
+import { copyDiagnostics } from "./diagnostic-actions.js";
+import { diagnosticCardOptions, canAttachDiagnostics, requestDiagnosticAttachment } from "./diagnostics.js";
 import { ensureIdeaIslands } from "./islands.js";
 import { openIdeaSettings } from "./settings.js";
 import { ACTION_GROUPS, getAction, actionPresentation, effectiveShortcuts, formatShortcut } from "./actions.js";
@@ -296,14 +300,26 @@ export class Structure {
   }
 }
 
+const problemEntry = (file, diagnostic) => ({ path: file.path, on: file.on ?? null, root: file.root, diagnostic: { ...diagnostic } });
 export class Problems {
-  init(_props, cx) { this.selected = null; this.focus = cx.focus_handle(); }
-  release() { this.focus?.release(); }
+  init(_props, cx) {
+    this.alive = true; this.selected = null; this.focus = cx.focus_handle();
+    cx.spawn(async taskCx => {
+      while (this.alive) {
+        const command = await nextCommand();
+        if (!this.alive) return;
+        if (command === "focus") this.focus.focus();
+        else if (command === "problems-copy-all") copyDiagnostics(this.data().rows.map(row => problemEntry(row.file, row.diagnostic)), taskCx);
+        else if (command === "problems-attach-all") requestDiagnosticAttachment(this.data().rows.map(row => problemEntry(row.file, row.diagnostic)));
+      }
+    });
+  }
+  release() { this.alive = false; this.focus?.release(); }
   data() {
     const p = forShown("codenav.problems"), scope = shared("codenav.problemsScope") ?? "file", spec = editorSpec(), options = shared("codenav.problemsOptions") ?? {};
     const all = Object.values(shared("codenav.problemFiles") ?? {}).filter(file => file.space === editorKey() && (file.on ?? null) === (spec?.on ?? null));
     const files = (scope === "project" ? all : p ? [p] : []).map(file => ({ ...file, items: file.items.filter(item => !options.errorsOnly || item.severity === 1) })).filter(file => file.items.length);
-    return { p, scope, options, files, rows: files.flatMap(file => file.items.map(diagnostic => ({ file, diagnostic, id: JSON.stringify([file.on ?? null, file.path, diagnostic.line, diagnostic.col, diagnostic.source, diagnostic.code, diagnostic.message]) }))) };
+    return { p, scope, options, files, rows: files.flatMap(file => file.items.map(diagnostic => ({ file, diagnostic, id: diagnosticKey(problemEntry(file, diagnostic)) }))) };
   }
   activate(row) {
     if (row) openPath(`${row.file.path}:${row.diagnostic.line + 1}:${row.diagnostic.col + 1}`, row.file.on);
@@ -323,13 +339,18 @@ export class Problems {
   }
   render() {
     const t = theme(), { p, scope, options, files, rows } = this.data();
+    const attachable = canAttachDiagnostics(rows.map(row => problemEntry(row.file, row.diagnostic))), space = spaces().find(item => item.active)?.id;
     const renderRow = (row, indent) => {
-      const d = row.diagnostic;
-      return uiListRow(`problem-${row.id}`, [
-        icon(d.severity === 1 ? "x" : "alert", 14).text_color(d.severity === 1 ? t.ansi1 : d.severity === 2 ? t.ansi3 : t.muted),
-        div().flex_1().min_w(0).truncate().child(`${d.source ? d.source + " - " : ""}${d.code ? d.code + ": " : ""}${d.message}`),
+      const d = row.diagnostic, entries = [problemEntry(row.file, d)];
+      const item = uiListRow(`problem-${row.id}`, [
+        icon(d.severity === 1 ? "x" : "alert", 14).text_color(isIdea() ? uiDiagnosticColors(d.severity).effect : d.severity === 1 ? t.ansi1 : d.severity === 2 ? t.ansi3 : t.muted),
+        div().flex_1().min_w(0).h_full().flex().items_center().overflow_hidden()
+          .child(uiSelectableText(`problem-label-${row.id}`, uiDiagnosticLabel(d, { summary: true })).w_full().h_full().truncate().whitespace_nowrap()),
         div().flex_none().text_color(t.dim).child(`:${d.line + 1}`),
-      ], { indent, selected: this.selected === row.id, focused: this.focus.is_focused(), onClick: (event, cx) => this.select(row, cx, event.click_count > 1) }).tooltip(d.message);
+        uiIconButton(`problem-copy-${row.id}`, icon("copy", 12), (_event, cx) => copyDiagnostics(entries, cx), { size: 20, tip: T("Copy diagnostic") }),
+        uiIconButton(`problem-attach-${row.id}`, icon("message", 12), () => requestDiagnosticAttachment(entries, space), { size: 20, tip: T("Attach to AI"), disabled: !attachable }),
+      ], { indent, selected: this.selected === row.id, focused: this.focus.is_focused(), onClick: (event, cx) => this.select(row, cx, event.click_count > 1) }).overflow_hidden();
+      return isIdea() ? uiDiagnosticTooltip(`problem-hover-${row.id}`, item, [d], diagnosticCardOptions(entries, { attachable, space })) : item.tooltip(d.message);
     };
     return ideaUI(v_flex()).size_full().min_h(0).bg(t.surface).text_color(t.foreground)
       .track_focus(this.focus).on_mouse_down("left", () => this.focus.focus()).on_key_down((event, cx) => this.key(event, cx))

@@ -73,6 +73,8 @@ export const ACTIONS = Object.freeze([
   define("problems-errors-only", "Show Errors Only", "Problems", "problems", { toggle: "errorsOnly" }),
   define("problems-autoscroll", "Autoscroll to Source", "Problems", "locate", { toggle: "autoscroll" }),
   define("problems-group-source", "Group by Inspection", "Problems", "structure", { toggle: "groupSource" }),
+  define("problems-copy-all", "Copy All Shown Problems", "Problems", "copy", { owner: "problems" }),
+  define("problems-attach-all", "Attach All Shown Problems to AI", "Problems", "services", { owner: "problems" }),
   define("notifications-clear", "Clear All Notifications", "Notifications", "close"),
 ]);
 
@@ -112,7 +114,7 @@ export const ACTION_GROUPS = Object.freeze({
   "MainToolbar.center": group("Main Toolbar / Center", []),
   "MainToolbar.right": group("Main Toolbar / Right", [widget("run.widget", "run"), item("search.action", "codenav.find-all"), item("tools.action", "codenav.tool-settings"), item("settings.action", "codenav.settings")]),
   "header.Project": group("Tool Windows / Project Header", [item("new-file.action", "activity.project-new-file"), item("new-folder.action", "activity.project-new-folder"), item("refresh.action", "activity.project-refresh"), item("collapse.action", "activity.project-collapse")]),
-  "header.Problems": group("Tool Windows / Problems Header", [item("errors-only.action", "codenav.problems-errors-only"), item("autoscroll.action", "codenav.problems-autoscroll"), item("group-source.action", "codenav.problems-group-source")]),
+  "header.Problems": group("Tool Windows / Problems Header", [item("copy-all.action", "codenav.problems-copy-all"), item("attach-all.action", "codenav.problems-attach-all"), item("errors-only.action", "codenav.problems-errors-only"), item("autoscroll.action", "codenav.problems-autoscroll"), item("group-source.action", "codenav.problems-group-source")]),
   "header.Notifications": group("Tool Windows / Notifications Header", [item("clear.action", "codenav.notifications-clear")]),
   "ToolWindow.context": group("Tool Windows / Context Menu", [item("tool-settings.action", "codenav.tool-settings"), item("hide-active.action", "codenav.hide-active")]),
   "Editor.context": group("Editor / Context Menu", [item("definition.action", "codenav.definition"), item("implementation.action", "codenav.implementation"), item("type-definition.action", "codenav.type-definition"), item("super.action", "codenav.super-declaration"), item("usages.action", "codenav.usages"), item("structure.action", "codenav.file-structure")]),

@@ -1,0 +1,41 @@
+{
+  "method": "REA open_binary identified the JAR; inspect_artifact was rejected by the client approval policy. Selected XML bytes were parsed with Python zipfile/ElementTree; these parsed findings are ordinary artifact observations, not REA Evidence.",
+  "artifact": "/Applications/IntelliJ IDEA.app/Contents/lib/intellij.platform.ide.impl.jar",
+  "artifactSha256": "5a19d56e6ff99866f413af64200954a2e61c6dc8258014de0811a08e4312e026",
+  "member": "themes/islands/IslandSchemeDark.xml",
+  "memberSha256": "76393eb60297796878abd8a898e78406d24fc350fe4f4c2f3e178bd427991b25",
+  "scheme": {
+    "name": "Islands Dark",
+    "version": "142",
+    "parent_scheme": "Darcula"
+  },
+  "attributes": {
+    "BREAKPOINT_ATTRIBUTES": {
+      "BACKGROUND": "40252b",
+      "ERROR_STRIPE_COLOR": "8c5b65"
+    },
+    "ERRORS_ATTRIBUTES": {
+      "EFFECT_COLOR": "fa6675",
+      "ERROR_STRIPE_COLOR": "d64d5b",
+      "EFFECT_TYPE": "2"
+    },
+    "INFO_ATTRIBUTES": {
+      "EFFECT_COLOR": "857042",
+      "EFFECT_TYPE": "2"
+    },
+    "WARNING_ATTRIBUTES": {
+      "EFFECT_COLOR": "f2c55c",
+      "ERROR_STRIPE_COLOR": "c29e4a",
+      "EFFECT_TYPE": "2"
+    }
+  },
+  "colors": {
+    "ERROR_HINT": "402929",
+    "HINT_BORDER": "393B40",
+    "INFORMATION_HINT": "2B2D30"
+  },
+  "limitations": [
+    "Static scheme values do not establish runtime placement or hover behavior.",
+    "Wavy shape and diagnostic popup composition are reconstructed from the user screenshot and current native API. No IntelliJ inspection engine or quick-fix behavior is implemented."
+  ]
+}

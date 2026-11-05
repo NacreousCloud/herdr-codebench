@@ -19,6 +19,7 @@ import { showReview, openPath, openFiles, find, editorSnapshot, editorSpec, want
 import { followSpace } from "./memory.js";
 import { peek } from "./lsp.js";
 import { openLspSetup } from "./lsp-setup.js";
+import { handleDiagnosticAttachment } from "./diagnostics.js";
 import { isIdea, uiSize, ideaUI } from "./idea-design.js";
 import { openIdeaSettings } from "./settings.js";
 import { recordLocation } from "./locations.js";
@@ -105,6 +106,10 @@ export default class Status {
         if (openCommand(c)) { cx.notify(); continue; }
         if (c === "review") showReview();
         else if (c.startsWith("notify:")) { try { notify(JSON.parse(c.slice(7))); } catch {} }
+        else if (c.startsWith("attach-diagnostics:")) {
+          try { handleDiagnosticAttachment(JSON.parse(c.slice(19)), cx); }
+          catch (error) { notify({ title: T("Could not attach diagnostics"), body: String(error.message ?? error), level: "error" }); }
+        }
         else if (c.startsWith("open:")) openPath(c.slice(5));
         else if (c === "open-folder") this.openFolder(cx);
         else if (c.startsWith("open-files:")) { try { const data = JSON.parse(c.slice(11)); openFiles(data.paths ?? [], data.on ?? null); } catch (error) { notify({ title: T("Could not open files"), body: String(error), level: "error" }); } }

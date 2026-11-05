@@ -1,7 +1,7 @@
 // The code view: a read-only, VS Code–like view of a source file with language
 // server help. Click a name for its type and docs, Cmd+click (F12) to go to its
 // definition, Shift+F12 for references, an outline of the file's symbols,
-// diagnostics in the gutter and under the code (hover for the message), Cmd+F
+// diagnostics under the code (hover for the message), Cmd+F
 // to find, Ctrl+- / Ctrl+Shift+- (and the tab strip's arrows) for the tabs
 // shown before, Alt+Left / Alt+Right for the jumps inside the file. "Edit"
 // hands the file to the activity editor. Clicking a line number starts a
@@ -13,13 +13,15 @@
 // Scroller's (scroller.js), so they take presses and drags.
 import { div } from "gpui-kit";
 import { T } from "./i18n.js";
-import { IDEA, isIdea, uiSize, ideaUI, uiColors, MenuController, uiMenu, uiPopupSize } from "./idea-design.js";
+import { IDEA, isIdea, uiSize, ideaUI, uiColors, MenuController, uiMenu, uiPopupSize,
+  uiDiagnosticColors, uiDiagnosticUnderline, uiDiagnosticTooltip } from "./idea-design.js";
 import { editorGeometry, editorGutter, editorLine, editorViewport, editorSurface } from "./editor-surface.js";
 import { v_flex, h_flex, v_virtual_list, Scrollbar, TextView, InputState, Input } from "gpui-base";
-import { readTextFile, watchFolder, theme, run, exec, nextCommand, layout, setShared, shared, openOverlay, closeOverlay, props, keys } from "herdr";
+import { readTextFile, watchFolder, theme, run, exec, nextCommand, layout, setShared, shared, openOverlay, closeOverlay, props, keys, spaces } from "herdr";
 import { uiNotify as notify } from "./idea-design.js";
 import { lsp } from "./lsp.js";
 import { openLspSetup } from "./lsp-setup.js";
+import { diagnosticCardOptions, canAttachDiagnostics } from "./diagnostics.js";
 import { CommentBox, commentCard, commentHeight, commentsOf, repoKey } from "./comments.js";
 import { Scroller } from "./scroller.js";
 import { tabBack, tabForward } from "./tabs.js";
@@ -677,6 +679,9 @@ export default class CodeView {
   row(i, t, colors) {
     let text = this.lines[i] ?? "";
     if (text.length > MAX_LINE) text = text.slice(0, MAX_LINE);
+    const diags = this.diags.filter((d) => d.line <= i && i <= d.end_line);
+    // Point diagnostics still need an inline target after the gutter dot goes.
+    if (isIdea() && !text && diags.some(d => d.line === i && d.end_line === i)) text = " ";
     const toks = this.toks?.[i];
     const cuts = new Set([0, text.length]);
     const spans = [];
@@ -698,9 +703,9 @@ export default class CodeView {
       const a = i === span[0].line ? Math.min(span[0].col, text.length) : 0, b = i === span[1].line ? Math.min(span[1].col, text.length) : text.length;
       if (b > a) { marks.push([a, b, "range"]); cuts.add(a); cuts.add(b); }
     }
-    const diags = this.diags.filter((d) => d.line <= i && i <= d.end_line);
     for (const d of diags) {
-      const s = d.line === i ? Math.min(d.col, text.length) : 0, e = d.end_line === i ? Math.min(d.end_col, text.length) : text.length;
+      let s = d.line === i ? Math.min(d.col, text.length) : 0, e = d.end_line === i ? Math.min(d.end_col, text.length) : text.length;
+      if (isIdea() && s === e && d.line === d.end_line) { s = Math.min(s, Math.max(0, text.length - 1)); e = s + 1; }
       marks.push([s, Math.max(e, s), d.severity === 1 ? "error" : "warning", d]);
       cuts.add(s); cuts.add(Math.max(e, s));
     }
@@ -710,7 +715,7 @@ export default class CodeView {
     for (let k = 0; k < points.length - 1; k++) {
       const a = points[k], b = points[k + 1];
       if (a === b) continue;
-      const piece = expandTabs(text.slice(a, b), col);
+      const startColumn = col, piece = expandTabs(text.slice(a, b), col);
       col += displayWidth(text.slice(a, b));
       const cat = spans.find((s) => s[0] <= a && a < s[1])?.[2];
       let el = div().flex_none().child(piece);
@@ -722,9 +727,16 @@ export default class CodeView {
         if (kind === "range") el = el.bg(t.selection);
         else if (kind === "sel") el = el.bg(t.accent + "55").rounded(2);
         else if (kind === "use") el = el.bg(t.selection + "66").rounded(2);
-        else el = el.border_b(1).border_color(kind === "error" ? t.ansi1 : t.ansi3);
+        else if (!isIdea()) el = el.border_b(1).border_color(kind === "error" ? t.ansi1 : t.ansi3);
       }
-      if (problems.length) el = el.id(`cn-d-${i}-${a}`).tooltip(problemText(problems));
+      if (problems.length) {
+        if (isIdea()) {
+          el = uiDiagnosticUnderline(el, { width: displayWidth(piece) * this.cw, offset: startColumn * this.cw,
+            severity: Math.min(...problems.map(d => d.severity ?? 1)) });
+          const entries = problems.map(diagnostic => ({ path: this.shown.path, on: this.shown.on ?? null, root: this.shown.root, diagnostic: { ...diagnostic } }));
+          el = uiDiagnosticTooltip(`cn-d-${i}-${a}`, el, problems, diagnosticCardOptions(entries, this.diagnosticContext));
+        } else el = el.id(`cn-d-${i}-${a}`).tooltip(problemText(problems));
+      }
       children.push(el);
     }
     const worst = diags.length ? Math.min(...diags.map((d) => d.severity ?? 1)) : 0;
@@ -739,7 +751,7 @@ export default class CodeView {
           .child(navigation.kind?.startsWith("spring") ? "◆" : "↗") : this.httpLine?.has(i) ? div().id(`cn-http-${i}`).w(markerWidth).flex_none().flex().justify_center().cursor_pointer()
           .tooltip(T("Run request")).on_mouse_down("left", (_e, cx) => { cx.stop_propagation(); this.runRequest(i); })
           .child(toolImage("runAction", 14)) : div().w(markerWidth).flex_none().flex().justify_center()
-          .when(worst > 0, (e) => e.id(`cn-dg-${i}`).tooltip(problemText(diags)).child(div().size(7).rounded_full().bg(worst === 1 ? t.ansi1 : worst === 2 ? t.ansi3 : t.ansi4)));
+          .when(!isIdea() && worst > 0, (e) => e.id(`cn-dg-${i}`).tooltip(problemText(diags)).child(div().size(7).rounded_full().bg(worst === 1 ? t.ansi1 : worst === 2 ? t.ansi3 : t.ansi4)));
     // Keep the old rail's space so line numbers/navigation glyphs never shift;
     // IDEA paints the actual Git marker at the shared gutter's text edge.
     const rails = [isIdea() ? div().w(4).h_full().flex_none() : this.changeMark(i, t), div().w(3).h_full().flex_none()
@@ -766,7 +778,7 @@ export default class CodeView {
           .children(scope.flatMap((sym, i) => [i ? div().flex_none().text_color(uiColors().disabled).child("›") : null,
             div().id(`cn-crumb-${i}`).flex_none().cursor_pointer().hover(el => el.text_color(uiColors().foreground))
               .on_click((_e, cx) => { this.reveal(sym.line + 1, sym.col); cx.notify(); }).child(sym.name)].filter(Boolean))))
-        .when(this.diags.length > 0, el => el.child(div().id("editor-problem-count").text_size(uiSize(11)).text_color(this.diags.some(d => d.severity === 1) ? t.ansi1 : t.ansi3).cursor_pointer()
+        .when(this.diags.length > 0, el => el.child(div().id("editor-problem-count").text_size(uiSize(11)).text_color(uiDiagnosticColors(Math.min(...this.diags.map(d => d.severity ?? 1))).effect).cursor_pointer()
           .on_click(() => run("codenav.tool-problems")).child(`⚠ ${this.diags.length}`)))
         .child(iconButton("problem-previous", "chevron-up", T("Previous Problem"), (_event, cx) => { this.nextProblem(-1); cx.notify(); }, { size: 20, icon: 12 }))
         .child(iconButton("problem-next", "chevron-down", T("Next Problem"), (_event, cx) => { this.nextProblem(1); cx.notify(); }, { size: 20, icon: 12 }))
@@ -927,6 +939,9 @@ export default class CodeView {
     this.httpLines();
     this.publish(cx);
     const t = theme(), s = this.shown, font = codeFont().family;
+    // Reuse one native eligibility snapshot per frame, not one per token span.
+    this.diagnosticContext = isIdea() ? { space: spaces().find(space => space.active)?.id,
+      attachable: Boolean(s && this.diags.length && canAttachDiagnostics([{ on: s.on ?? null }])) } : undefined;
     const colors = syntaxColors(t);
     const measure = measureFont(this, font, codeFont().size);
     let body;
@@ -956,9 +971,9 @@ export default class CodeView {
       .child(this.findBar(t) ?? div())
       .child(body)
       .when(isIdea() && Boolean(s) && this.diags.length > 0, el => el.child(div().absolute().right(1).top(IDEA.editorBreadcrumbHeight + 2).bottom(10).w(8)
-        .children(this.diags.slice(0, 300).map((diagnostic, index) => div().id(`editor-diagnostic-mark-${index}`).absolute().right(0).w(8).h(2)
+        .children(this.diags.filter(d => uiDiagnosticColors(d.severity).stripe).slice(0, 300).map((diagnostic, index) => div().id(`editor-diagnostic-mark-${index}`).absolute().right(0).w(8).h(2)
           .top(Math.max(0, diagnostic.line / Math.max(1, this.lines.length) * Math.max(20, (this.editorHeight ?? 400) - 40)))
-          .bg(diagnostic.severity === 1 ? t.ansi1 : t.ansi3).tooltip(problemText([diagnostic])).cursor_pointer()
+          .bg(uiDiagnosticColors(diagnostic.severity).stripe).tooltip(problemText([diagnostic])).cursor_pointer()
           .on_mouse_down("left", (_event, cx) => { cx.stop_propagation(); this.reveal(diagnostic.line + 1, diagnostic.col); cx.notify(); })))));
     const tabs = find(layout(), "editor-tabs");
     return editorSurface(root, { topCorners: !tabs || Boolean(tabs.hidden) });

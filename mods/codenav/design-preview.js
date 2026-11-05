@@ -7,6 +7,7 @@ import {
   uiInputBox, uiListRow, uiSeparator, uiCaption, uiToolbar, uiToolHeader,
   uiTab, uiPopupSize, uiDialog, uiIslandBottom, MenuController, uiMenu,
   uiCheckbox, uiStripeButton, uiTreeRow, uiSettingsShell, uiEditorFooter, uiSpinner,
+  uiDiagnosticUnderline, uiDiagnosticTooltip, uiDiagnosticCard,
 } from "./idea-design.js";
 import { toolImage } from "./ideaicons.js";
 
@@ -90,6 +91,15 @@ export default class DesignPreview {
       .child(section("Typography and active density", [
         h_flex().flex_none().gap(12).items_center().children([11, 13, 16].map(size => ideaUI(div()).text_size(uiSize(size)).child(`UI ${size} · Aa 가나다 0123`))),
         caption(`${isCompact() ? "Compact" : "Normal"} · UI ${uiSize()} · row ${IDEA.rowHeight} · input ${IDEA.inputHeight} · tab ${IDEA.tabHeight}/${IDEA.tabFillHeight} · island ${IDEA.islandRadius}`),
+      ]))
+      .child(section("Editor diagnostics — hover the wave, no breakpoint dots", [
+        ...[[1, "Type mismatch", "Type 'string' is not assignable to type 'number'."], [2, "Unused declaration", "The declaration is never used."]].map(([severity, label, message]) =>
+          uiDiagnosticTooltip(`preview-diagnostic-${severity}`, uiDiagnosticUnderline(div().flex_none().font_family("Menlo").text_size(13).child(label),
+            { width: label.length * 7.8, severity }), [{ severity, source: "ts", code: severity === 1 ? "2322" : "6133", message }], { path: "src/example.ts" })),
+        uiDiagnosticCard("preview-diagnostic-card", [{ severity: 2, source: "detekt", code: "LongParameterList", message: "The constructor has too many parameters. The current threshold is set to 7." }], { path: "src/main/kotlin/PlaylistService.kt", actions: [
+          { id: "copy", label: "Copy example", action: (_event, eventCx) => this.update("Copy clicked — local example only", eventCx) },
+          { id: "attach", label: "Attach to AI", disabled: true },
+        ] }),
       ]))
       .child(uiSeparator())
       .child(section("Buttons and icon buttons", [

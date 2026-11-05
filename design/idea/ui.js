@@ -1,6 +1,6 @@
 // Canonical IntelliJ components; generate deployable copies with sync_ui.py.
-import { div } from "gpui-kit";
-import { h_flex, v_flex, v_virtual_list, VirtualListScrollHandle, Scrollbar } from "gpui-base";
+import { div, PathBuilder } from "gpui-kit";
+import { h_flex, v_flex, v_virtual_list, VirtualListScrollHandle, Scrollbar, HoverCard, TextView } from "gpui-base";
 import { shared, setShared, settings, theme, notify as nativeNotify, playSound, openOverlay, closeOverlay } from "herdr";
 import { IDEA_TOKENS } from "./idea-tokens.js";
 
@@ -71,6 +71,71 @@ export function uiEditorSyntax() {
   } : { keyword: t.ansi5, type: t.ansi3, constant: t.ansi6, builtin: t.ansi6, function: t.ansi4,
     decorator: t.ansi3, namespace: t.foreground, property: t.ansi6, escape: t.ansi3,
     string: t.ansi2, number: t.ansi3, comment: t.dim, operator: t.foreground, punctuation: t.foreground };
+}
+// Islands uses different editor colors for underlines and overview stripes.
+// Neither is a debugger breakpoint or a generic control's error color.
+export function uiDiagnosticColors(severity = 1) {
+  const t = theme(), attrs = IDEA_TOKENS["editor.attributes"] ?? {};
+  const name = severity === 1 ? "ERRORS_ATTRIBUTES" : severity === 2 ? "WARNING_ATTRIBUTES" : "INFO_ATTRIBUTES";
+  const fallback = severity === 1 ? t.ansi1 : severity === 2 ? t.ansi3 : t.ansi4;
+  return isIdea() ? {
+    effect: attrs[name]?.EFFECT_COLOR ?? fallback,
+    stripe: attrs[name]?.ERROR_STRIPE_COLOR ?? null,
+    background: IDEA_TOKENS["editor.colors"]?.INFORMATION_HINT ?? uiColors().popup,
+    border: IDEA_TOKENS["editor.colors"]?.HINT_BORDER ?? uiColors().border,
+  } : { effect: fallback, stripe: fallback, background: uiColors().popup, border: uiColors().border };
+}
+
+// A separate native path preserves syntax colors, line height and hit testing.
+// Offset keeps the wave continuous across syntax-token boundaries.
+export function uiDiagnosticUnderline(element, { width, offset = 0, severity = 1 }) {
+  const length = Math.max(3, width), y = x => 0.5 + Math.abs(((x + offset) % 4) - 2);
+  const path = PathBuilder.stroke(1).move_to(0, y(0));
+  for (let x = 2 - offset % 2; x < length; x += 2) path.line_to(x, y(x));
+  path.line_to(length, y(length));
+  return element.relative().child(window.paint_path(path.build(), uiDiagnosticColors(severity).effect)
+    .absolute().left(0).bottom(0).w(length).h(3));
+}
+
+export function uiDiagnosticLabel(diagnostic, { summary = false } = {}) {
+  const message = String(diagnostic.message ?? "");
+  const body = summary ? message.split(/\r\n|[\n\r\u2028\u2029]/u).find(line => line.trim()) ?? "" : message;
+  const label = `${diagnostic.source ? diagnostic.source + " - " : ""}${diagnostic.code !== undefined && diagnostic.code !== null && diagnostic.code !== "" ? diagnostic.code + ": " : ""}${body}`;
+  return summary ? label.replace(/\s+/gu, " ").trim() : label;
+}
+
+// Plain diagnostic text can contain type syntax or Markdown; escape it before
+// using the native selectable rich-text view rather than interpreting it.
+export function uiSelectableText(id, text) {
+  const entities = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
+  const html = String(text).replace(/[&<>"']/g, character => entities[character]).replace(/\r\n|[\n\r\u2028\u2029]/gu, "<br>");
+  // Keep native text focus/selection inside the label. A Problems row also
+  // handles mouse-down/click; letting those bubble can focus the list or open
+  // a file while the user is selecting diagnostic text.
+  return TextView.html(id, html).selectable(true).scrollable(false)
+    .on_mouse_down("left", (_event, cx) => cx.stop_propagation())
+    .on_click((_event, cx) => cx.stop_propagation());
+}
+
+export function uiDiagnosticCard(id, diagnostics, { path = "", actions = [] } = {}) {
+  const c = uiColors(), hint = uiDiagnosticColors();
+  const messages = diagnostics.map(d => uiDiagnosticLabel(d));
+  const rows = messages.reduce((count, message) => count + message.split("\n").reduce((n, line) => n + Math.max(1, Math.ceil(line.length / 65)), 0), 0);
+  const footer = path || actions.length ? Math.max(32, IDEA.inputHeight + 8, uiSize(12) + 16) : 0;
+  const height = Math.min(320, 20 + rows * Math.max(18, uiSize() + 5) + Math.max(0, messages.length - 1) * 8 + footer);
+  return ideaUI(v_flex()).id(id).role("tooltip").w(560).h(Math.max(38, height)).overflow_hidden()
+    .bg(hint.background).text_color(c.foreground).border_1().border_color(hint.border).rounded(6)
+    .child(v_flex().flex_1().min_h(0).px(12).py(10).gap(8).overflow_y_scrollbar().children(messages.map((message, index) =>
+      uiSelectableText(`${id}-message-${index}`, message).flex_none().w_full().whitespace_normal().text_size(uiSize()))))
+    .when(Boolean(footer), el => el.child(h_flex().flex_none().h(footer).px(10).gap(6).items_center().border_t(1).border_color(hint.border)
+      .child(div().flex_1().min_w(0).text_size(uiSize(12)).text_color(c.secondary).overflow_hidden()
+        .child(uiSelectableText(`${id}-path`, path).w_full().truncate().whitespace_nowrap()))
+      .children(actions.map(action => uiButton(`${id}-${action.id}`, action.label, (event, cx) => { cx.stop_propagation(); action.action?.(event, cx); }, { small: true, disabled: action.disabled })))));
+}
+
+export function uiDiagnosticTooltip(id, trigger, diagnostics, options = {}) {
+  return HoverCard.new(id).open_delay(500).close_delay(150).anchor("bottom_left")
+    .trigger(trigger).content(uiDiagnosticCard(`${id}-card`, diagnostics, options));
 }
 export function popupSurface(el, dialog = false) {
   if (!isIdea()) return el;

@@ -4,6 +4,10 @@ The `idea` layout follows the installed IntelliJ Islands design system. Read
 `design/idea/PARITY_PLAN.md` and `design/idea/COMPONENTS.md` before adding UI.
 `codebench` is a separate supported layout; preserve its behavior.
 
+- Apply YAGNI, KISS and DRY to every change: implement current requirements,
+  prefer the simplest clear solution, and reuse existing shared behavior.
+  Remove unused code and meaningful duplication without adding speculative
+  abstractions or changing unrelated behavior.
 - Canonical values live in `design/idea/tokens.json`; canonical components and
   keyboard behavior live in `design/idea/ui.js`. Never edit generated
   `mods/*/idea-design.js` or `idea-tokens.js` directly.

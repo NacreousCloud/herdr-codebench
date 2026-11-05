@@ -30,6 +30,10 @@ const values = {
   offsetAt: (text, col) => Math.min(text.length, col), wordAt: () => wordResult,
   div: element, h_flex: element, v_flex: element, ideaUI: el => el, uiSize: (size = 13) => size,
   uiColors: () => ({ editor: "#editor", canvas: "#canvas", guide: "#guide", lineAdded: "#line-added", lineModified: "#line-modified", lineDeleted: "#line-deleted" }), button: element,
+  uiDiagnosticColors: severity => ({ effect: severity === 1 ? "#error-wave" : "#warning-wave", stripe: severity === 1 ? "#error-stripe" : severity === 2 ? "#warning-stripe" : null }),
+  uiDiagnosticUnderline: (el, options) => el.diagnostic_wave(options),
+  uiDiagnosticTooltip: (id, trigger, diagnostics, options) => element().id(id).diagnostics(diagnostics).diagnostic_options(options).child(trigger),
+  diagnosticCardOptions: entries => ({ entries, actions: ["copy", "attach"] }),
   iconButton: (id, graphic, tip, action) => element().id(id).graphic(graphic).tip(tip).on_click(action), sectionHeader: element,
   uiIconButton: (id, graphic, action, options = {}) => element().id(id).child(graphic).options(options).on_click(action),
   uiCheckbox: (id, label, action, options = {}) => element().id(id).child(label).options(options).on_click(action),
@@ -171,6 +175,37 @@ view.comment = { draft: null }; view.sel = null;
 const row = view.row(0, {}, {});
 assert.equal(row.nodes[0].attributes.border_r, undefined, "rows no longer terminate a separate gutter border at EOF");
 assert.equal(rendered.attributes.on_drop, undefined, "source surface no longer receives file drops");
+
+const diagnosticView = code();
+Object.assign(diagnosticView, { lines: ["abcdef", "ghijk"], cw: 8, sel: null, comment: { draft: null },
+  toks: [[[3, "keyword"], [3, "string"]]],
+  diags: [{ line: 0, col: 1, end_line: 1, end_col: 3, severity: 2, message: "Spans two lines" },
+    { line: 0, col: 2, end_line: 0, end_col: 4, severity: 1, message: "Overlapping error" }] });
+const diagnosticOrigin = diagnosticView.textOrigin();
+const diagnosticRow = diagnosticView.row(0, paintsForGit(), { keyword: "#keyword", string: "#string" });
+const diagnosticNodes = allElements(diagnosticRow);
+assert.ok(!diagnosticNodes.some(node => node.attributes.id?.[0]?.startsWith("cn-dg-")), "IDEA diagnostics never occupy the breakpoint gutter");
+const waves = diagnosticNodes.filter(node => node.attributes.diagnostic_wave).map(node => node.attributes.diagnostic_wave[0]);
+assert.deepEqual(waves.map(w => [w.offset, w.width, w.severity]), [[8, 8, 2], [16, 8, 1], [24, 8, 1], [32, 16, 2]], "UTF-16 ranges are clipped to syntax runs; overlapping errors win over warnings");
+assert.equal(diagnosticNodes.find(node => node.attributes.diagnostic_wave?.[0].offset === 16).attributes.text_color[0], "#keyword");
+assert.equal(diagnosticNodes.find(node => node.attributes.diagnostic_wave?.[0].offset === 24).attributes.text_color[0], "#string");
+assert.equal(diagnosticView.textOrigin(), diagnosticOrigin, "diagnostics leave gutter and pointer coordinates unchanged");
+const sourceCard = diagnosticNodes.find(node => node.attributes.diagnostic_options).attributes.diagnostic_options[0];
+assert.equal(sourceCard.entries[0].path, diagnosticView.shown.path);
+assert.deepEqual(Array.from(sourceCard.actions), ["copy", "attach"], "source diagnostic hover gets the same copy/AI actions as Problems");
+assert.equal(allElements(diagnosticView.row(1, paintsForGit(), {})).find(node => node.attributes.diagnostic_wave).attributes.diagnostic_wave[0].width, 24, "multiline underline stops at its LSP end column");
+const pointView = code();
+Object.assign(pointView, { lines: ["", "end"], cw: 8, sel: null, comment: { draft: null }, diags: [
+  { line: 0, col: 0, end_line: 0, end_col: 0, severity: 1, message: "Missing declaration" },
+  { line: 1, col: 3, end_line: 1, end_col: 3, severity: 1, message: "Missing punctuation" },
+] });
+for (const line of [0, 1]) assert.equal(allElements(pointView.row(line, paintsForGit(), {})).filter(node => node.attributes.diagnostic_wave).length, 1, "point diagnostics retain an inline hover target on empty lines and at EOF");
+assert.deepEqual(pointView.lines, ["", "end"], "point diagnostic targets never change source text");
+idea = false;
+const classicDiagnostics = allElements(diagnosticView.row(0, paintsForGit(), {}));
+assert.ok(classicDiagnostics.some(node => node.attributes.id?.[0] === "cn-dg-0"), "codebench retains its existing diagnostic gutter");
+assert.ok(!classicDiagnostics.some(node => node.attributes.diagnostic_wave), "codebench's existing straight underline is preserved");
+idea = true;
 
 const gitView = code();
 Object.assign(gitView, { lines: ["first", "second", "third"], cw: 8, diags: [], comment: { draft: null }, sel: null,

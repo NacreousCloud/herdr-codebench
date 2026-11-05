@@ -1,7 +1,7 @@
 # idea-ux 구조 정리 및 화면 개선
 
 - 실행 모드: 구현. 기존 idea-ux 미커밋 변경을 보존한다.
-- 현재 단계: 구조 정리 후 UI 구현/회귀 검사 및 실제 화면 확인. 네이티브 CLI check는 아래 제약으로 미통과다.
+- 현재 단계: 구조 정리 후 UI 구현/회귀 검사 및 실제 화면 확인. T14 재개에서 지원되는 hc 실행 환경으로 저장소/설치본의 네이티브 CLI check를 통과했다. 이전 태스크의 개별 입력 검증 제약은 별도 유지한다.
 - 범위/검증 계약: [계획](plan.md)
 
 | 작업 | 상태 | 담당 |
@@ -18,6 +18,9 @@
 | T10 언어 서버·실행 런타임 바이너리 동봉 | 사용자 요청으로 취소: 대용량 동봉 중단, 원래 작은 엔진 복구 | [취소된 명세](T10-spec.md) |
 | T11 언어별 SDK/LSP 설치·시작 가이드 | 구현·설치·19개 VM/Go race/vet·실제 Go 감지/초기화 확인, native check 제약 | parent + guide/UI/Go 담당, [명세](T11-spec.md), [결과](T11-result.md) |
 | T12 YAGNI/KISS/DRY 정리·커밋·푸시 | 구현·배치 설치/19개 JS·Go race/vet·release smoke 통과, native check/현재 화면 검증 제약 | parent + editor/status/legacy 담당, [명세](T12-spec.md) |
+| T13 진단 물결 밑줄·hover card·IntelliJ 색상 | 구현·설치/21개 JS·실제 source/갤러리 확인, T14 재개에서 native check 통과 | parent, [결과](T13-result.md) |
+| T14 Problems 겹침·진단 복사/선택/AI 첨부 | 구현·설치/21개 JS·저장소/설치본 native check 통과·실제 12개 전체 복사 확인, 포인터 선택/AI draft 입력 검증 제약 | parent + diagnostic_actions + native_check_audit, [명세](T14-spec.md), [결과](T14-result.md) |
+| T15 진단 공유 코드 YAGNI/KISS/DRY·커밋/푸시 | 정리·설치·21개 JS·저장소/설치본 native check 4개 통과, T13/T14와 함께 idea-ux 커밋/푸시 대상 | parent + 독립 읽기 전용 검토, [명세/결과](T15-result.md) |
 
 구조 검증과 실제 앱 검증 결과를 기록한 뒤 상태를 갱신한다. 네이티브 check 실패/미실행을 통과로 처리하지 않는다.
 

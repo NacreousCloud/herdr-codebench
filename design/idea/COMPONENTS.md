@@ -54,6 +54,13 @@ Markdown preview eye는 헤더의 편집 버튼 바로 왼쪽에 배치한다. �
 | `uiDialog(id,{title,body,footer})` | 제목·flex 본문·footer. 기본 높이360, 호출자가 `.h(높이)`로 실제 필요 크기 지정 |
 | `uiIslandBottom()` | 레이아웃이 소유한 섬 아래 마감. 외부 gap을 추가하지 않음 |
 | `uiEditorFooter(children)` | Markdown 등 편집기 로컬 모드의 하단 제어. 호출자가 실제 상태/핸들러를 소유 |
+| `uiDiagnosticColors(severity)` | editor.attributes의 진단 EFFECT_COLOR/ERROR_STRIPE_COLOR와 editor.colors의 INFORMATION_HINT/HINT_BORDER. 브레이크포인트·컨트롤 오류 색과 구분 |
+| `uiDiagnosticUnderline(element,{width,offset,severity})` | 문법 색·행 높이·텍스트 폭을 유지하는 native 물결 path. offset으로 토큰 경계의 파형을 연결 |
+| `uiDiagnosticCard(id,diagnostics,{path})`, `uiDiagnosticTooltip(id,trigger,diagnostics,{path})` | 출처·코드·메시지와 경로 표시. 폭560/최대 높이320, 긴 본문 스크롤. native HoverCard의 500ms 열기/150ms 닫기와 창 경계 배치 사용 |
+| `uiDiagnosticLabel(diagnostic,{summary})` | 목록 summary는 첫 비어 있지 않은 줄만 표시하며 강제 개행을 정규화한다. 카드/복사에는 전체 메시지 보존 |
+| `uiSelectableText(id,text)` | 진단 문자열의 타입 문법/HTML을 escape한 native TextView. 실제 드래그 선택·복사를 지원하고 내부 자동 스크롤은 사용하지 않음 |
+
+진단 카드의 `actions`는 `{id,label,action,disabled}` 목록이다. source와 Problems는 `diagnostics.js`에서 같은 복사/AI 액션을 공급한다. Problems 행은 한 줄 요약·clip·고정 행 높이를 유지하고 전체 내용은 선택 가능한 hover 카드에서 표시한다. 선택 가능한 텍스트는 mouse-down/click 전파를 막아 목록이 텍스트 포커스를 가져가거나 선택 도중 파일을 열지 않게 한다. 행 선택·파일 열기는 아이콘/줄 번호 영역에서 할 수 있다. 항목별 버튼과 `header.Problems`의 전체 버튼은 같은 포맷을 쓴다. 전체는 현재 File/Project 범위·필터 결과이며 공개된 다른 workspace의 진단을 섞지 않는다. AI picker가 닫혀도 Status가 실제 첨부 task를 소유한다. 첨부는 대상 AI 입력창으로 paste하고 사용자가 전송 전 확인한다.
 
 모든 action/onClose는 `(event,cx)`를 받는다. 자식 element와 입력 상태는 호출자가 소유한다. 입력/검색/저장/오류 상태를 이 모듈이 가짜로 생성하지 않는다. 컨트롤 행은 UI 글자 크기가 커지면 최소 높이도 늘려 잘림을 줄인다. `IDEA`의 기본 compact 값은 Island radius8/gap4, row22, input24, tab32/fill24, header31, toolbar32/button26, stripe32/icon16, status24다. tab32는 선정한 근사값이며 Java TabbedPane36을 editor bar의 관측값으로 취급하지 않는다.
 

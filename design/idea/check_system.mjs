@@ -35,9 +35,11 @@ const synthetic = (id, values) => new vm.SyntheticModule(Object.keys(values), fu
   for (const [key, value] of Object.entries(values)) this.setExport(key, value);
 }, { context, identifier: id });
 const mocks = {
-  "gpui-kit": synthetic("gpui-kit", { div: element, image: element }),
+  "gpui-kit": synthetic("gpui-kit", { div: element, image: element, PathBuilder: { stroke: width => element().stroke(width) } }),
   "gpui-base": synthetic("gpui-base", { h_flex: element, v_flex: element, v_virtual_list: virtualList,
-    Scrollbar: { vertical: element }, VirtualListScrollHandle: { new: () => ({ scroll_to_item: (...args) => scrolls.push(args), release() {} }) } }),
+    Scrollbar: { vertical: element }, HoverCard: { new: id => element().id(id) },
+    TextView: { html: (id, html) => element().id(id).html(html) },
+    VirtualListScrollHandle: { new: () => ({ scroll_to_item: (...args) => scrolls.push(args), release() {} }) } }),
   herdr: synthetic("herdr", { shared: key => store[key], setShared: (key,value) => { store[key] = value; }, notify: () => {}, playSound: () => {}, openOverlay: () => "ghost", closeOverlay: () => {}, settings: () => ({}), theme: () => ({ foreground: "#fff", surface: "#111", ansi2: "#2", ansi4: "#4", ansi1: "#1" }) }),
   "./idea-tokens.js": synthetic("canonical-tokens", { IDEA_TOKENS: canonicalTokens }),
 };
@@ -51,6 +53,7 @@ async function load(url) {
   return module;
 }
 const ui = (await load(new URL("design/idea/ui.js", root))).namespace;
+context.window = { paint_path: (path, color) => element().paint_path(path, color) };
 assert.equal(ui.IDEA.rowHeight, 22);
 assert.equal(ui.IDEA.islandRadius, 8);
 assert.equal(ui.uiColors().surface, "#191A1C");
@@ -59,6 +62,36 @@ assert.equal(ui.IDEA.editorChangeMarkerRadius, 2);
 assert.equal(ui.uiColors().lineAdded, canonicalTokens['editor.colors'].ADDED_LINES_COLOR);
 assert.equal(ui.uiColors().lineModified, canonicalTokens['editor.colors'].MODIFIED_LINES_COLOR);
 assert.equal(ui.uiColors().lineDeleted, canonicalTokens['editor.colors'].DELETED_LINES_COLOR);
+assert.equal(ui.uiDiagnosticColors(1).effect, canonicalTokens['editor.attributes'].ERRORS_ATTRIBUTES.EFFECT_COLOR);
+assert.equal(ui.uiDiagnosticColors(2).stripe, canonicalTokens['editor.attributes'].WARNING_ATTRIBUTES.ERROR_STRIPE_COLOR);
+assert.equal(ui.uiDiagnosticColors(3).stripe, null, "informational messages do not invent a warning stripe");
+assert.notEqual(ui.uiDiagnosticColors(1).stripe, canonicalTokens['editor.attributes'].BREAKPOINT_ATTRIBUTES.ERROR_STRIPE_COLOR);
+const decorated = ui.uiDiagnosticUnderline(element().text_color("#syntax"), { width: 17, offset: 1.5, severity: 2 });
+assert.equal(decorated.calls.find(([name]) => name === "text_color")[1], "#syntax", "diagnostic decoration preserves syntax text colors");
+assert.ok(!decorated.calls.some(([name]) => name === "border_b" || name === "h" || name === "w"), "wave does not change text layout");
+const wave = decorated.calls.find(([name]) => name === "child")[1];
+assert.equal(wave.calls.find(([name]) => name === "paint_path")[2], ui.uiDiagnosticColors(2).effect);
+assert.equal(wave.calls.find(([name]) => name === "w")[1], 17);
+const diagnosticCard = ui.uiDiagnosticCard("diagnostic-card", [{ source: "ts", code: "2322", message: "Type mismatch" }], { path: "sample.ts" });
+const overload = { source: "typescript", code: 2769, message: "\r\nNo overload matches this call.\r\n  Overload 1: <T>\n    Expected 'string'.\u2028  Overload 2: Detail" };
+assert.equal(ui.uiDiagnosticLabel(overload, { summary: true }), "typescript - 2769: No overload matches this call.");
+assert.ok(ui.uiDiagnosticLabel(overload).endsWith(overload.message), "full hover/copy content retains every original diagnostic line");
+assert.equal(ui.uiDiagnosticLabel({ source: "ts\nserver", code: 0, message: "Type\tmessage" }, { summary: true }), "ts server - 0: Type message");
+const selectable = ui.uiSelectableText("selectable-diagnostic", "<T> & 'string'\nline 2");
+assert.equal(selectable.calls.find(([name]) => name === "html")[1], "&lt;T&gt; &amp; &#39;string&#39;<br>line 2", "type syntax is rendered literally, never as markup");
+assert.equal(selectable.calls.find(([name]) => name === "selectable")[1], true, "native text selection enables drag/copy");
+let selectionEventsStopped = 0;
+const selectionCx = { stop_propagation() { selectionEventsStopped++; } };
+selectable.calls.find(([name]) => name === "on_mouse_down")[2]({}, selectionCx);
+selectable.calls.find(([name]) => name === "on_click")[1]({ click_count: 2 }, selectionCx);
+assert.equal(selectionEventsStopped, 2, "text selection keeps its native focus and cannot activate an ancestor Problems row");
+assert.equal(diagnosticCard.calls.find(([name]) => name === "bg")[1], canonicalTokens['editor.colors'].INFORMATION_HINT);
+assert.equal(diagnosticCard.calls.find(([name]) => name === "border_color")[1], canonicalTokens['editor.colors'].HINT_BORDER);
+assert.ok(diagnosticCard.calls.find(([name]) => name === "h")[1] > 38, "card reserves definite space for both message and path");
+assert.equal(ui.uiDiagnosticCard("long-diagnostic", [{ message: "Long diagnostic ".repeat(300) }]).calls.find(([name]) => name === "h")[1], 320, "long cards are bounded and scroll their message body");
+const diagnosticHover = ui.uiDiagnosticTooltip("diagnostic-hover", element(), [{ message: "Type mismatch" }]);
+assert.equal(diagnosticHover.calls.find(([name]) => name === "open_delay")[1], 500);
+assert.ok(!diagnosticHover.calls.some(([name]) => name === "on_click" || name === "track_focus"), "hover card does not take selection or focus");
 store["codenav.appearance"] = { compact: false, uiSize: 16 };
 assert.equal(ui.IDEA.rowHeight, 24);
 assert.equal(ui.IDEA.islandRadius, 10);

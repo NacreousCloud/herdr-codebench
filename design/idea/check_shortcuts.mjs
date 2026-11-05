@@ -25,7 +25,7 @@ const source=await readFile(new URL('../../mods/codenav/status.js',import.meta.u
 // Run the actual Status command consumer with the actual pure action registry.
 // Do not slice private source functions or duplicate their action/key tables.
 let layout='idea', documentState=null, area=null, reviewState=null, stackChild='editor-code';const opened=[],searches=[],sent=[],ran=[],settingsOpened=[],setupOpened=[],terminalFiles=[],tasks=[],commands=[];
-let chooseFolder=async()=>null, reportNotice=()=>{throw Error('unexpected failure')};
+let chooseFolder=async()=>null, reportNotice=()=>{throw Error('unexpected failure')};const diagnosticAttachments=[];
 let effectiveBindings=Object.entries(bindings).flatMap(([section,values])=>Object.entries(values).map(([keys,action])=>({section,keys,action})));
 const queue=[
   {layout:'idea',key:'cmd-shift-space'}, {layout:'idea',key:'cmd-shift-o',command:'terminal-files'},
@@ -56,6 +56,7 @@ const queue=[
   {layout:'idea',command:'find-recent'},
   {layout:'idea',command:'find-locations'},
   {layout:'idea',command:'find-unknown:fallback'},
+  {layout:'idea',command:'attach-diagnostics:'+JSON.stringify({space:'one',entries:[{path:'/repo/Test.ts',diagnostic:{message:'Nested\nType error'}}]})},
 ];
 const done=Error('end of test commands');
 const context=vm.createContext({console});
@@ -67,6 +68,7 @@ const overrides={
   showTerminalFiles:id=>terminalFiles.push(id),hc:async args=>{sent.push(Array.from(args));return {code:0}},
   uiNotify:note=>reportNotice(note),run:(name,args)=>{ran.push(name);commands.push([name,args])},T:s=>s,
   pickFolder:options=>chooseFolder(options),
+  handleDiagnosticAttachment:(payload,cx)=>diagnosticAttachments.push({payload,cx}),
   nextCommand:async()=>{const item=queue.shift();if(!item)throw done;layout=item.layout;
     documentState=item.document??null;area=item.area??null;reviewState=item.review??null;stackChild=item.stack??'editor-code';
     if(item.binding)effectiveBindings.push({section:item.section??'layout:idea',keys:item.key,action:item.binding});
@@ -92,6 +94,7 @@ assert.deepEqual(sent,[['keys','test','ctrl+e'],['keys','test','ctrl+-'],['keys'
 assert.deepEqual(terminalFiles,['test','test','test','test','test'],'terminal CmdShiftO opens terminal paths in both layouts; editor command separately opens project files');
 assert.deepEqual(ran,['app.settings','codenav.definition','codenav.review-next-diff','activity.save','codenav.usages','personal.jump']);assert.deepEqual(settingsOpened,['mode','mode','editor']);
 assert.deepEqual(setupOpened,['setup','setup'],'direct and reassigned terminal actions share the LSP setup opener');
+assert.equal(diagnosticAttachments.length,1);assert.equal(diagnosticAttachments[0].payload.entries[0].diagnostic.message,'Nested\nType error','Status forwards full diagnostic attachment payload to the persistent task owner');
 console.log('PASS actual Status routing, shifted-letter aliases, terminal reassignment, source/review/activity owners, capability guard and other-layout input preservation');
 
 const folderTasks=[], folderCx={spawn(fn){folderTasks.push(fn(folderCx))}};
