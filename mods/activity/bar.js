@@ -3,7 +3,7 @@
 import { div } from "gpui-kit";
 import { T } from "./i18n.js";
 import { h_flex, v_flex } from "gpui-base";
-import { theme, shared, nextCommand, layout, run, exec } from "herdr";
+import { theme, shared, setShared, nextCommand, layout, run, exec, window as appWindow } from "herdr";
 import { shownViews, activeView, showView, narrow, icon, find, openInEditor } from "./common.js";
 
 // "activity.open:<absolute path>": a file opened from outside (the Herdr Open
@@ -22,6 +22,23 @@ const LATE_VIEWS = [
   { id: "view-running", view: "running", after: "view-graph" },
 ];
 
+// "activity.fold-spaces" (Cmd+Option+1): the spaces column between its list and
+// its icon rail, as the Herdr row's sidebar button does; a hidden column comes
+// back as a list.
+function foldSpaces() {
+  const col = find(layout(), "sidebar");
+  if (!col) return;
+  const px = col.size?.px ?? Infinity, rail = px < 160;
+  if (col.hidden) {
+    run("layout.show", { id: "sidebar" });
+    if (rail) { setShared("sidebar.collapsed", false); run("layout.resize", { id: "sidebar", px: shared("sidebar.width") ?? 268 }); }
+    return;
+  }
+  if (!rail) setShared("sidebar.width", px);
+  setShared("sidebar.collapsed", !rail);
+  run("layout.resize", { id: "sidebar", px: rail ? (shared("sidebar.width") ?? 268) : appWindow()?.platform === "macos" ? 76 : 44 });
+}
+
 export default class Bar {
   init(_props, cx) {
     // Also from a timer: a window that isn't drawing (covered, on another desktop) doesn't render.
@@ -34,6 +51,7 @@ export default class Bar {
         const v = views.find((x) => x.id === c || x.id === `view-${c}`);
         if (v) showView(v.id);
         else if (c.startsWith("open:")) await openPath(c.slice(5));
+        else if (c === "fold-spaces") foldSpaces();
         else if (c === "next" || c === "prev") {
           const i = views.findIndex((x) => x.id === activeView());
           showView(views[(i + (c === "next" ? 1 : views.length - 1)) % views.length].id);
