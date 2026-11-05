@@ -106,11 +106,46 @@ export default class Spaces {
       .child(iconButton(`sg-term-${key}`, "plus", `New Space${m ? ` on ${m.name}` : ""}`, () => this.newTerminal(on), { size: 20, icon: 13 }));
   }
 
+  // Drag a space onto another of the same machine to move it there (space.move,
+  // which Herdr saves); a press without a move still just selects it.
+  draggable(el, s, t) {
+    const d = this.drag;
+    return el
+      .when(Boolean(d) && d.from === s.id && d.over !== s.id, (e) => e.opacity(0.5))
+      .when(Boolean(d) && d.over === s.id && d.from !== s.id, (e) => e.child(
+        div().absolute().left(0).right(0).h(2).bg(t.accent).when(d.down, (l) => l.bottom(0)).when(!d.down, (l) => l.top(0))))
+      .on_mouse_down("left", () => { this.drag = { from: s.id, over: s.id, machine: s.machine ?? null }; })
+      .on_mouse_move((_e, cx) => {
+        const d = this.drag;
+        if (!d) return;
+        const over = (s.machine ?? null) === d.machine ? s.id : null;
+        if (d.over === over) return;
+        const ids = spaces().map((x) => x.id);
+        this.drag = { ...d, over, down: ids.indexOf(d.from) < ids.indexOf(s.id) };
+        cx.notify();
+      })
+      .on_mouse_up("left", (_e, cx) => {
+        const d = this.drag;
+        this.drag = null;
+        if (d && d.over === s.id && d.from !== s.id) {
+          this.moved = true;
+          run("space.move", { id: d.from, index: spaces().findIndex((x) => x.id === s.id) + 1 });
+        }
+        cx.notify();
+      })
+      .on_click(() => {
+        if (this.moved) { this.moved = false; return; }
+        run("space.select", { id: s.id });
+      });
+  }
+
+  // A release outside every space ends the drag.
+  endDrag(el) { return el.on_mouse_up("left", (_e, cx) => { if (this.drag) { this.drag = null; cx.notify(); } }); }
+
   spaceRows(s, t) {
     const open = this.tabsOpen.has(s.id), where = s.machine ? null : tilde(s.folder);
-    const row = h_flex().id(`ss-${s.id}`).h(26).flex_none().pl(18).pr(8).gap(6).items_center().cursor_pointer()
-      .when(s.active, (el) => el.bg(t.selected)).hover((st) => st.bg(t.hover))
-      .on_click(() => run("space.select", { id: s.id }))
+    const row = this.draggable(h_flex().id(`ss-${s.id}`).relative().h(26).flex_none().pl(18).pr(8).gap(6).items_center().cursor_pointer()
+      .when(s.active, (el) => el.bg(t.selected)).hover((st) => st.bg(t.hover)), s, t)
       .on_mouse_down("right", (_e, cx) => {
         cx.stop_propagation();
         openOverlay({ mod: "menu", kind: "popup", width: 200, height: 260, props: { tab: "space", target: { id: s.id } } });
@@ -193,16 +228,15 @@ export default class Spaces {
   // per space, its first letter and status; click to switch, hover for its name.
   rail(t, all) {
     return v_flex().id("activity-spaces").size_full().min_h(0).bg(t.chrome).text_color(t.foreground)
-      .child(v_flex().id("spaces-rail").flex_1().min_h(0).overflow_y_scrollbar().py(6).gap(4).items_center()
+      .child(this.endDrag(v_flex().id("spaces-rail")).flex_1().min_h(0).overflow_y_scrollbar().py(6).gap(4).items_center()
         // On macOS the brand row's own button gives way to the window buttons, so the rail unfolds itself.
         .child(iconButton("sr-unfold", "layout-sidebar", T("Show spaces"), () => {
           setShared("sidebar.collapsed", false);
           run("layout.resize", { id: "sidebar", px: shared("sidebar.width") ?? 220 });
         }, { size: 26 }))
-        .children(all.map((s) => div().id(`sr-${s.id}`).relative().size(34).flex_none().flex().items_center().justify_center().rounded(7).cursor_pointer()
+        .children(all.map((s) => this.draggable(div().id(`sr-${s.id}`).relative().size(34).flex_none().flex().items_center().justify_center().rounded(7).cursor_pointer()
           .bg(s.active ? t.selected : t.surface).border_1().border_color(s.active ? t.accent : t.border)
-          .hover((st) => st.bg(t.hover)).tooltip(`${s.machine ? `${s.machine}:` : ""}${s.name}`)
-          .on_click(() => run("space.select", { id: s.id }))
+          .hover((st) => st.bg(t.hover)).tooltip(`${s.machine ? `${s.machine}:` : ""}${s.name}`), s, t)
           .on_mouse_down("right", (_e, cx) => {
             cx.stop_propagation();
             openOverlay({ mod: "menu", kind: "popup", width: 200, height: 260, props: { tab: "space", target: { id: s.id } } });
@@ -221,7 +255,7 @@ export default class Spaces {
     // Machines with spaces but missing from the list (still loading) get a group too.
     const machines = [...this.list];
     for (const s of all) if (s.machine && !machines.some((m) => m.name === s.machine)) machines.push({ name: s.machine, host: "", state: "unknown" });
-    const body = this.browse ? this.browser(t) : v_flex().id("spaces-list").flex_1().min_h(0).overflow_y_scrollbar().pb(8)
+    const body = this.browse ? this.browser(t) : this.endDrag(v_flex().id("spaces-list")).flex_1().min_h(0).overflow_y_scrollbar().pb(8)
       .children(this.group(LOCAL, null, all, recent, t))
       .children(machines.flatMap((m) => [div().h(1).mx(8).my(4).flex_none().bg(t.border), ...this.group(m.name, m, all, recent, t)]))
       .when(Boolean(this.error), (el) => el.child(div().px(14).py(8).text_size(12).text_color(t.dim).child(this.error)));
