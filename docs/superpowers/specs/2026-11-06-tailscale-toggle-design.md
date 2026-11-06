@@ -1,5 +1,9 @@
 # Tailscale Status Toggle Design
 
+> Scope update (2026-11-06): the current delivery targets macOS only. Windows
+> installation and live deployment are deferred. The local-only safety boundary
+> remains unchanged.
+
 ## Goal
 
 Expose the local machine's Tailscale connection state in Herdr's Codebench

@@ -1,5 +1,10 @@
 # Tailscale Status Toggle Implementation Plan
 
+> Scope update (2026-11-06): deliver the macOS status toggle, local install,
+> verification, and personal-fork publication now. Task 2's Windows-installer
+> prerequisite and Task 4's PowerShell installer are deferred and must not be
+> executed in this delivery.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add a safe local Tailscale ON/OFF control to Herdr Codebench and a Windows installer so the same personal fork can be installed on both machines.
