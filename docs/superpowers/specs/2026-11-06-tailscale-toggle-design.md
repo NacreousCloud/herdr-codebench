@@ -31,11 +31,13 @@ tooltip carries the full state:
 - `! TS` in the error color when the CLI is unavailable, its output is invalid,
   or a command fails. The tooltip contains a bounded, sanitized error.
 
-Clicking ON opens Herdr's existing confirmation dialog. Confirming runs
-`tailscale down`. Clicking OFF runs `tailscale up --timeout=10s` directly. The
-chip ignores additional clicks while an operation is in progress. `NeedsLogin`,
-`NeedsMachineAuth`, `NoState`, unknown states, and transitional states do not
-run `up` or `down`; their tooltips describe the recovery action.
+Clicking ON opens a dedicated `codenav` confirmation dialog. It has explicit
+Confirm, Cancel, Escape, and 60-second expiry paths; every path revokes the
+one-use authorization described below. Confirming runs `tailscale down`.
+Clicking OFF runs `tailscale up --timeout=10s` directly. The chip ignores
+additional clicks while confirmation or an operation is in progress.
+`NeedsLogin`, `NeedsMachineAuth`, `NoState`, unknown states, and transitional
+states do not run `up` or `down`; their tooltips describe the recovery action.
 
 ## Runtime design
 
@@ -44,16 +46,24 @@ layout block. This reuses the existing status view, command loop, confirmation
 overlay, theme, notifications, and polling lifecycle.
 
 The status view polls `tailscale status --json` on initialization and every five
-seconds. It refreshes immediately after `up` or `down`. JSON parsing and backend
-state classification live in a dependency-free helper module so malformed or
-schema-invalid output becomes an error state rather than breaking the status
-mod.
+seconds. It refreshes immediately after a successful `up` or `down`. JSON
+parsing and backend state classification live in a dependency-free helper
+module so malformed or schema-invalid output becomes an error state rather than
+breaking the status mod.
 
 Observed backend state, operation state, and the last action error are separate.
 Only one poll or action can run at a time. Starting an action increments a
 generation counter so any older poll result is discarded. Timer ticks that
 arrive during an action are coalesced into the post-action refresh. This prevents
 a stale poll from overwriting busy, error, or newly observed state.
+
+Busy and confirmation-pending states take visual precedence, followed by the
+last action error, then the observed backend state. An action failure keeps the
+error chip and sends a notification; it does not trigger an immediate refresh.
+The next successful authoritative poll clears the action error and restores the
+current ON/OFF/login display. While an action error is shown, clicking retries
+the action implied by the last successfully observed `Running` or `Stopped`
+state; other observed states remain disabled.
 
 The command runner uses `window().platform` and first tries the PATH command,
 then exact installation paths that commonly are not present in GUI application
@@ -77,15 +87,21 @@ notification.
 ## Command flow
 
 1. `Status.init` starts the initial status refresh and five-second timer.
-2. A click while ON creates a random, one-use token with a 15-second expiry and
-   opens `confirm` with command `codenav.tailscale-down:<token>`.
-3. The existing `nextCommand` loop accepts the command only when the token
+2. A click while ON creates a random, one-use token with a 60-second expiry,
+   marks confirmation as pending, and opens the `codenav` Tailscale confirmation
+   view with that token.
+3. Confirm emits `codenav.tailscale-down:<token>`. Cancel or Escape emits
+   `codenav.tailscale-cancel:<token>`. The view's own 60-second timer emits the
+   cancel command with an expired reason, closes the dialog, and shows feedback.
+   Multiple clicks cannot replace a pending token.
+4. The existing `nextCommand` loop accepts the down command only when the token
    matches and is unexpired, clears it before any asynchronous work, refreshes
-   status, and runs `down` only if the fresh state is still `Running`. Cancelling
-   leaves no reusable authority after the short expiry, and a command without
-   the unpredictable token cannot disconnect Tailscale.
-4. A click while OFF runs `up --timeout=10s` directly.
-5. Both operations set a busy state, execute once, refresh status, notify the
+   status, and runs `down` only if the fresh state is still `Running`. A rare
+   expiry race rejects the command with an explicit notification instead of
+   failing silently. A command without the unpredictable token cannot
+   disconnect Tailscale.
+5. A click while OFF runs `up --timeout=10s` directly.
+6. Both operations set a busy state, execute once, refresh status, notify the
    view, and report failures without changing unrelated status functionality.
 
 ## Distribution
@@ -109,6 +125,12 @@ shell installer:
 - Use `design/idea/install_keys.py` to add only missing keys, preserve conflicts,
   and create timestamped backups before changes.
 
+`install_keys.py` is updated as part of this feature to accept both Herdr action
+forms: strings and typed objects containing a non-empty string `command` plus an
+optional object `args`. It preserves object values without normalization. The
+existing invalid-file protection remains in place, and a regression test covers
+merging into a user file that already contains typed commands.
+
 The Windows installer requires Python 3. It resolves `py -3`, `python3`, then
 `python`, and fails with an actionable message when none is available. It runs
 `design/idea/sync_ui.py --check` before copying, exactly like `install.sh`.
@@ -121,7 +143,10 @@ the Windows Tailscale client locally.
 
 - Add Node built-in tests for every recognized backend state, malformed and
   schema-invalid JSON, platform candidate lists, launch rejection versus
-  non-zero fallback, stale generation rejection, and error sanitization.
+  non-zero fallback, stale generation rejection, action-error recovery,
+  confirmation confirm/cancel/expiry, and error sanitization.
+- Extend the shortcut installer test with valid typed-command objects and
+  invalid binding objects.
 - Run `herdr-app check` for the modified `codenav` mod.
 - Run `python3 design/idea/sync_ui.py --check` and
   `node --experimental-vm-modules design/idea/check_system.mjs`.
