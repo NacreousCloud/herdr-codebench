@@ -9,11 +9,20 @@ import tempfile
 from datetime import datetime
 
 
+def valid_action(action):
+    return isinstance(action, str) or (
+        isinstance(action, dict)
+        and isinstance(action.get("command"), str)
+        and bool(action["command"])
+        and ("args" not in action or isinstance(action["args"], dict))
+    )
+
+
 def load(path):
     document = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(document, dict) or any(
         not isinstance(section, dict)
-        or any(not isinstance(key, str) or not isinstance(action, str) for key, action in section.items())
+        or any(not isinstance(key, str) or not valid_action(action) for key, action in section.items())
         for section in document.values()
     ):
         raise ValueError(f"Invalid key bindings: {path}")
