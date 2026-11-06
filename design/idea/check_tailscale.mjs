@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 
 import {
   TailscaleModel,
@@ -145,4 +146,77 @@ const finalPoll = model.beginPoll();
 model.applyPoll(finalPoll, { kind: "off", backend: "Stopped" });
 assert.deepEqual(model.view(), { kind: "off", backend: "Stopped" });
 
-console.log("PASS Tailscale parsing, runner, async state and authorization");
+const root = new URL("../../", import.meta.url);
+const readUiSource = async path => {
+  try { return await readFile(new URL(path, root), "utf8"); }
+  catch (error) {
+    if (error?.code === "ENOENT") return "";
+    throw error;
+  }
+};
+const [mainSource, statusSource, confirmSource] = await Promise.all([
+  readUiSource("mods/codenav/main.js"),
+  readUiSource("mods/codenav/status.js"),
+  readUiSource("mods/codenav/tailscale-confirm.js"),
+]);
+
+assert.match(mainSource, /import TailscaleConfirm from "\.\/tailscale-confirm\.js";/,
+  "main imports the dedicated Tailscale confirmation view");
+assert.match(mainSource, /tailscaleconfirm:\s*TailscaleConfirm/,
+  "main registers the tailscaleconfirm view key");
+
+assert.match(statusSource, /import \{[^}]*\bexec\b[^}]*\bwindow\b[^}]*\} from "herdr";/s,
+  "status imports local exec and window platform APIs");
+for (const helper of ["parseStatus", "createRunner", "sanitizeError", "TailscaleModel"]) {
+  assert.match(statusSource, new RegExp(`\\b${helper}\\b`), `status uses the existing ${helper} API`);
+}
+assert.match(statusSource, /createRunner\(exec,\s*window\(\)\.platform\)/,
+  "status initializes the shared runner with local exec and the current platform");
+assert.doesNotMatch(statusSource, /exec\([^)]*tailscale/i,
+  "status never bypasses the shared runner with a direct Tailscale exec");
+assert.match(statusSource, /\["status",\s*"--json"\]/,
+  "status polls the authoritative JSON status");
+assert.match(statusSource, /cx\.timer\.every\(5_?000/,
+  "status polls every five seconds");
+assert.match(statusSource, /shared\("layout"\)\s*===\s*"codebench"/,
+  "the Tailscale chip is Codebench-only");
+assert.match(statusSource, /state\.backend\s*===\s*"Starting"[\s\S]*?Tailscale: Starting/,
+  "the disabled Starting backend has an accurate full tooltip");
+assert.match(statusSource, /view:\s*"tailscaleconfirm"[\s\S]*?modal:\s*true/,
+  "the Running click opens a modal codenav confirmation view");
+assert.match(statusSource, /tailscale-down:/,
+  "status handles token-scoped disconnect commands");
+assert.match(statusSource, /tailscale-cancel:/,
+  "status handles token-scoped cancellation commands");
+const downMethod = statusSource.slice(statusSource.indexOf("confirmTailscaleDown("), statusSource.indexOf("cancelTailscaleDown("));
+assert.ok(downMethod.indexOf("consumeDisconnect(") >= 0 && downMethod.indexOf("consumeDisconnect(") < downMethod.indexOf("cx.spawn("),
+  "disconnect authorization is consumed synchronously before async work starts");
+assert.ok(downMethod.indexOf("readTailscaleStatus()") > downMethod.indexOf("cx.spawn("),
+  "disconnect performs an authoritative refresh after consuming authorization");
+assert.match(downMethod, /if \(observed\.backend !== "Running"\) \{[\s\S]*?return;[\s\S]*?\}[\s\S]*?\["down"\]/,
+  "disconnect returns without running down unless the fresh state is Running");
+assert.match(statusSource, /\["up",\s*"--timeout=10s"\]/,
+  "Stopped click uses the bounded direct up action");
+
+assert.match(confirmSource, /this\.focus\s*=\s*cx\.focus_handle\(\);[\s\S]*?this\.focus\.focus\(\)/,
+  "confirmation creates and focuses its own focus handle");
+assert.match(confirmSource, /this\.done\s*=\s*false/,
+  "confirmation owns a local completion guard");
+assert.match(confirmSource, /if\s*\(this\.done\)\s*return/,
+  "confirmation ignores duplicate completion paths");
+assert.match(confirmSource, /run\(`codenav\.\$\{command\}:\$\{this\.token\}`\)/,
+  "confirmation emits token-scoped codenav commands");
+assert.match(confirmSource, /confirm\(\)\s*\{\s*this\.finish\("tailscale-down"\);\s*\}/,
+  "Confirm selects the token-scoped down command");
+assert.match(confirmSource, /cancel\(\)\s*\{\s*this\.finish\("tailscale-cancel"\);\s*\}/,
+  "Cancel and Escape select the token-scoped cancel command");
+assert.match(confirmSource, /e\.(?:key|keystroke)\s*===\s*"escape"[\s\S]*?cancel/,
+  "Escape follows the cancellation path");
+assert.match(confirmSource, /cx\.timer\.after\(60_?000,[\s\S]*?cancel[\s\S]*?notify/,
+  "a 60-second Herdr timer cancels and notifies expiration");
+assert.match(confirmSource, /closeOverlay\(/,
+  "every completion path closes the confirmation overlay");
+assert.equal([...confirmSource.matchAll(/closeOverlay\(/g)].length, 1,
+  "the guarded completion funnel contains exactly one overlay close");
+
+console.log("PASS Tailscale parsing, runner, async state, authorization and Codebench UI contracts");

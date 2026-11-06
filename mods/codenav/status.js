@@ -6,9 +6,10 @@
 // `nav-back` / `nav-forward`, and
 // `open:<absolute path>[:line]` (herdr-app do codenav.open:/repo/src/a.go:42).
 import { div } from "gpui-kit";
+import { randomUUID } from "crypto";
 import { T, lang, setLang } from "./i18n.js";
 import { h_flex } from "gpui-base";
-import { theme, nextCommand, focused, run, shared, setShared, agents, openOverlay, hc, layout, notify } from "herdr";
+import { theme, nextCommand, focused, run, shared, setShared, agents, openOverlay, hc, layout, notify, exec, window } from "herdr";
 import { showTerminalFiles } from "./termfiles.js";
 import { closeTab, tabBack, tabForward, stepTab, routeEditor } from "./tabs.js";
 import { toggleTool, toggleAllTools, hideActiveTool, moveTool, arrange, savedSides, openToolSettings, TOOLS } from "./tools.js";
@@ -21,6 +22,7 @@ import { isIdea, uiSize, ideaUI } from "./idea-design.js";
 import { openIdeaSettings } from "./settings.js";
 import { recordLocation } from "./locations.js";
 import { syncCaffeinate, stopCaffeinate, caffeinateMode, setCaffeinateMode, awake, working } from "./caffeinate.js";
+import { parseStatus, createRunner, sanitizeError, TailscaleModel } from "./tailscale.js";
 
 // Keys bound in keys.json's terminal section (programs in Kitty keyboard mode
 // would get them otherwise): what each does in the shown layout.
@@ -82,6 +84,165 @@ const CAFFEINATE_TIP = {
 };
 
 export default class Status {
+  async runTailscale(args) {
+    const result = await this.tailscaleRunner(args);
+    if (result.code !== 0) {
+      throw new Error(result.stderr?.trim() || result.stdout?.trim() || `tailscale ${args.join(" ")} exited with code ${result.code}`);
+    }
+    return result;
+  }
+
+  async readTailscaleStatus() {
+    return parseStatus((await this.runTailscale(["status", "--json"])).stdout);
+  }
+
+  pollTailscale(cx, fromTimer = false) {
+    if (this.tailscale.busy) {
+      if (fromTimer) this.tailscalePollPending = true;
+      return;
+    }
+    const generation = this.tailscale.beginPoll();
+    if (generation === null) return;
+    cx.spawn(async (cx) => {
+      try {
+        const observed = await this.readTailscaleStatus();
+        if (this.tailscale.applyPoll(generation, observed)) cx.notify();
+      } catch (error) {
+        if (this.tailscale.failPoll(generation, sanitizeError(error))) cx.notify();
+      }
+    });
+  }
+
+  finishTailscaleAction(cx, refresh) {
+    const deferred = this.tailscalePollPending;
+    this.tailscalePollPending = false;
+    if (refresh || deferred) this.pollTailscale(cx);
+  }
+
+  failTailscaleAction(generation, action, error, cx) {
+    const message = sanitizeError(error);
+    if (this.tailscale.failAction(generation, message)) {
+      notify({
+        title: action === "down" ? "Could not disconnect Tailscale" : "Could not connect Tailscale",
+        body: message,
+        level: "error",
+      });
+      cx.notify();
+    }
+    this.finishTailscaleAction(cx, false);
+  }
+
+  startTailscaleUp(cx) {
+    const generation = this.tailscale.beginAction("up");
+    if (generation === null) return;
+    cx.notify();
+    cx.spawn(async (cx) => {
+      try {
+        await this.runTailscale(["up", "--timeout=10s"]);
+        if (this.tailscale.completeAction(generation)) {
+          cx.notify();
+          this.finishTailscaleAction(cx, true);
+        }
+      } catch (error) {
+        this.failTailscaleAction(generation, "up", error, cx);
+      }
+    });
+  }
+
+  openTailscaleConfirmation(cx) {
+    const token = randomUUID();
+    if (!this.tailscale.requestDisconnect(token, 60_000)) return;
+    cx.notify();
+    openOverlay({
+      mod: "codenav",
+      props: { view: "tailscaleconfirm", token },
+      kind: "dialog",
+      modal: true,
+      width: 420,
+      height: 190,
+    });
+  }
+
+  tailscaleClick(cx) {
+    if (this.tailscale.busy || this.tailscale.pendingDisconnect) return;
+    if (this.tailscale.observed?.backend === "Running") this.openTailscaleConfirmation(cx);
+    else if (this.tailscale.observed?.backend === "Stopped") this.startTailscaleUp(cx);
+  }
+
+  applyCheckedTailscaleStatus(generation, observed, cx) {
+    if (!this.tailscale.completeAction(generation)) return;
+    const poll = this.tailscale.beginPoll();
+    if (poll !== null) this.tailscale.applyPoll(poll, observed);
+    this.tailscalePollPending = false;
+    cx.notify();
+  }
+
+  confirmTailscaleDown(token, cx) {
+    const authorization = this.tailscale.consumeDisconnect(token);
+    if (!authorization.ok) {
+      notify({
+        title: "Tailscale disconnect not authorized",
+        body: authorization.reason === "expired" ? "The disconnect confirmation expired. Try again." : "The disconnect confirmation is no longer valid. Try again.",
+        level: "warning",
+      });
+      return;
+    }
+    const generation = this.tailscale.beginAction("down");
+    if (generation === null) return;
+    cx.spawn(async (cx) => {
+      try {
+        const observed = await this.readTailscaleStatus();
+        if (observed.backend !== "Running") {
+          this.applyCheckedTailscaleStatus(generation, observed, cx);
+          return;
+        }
+        await this.runTailscale(["down"]);
+        if (this.tailscale.completeAction(generation)) {
+          cx.notify();
+          this.finishTailscaleAction(cx, true);
+        }
+      } catch (error) {
+        this.failTailscaleAction(generation, "down", error, cx);
+      }
+    });
+  }
+
+  cancelTailscaleDown(token) {
+    const pending = this.tailscale.pendingDisconnect;
+    if (!this.tailscale.cancelDisconnect(token) && pending && pending.token !== token) {
+      notify({ title: "Tailscale confirmation was not cancelled", body: "The confirmation token did not match.", level: "warning" });
+    }
+  }
+
+  tailscaleChip(t) {
+    const state = this.tailscale.view();
+    const observed = this.tailscale.observed;
+    const retry = !this.tailscale.busy && !this.tailscale.pendingDisconnect && ["Running", "Stopped"].includes(observed?.backend);
+    let label, color, tip;
+    if (state.kind === "on") {
+      label = "● TS ON"; color = t.ansi2; tip = "Tailscale: Running\nClick to disconnect.";
+    } else if (state.kind === "off") {
+      label = "○ TS OFF"; color = t.muted; tip = "Tailscale: Stopped\nClick to connect.";
+    } else if (state.kind === "busy") {
+      label = "◌ TS …"; color = t.ansi3;
+      tip = state.backend === "Starting" ? "Tailscale: Starting"
+        : state.operation === "confirm" ? "Tailscale: waiting for disconnect confirmation"
+          : state.operation === "checking" ? "Tailscale: checking local status"
+            : `Tailscale: ${state.operation === "up" ? "connecting" : "disconnecting"}`;
+    } else if (state.kind === "login") {
+      label = "! TS LOGIN"; color = t.ansi3;
+      tip = `Tailscale: ${state.backend}\nOpen the native Tailscale client to sign in or approve this machine.`;
+    } else {
+      label = "! TS"; color = t.ansi1;
+      tip = `Tailscale error: ${sanitizeError(state.error)}`;
+      if (retry) tip += `\nLast known state: ${observed.backend}. Click to retry.`;
+    }
+    let chip = h_flex().id("cn-st-tailscale").h(20).px(6).items_center().rounded(4).flex_none()
+      .text_size(uiSize(10.5)).text_color(color).tooltip(tip).child(label);
+    if (retry) chip = chip.cursor_pointer().hover((e) => e.bg(t.hover).text_color(t.foreground)).on_click((_e, cx) => this.tailscaleClick(cx));
+    return chip;
+  }
+
   caffeinateChip(t) {
     const mode = caffeinateMode(), on = awake();
     const state = on ? T("Mac stays awake") : T("Mac may sleep");
@@ -97,11 +258,16 @@ export default class Status {
 
   init(_p, cx) {
     this.servers = [];
+    this.tailscale = new TailscaleModel();
+    this.tailscaleRunner = createRunner(exec, window().platform);
+    this.tailscalePollPending = false;
     cx.spawn(async (cx) => {
       for (;;) {
         const c = await nextCommand();
-        if (c === "shift-tap") { shiftTap(this); continue; }
-        if (c === "review") showReview();
+        if (c.startsWith("tailscale-down:")) this.confirmTailscaleDown(c.slice("tailscale-down:".length), cx);
+        else if (c.startsWith("tailscale-cancel:")) this.cancelTailscaleDown(c.slice("tailscale-cancel:".length));
+        else if (c === "shift-tap") { shiftTap(this); continue; }
+        else if (c === "review") showReview();
         else if (c.startsWith("open:")) openPath(c.slice(5));
         else if (c === "terminal-files") showTerminalFiles(focused()?.terminal);
         else if (c === "close-tab") closeTab();
@@ -151,6 +317,8 @@ export default class Status {
     };
     cx.timer.after(500, (cx) => poll(cx));
     cx.timer.every(4000, (cx) => poll(cx));
+    this.pollTailscale(cx);
+    cx.timer.every(5_000, (cx) => this.pollTailscale(cx, true));
   }
 
   // The layout is going (switched away, closed): the Mac may sleep again.
@@ -168,6 +336,7 @@ export default class Status {
     const tip = this.servers === null ? T("LSP bridge not running (starts when a source file opens)")
       : servers.length ? servers.map((s) => `${s.command} · ${s.state}${s.busy?.length ? ` (${s.busy.join(", ")})` : ""} · ${s.root}`).join("\n") : T("No language server running");
     return ideaUI(h_flex()).id("codenav-status").size_full().pl(8).pr(14).gap(10).items_center().justify_end().bg(isIdea() ? t.canvas : t.chrome).when(!isIdea(), (e) => e.border_t(1).border_color(t.border)).text_size(uiSize(12)).text_color(t.muted)
+      .when(shared("layout") === "codebench", (e) => e.child(this.tailscaleChip(t)))
       .child(h_flex().id("cn-st-lsp").gap(5).items_center().tooltip(tip)
         .child(div().size(7).rounded_full().bg(this.servers === null ? t.dim : busy ? t.ansi3 : servers.length ? t.ansi2 : t.dim))
         .child(servers.length ? servers.map((s) => s.command).filter((v, i, a) => a.indexOf(v) === i).join(" · ") : "LSP"))

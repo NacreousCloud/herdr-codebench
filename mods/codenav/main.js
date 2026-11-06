@@ -28,12 +28,13 @@ import Agents from "./agents.js";
 import NewTerminal from "./newterminal.js";
 import RecentFiles from "./recent.js";
 import DesignPreview from "./design-preview.js";
+import TailscaleConfirm from "./tailscale-confirm.js";
 
 const VIEWS = { code: CodeView, review: Review, tabs: Tabs, status: Status, tabmenu: TabMenu, termfiles: TermFiles, termmenu: TermMenu, panehead: PaneHead,
   stripe: Stripe, notifications: Notifications, toolmenu: ToolMenu, toolempty: ToolEmpty, toolheader: ToolHeader, islandbottom: IslandBottom, toolbar: Toolbar, structure: Structure, problems: Problems, crumbs: Crumbs,
   projects: Projects, everywhere: Everywhere, runmenu: RunMenu, runconfigs: RunConfigs, httpenv: HttpEnvMenu,
   settings: IdeaSettings, agents: Agents, newterminal: NewTerminal, tablist: TabList,
-  recent: RecentFiles, designpreview: DesignPreview };
+  recent: RecentFiles, designpreview: DesignPreview, tailscaleconfirm: TailscaleConfirm };
 
 export default class CodeNav extends View {
   init(initProps, cx) {
