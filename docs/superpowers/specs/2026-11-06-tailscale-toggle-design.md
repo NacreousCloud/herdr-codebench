@@ -31,9 +31,10 @@ tooltip carries the full state:
 - `! TS` in the error color when the CLI is unavailable, its output is invalid,
   or a command fails. The tooltip contains a bounded, sanitized error.
 
-Clicking ON opens a dedicated `codenav` confirmation dialog. It has explicit
-Confirm, Cancel, Escape, and 60-second expiry paths; every path revokes the
-one-use authorization described below. Confirming runs `tailscale down`.
+Clicking ON opens a dedicated modal `codenav` confirmation dialog. The modal
+cannot be dismissed by clicking outside it. It has explicit Confirm, Cancel,
+Escape, and 60-second expiry paths; every path revokes the one-use authorization
+described below. Confirming runs `tailscale down`.
 Clicking OFF runs `tailscale up --timeout=10s` directly. The chip ignores
 additional clicks while confirmation or an operation is in progress.
 `NeedsLogin`, `NeedsMachineAuth`, `NoState`, unknown states, and transitional
@@ -63,7 +64,9 @@ error chip and sends a notification; it does not trigger an immediate refresh.
 The next successful authoritative poll clears the action error and restores the
 current ON/OFF/login display. While an action error is shown, clicking retries
 the action implied by the last successfully observed `Running` or `Stopped`
-state; other observed states remain disabled.
+state. A `Running` retry always re-enters the same confirmation and token flow;
+only a `Stopped` retry runs `up` directly. Other observed states remain
+disabled.
 
 The command runner uses `window().platform` and first tries the PATH command,
 then exact installation paths that commonly are not present in GUI application
@@ -89,7 +92,7 @@ notification.
 1. `Status.init` starts the initial status refresh and five-second timer.
 2. A click while ON creates a random, one-use token with a 60-second expiry,
    marks confirmation as pending, and opens the `codenav` Tailscale confirmation
-   view with that token.
+   view with that token and `modal: true`.
 3. Confirm emits `codenav.tailscale-down:<token>`. Cancel or Escape emits
    `codenav.tailscale-cancel:<token>`. The view's own 60-second timer emits the
    cancel command with an expired reason, closes the dialog, and shows feedback.
