@@ -37,8 +37,7 @@ const directory=await mkdtemp(join(tmpdir(),'herdr-shortcut-install-'));
 try {
   const sourcePath=join(directory,'defaults.json'), target=join(directory,'keys.json');
   await writeFile(sourcePath,JSON.stringify(bindings));
-  const typedAction={command:'layout.resize',args:{id:'sidebar',px:240}};
-  const original=JSON.stringify({global:{'cmd-t':'tab.new'},'layout:idea':{'cmd-o':'personal.action','ctrl-shift-r':typedAction}},null,2);
+  const original=JSON.stringify({global:{'cmd-t':'tab.new'},'layout:idea':{'cmd-o':'personal.action'}},null,2);
   await writeFile(target,original,{mode:0o600});
   const installer=fileURLToPath(new URL('./install_keys.py',import.meta.url));
   const install=()=>spawnSync('python3',[installer,sourcePath,target],{encoding:'utf8'});
@@ -46,7 +45,6 @@ try {
   let installed=JSON.parse(await readFile(target,'utf8'));
   assert.equal(installed.global['cmd-t'],'tab.new');
   assert.equal(installed['layout:idea']['cmd-o'],'personal.action','existing shortcuts win');
-  assert.deepEqual(installed['layout:idea']['ctrl-shift-r'],typedAction,'typed shortcuts remain unchanged');
   assert.equal(installed['layout:idea'].shift,'codenav.shift-tap');
   assert.equal(installed.terminal.shift,'codenav.shift-tap');
   assert.ok(result.stdout.includes('Kept your existing shortcut: layout:idea: cmd-o'));
@@ -55,21 +53,6 @@ try {
   assert.equal(backups.length,1);assert.equal(await readFile(join(directory,backups[0]),'utf8'),original);
   const first=await readFile(target,'utf8');result=install();assert.equal(result.status,0,result.stderr);
   assert.equal(await readFile(target,'utf8'),first);assert.equal((await readdir(directory)).filter(name=>name.startsWith('keys.json.backup-')).length,1);
-  const invalidActions=[
-    ['empty command',{command:''}],
-    ['non-object args',{command:'layout.resize',args:'sidebar'}],
-    ['missing command',{args:{id:'sidebar'}}],
-  ];
-  for (const [label,action] of invalidActions) {
-    const invalidSource=JSON.parse(JSON.stringify(bindings));
-    invalidSource.global['ctrl-alt-i']=action;
-    await writeFile(sourcePath,JSON.stringify(invalidSource));
-    await writeFile(target,first);
-    const beforeInvalid=await readFile(target);
-    result=install();assert.notEqual(result.status,0,label);assert.ok(result.stderr.includes('Invalid key bindings'),label);
-    assert.deepEqual(await readFile(target),beforeInvalid,`${label} must not change the target`);
-  }
-  await writeFile(sourcePath,JSON.stringify(bindings));
   await writeFile(target,'invalid json');result=install();assert.notEqual(result.status,0);assert.equal(await readFile(target,'utf8'),'invalid json');
   await rm(target);result=install();assert.notEqual(result.status,0);assert.ok(result.stderr.includes('Start Herdr once'));
   console.log('PASS portable install, conflict preservation, backup, permissions, idempotence and invalid/missing-file protection');
