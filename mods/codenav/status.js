@@ -165,6 +165,11 @@ export default class Status {
 
   tailscaleClick(cx) {
     if (this.tailscale.busy || this.tailscale.pendingDisconnect) return;
+    const state = this.tailscale.view();
+    if (state.kind === "error" && !this.tailscale.lastActionError) {
+      this.pollTailscale(cx);
+      return;
+    }
     if (this.tailscale.observed?.backend === "Running") this.openTailscaleConfirmation(cx);
     else if (this.tailscale.observed?.backend === "Stopped") this.startTailscaleUp(cx);
   }
@@ -217,7 +222,11 @@ export default class Status {
   tailscaleChip(t) {
     const state = this.tailscale.view();
     const observed = this.tailscale.observed;
-    const retry = !this.tailscale.busy && !this.tailscale.pendingDisconnect && ["Running", "Stopped"].includes(observed?.backend);
+    const stable = ["Running", "Stopped"].includes(observed?.backend);
+    const statusRetry = state.kind === "error" && !this.tailscale.lastActionError;
+    const actionRetry = state.kind === "error" && Boolean(this.tailscale.lastActionError) && stable;
+    const interactive = !this.tailscale.busy && !this.tailscale.pendingDisconnect
+      && (statusRetry || actionRetry || ["on", "off"].includes(state.kind));
     let label, color, tip;
     if (state.kind === "on") {
       label = "● TS ON"; color = t.ansi2; tip = "Tailscale: Running\nClick to disconnect.";
@@ -235,11 +244,12 @@ export default class Status {
     } else {
       label = "! TS"; color = t.ansi1;
       tip = `Tailscale error: ${sanitizeError(state.error)}`;
-      if (retry) tip += `\nLast known state: ${observed.backend}. Click to retry.`;
+      if (statusRetry) tip += "\nClick to retry status.";
+      else if (actionRetry) tip += `\nLast known state: ${observed.backend}. Click to retry.`;
     }
     let chip = h_flex().id("cn-st-tailscale").h(20).px(6).items_center().rounded(4).flex_none()
       .text_size(uiSize(10.5)).text_color(color).tooltip(tip).child(label);
-    if (retry) chip = chip.cursor_pointer().hover((e) => e.bg(t.hover).text_color(t.foreground)).on_click((_e, cx) => this.tailscaleClick(cx));
+    if (interactive) chip = chip.cursor_pointer().hover((e) => e.bg(t.hover).text_color(t.foreground)).on_click((_e, cx) => this.tailscaleClick(cx));
     return chip;
   }
 

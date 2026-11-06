@@ -160,6 +160,53 @@ const [mainSource, statusSource, confirmSource] = await Promise.all([
   readUiSource("mods/codenav/tailscale-confirm.js"),
 ]);
 
+const clickStart = statusSource.indexOf("  tailscaleClick(cx) {");
+const clickEnd = statusSource.indexOf("\n  applyCheckedTailscaleStatus(", clickStart);
+const chipStart = statusSource.indexOf("  tailscaleChip(t) {");
+const chipEnd = statusSource.indexOf("\n  caffeinateChip(", chipStart);
+assert.ok(clickStart >= 0 && clickEnd > clickStart && chipStart >= 0 && chipEnd > chipStart,
+  "status exposes the Tailscale chip interaction methods");
+const element = () => {
+  const target = { calls: [] };
+  const proxy = new Proxy(target, { get(object, name) {
+    if (name in object) return object[name];
+    return (...args) => { object.calls.push([name, ...args]); return proxy; };
+  } });
+  return proxy;
+};
+const StatusInteraction = new Function("h_flex", "uiSize", "sanitizeError", `return class {
+${statusSource.slice(clickStart, clickEnd)}
+${statusSource.slice(chipStart, chipEnd)}
+}`)(element, value => value ?? 13, sanitizeError);
+const exerciseErrorClick = ({ observed, lastActionError = null, pollError = null, error }) => {
+  const calls = { poll: 0, confirm: 0, up: 0 };
+  const status = new StatusInteraction();
+  status.tailscale = {
+    busy: null,
+    pendingDisconnect: null,
+    observed,
+    lastActionError,
+    pollError,
+    view: () => ({ kind: "error", error }),
+  };
+  status.pollTailscale = () => calls.poll++;
+  status.openTailscaleConfirmation = () => calls.confirm++;
+  status.startTailscaleUp = () => calls.up++;
+  const chip = status.tailscaleChip({ ansi1: "red", hover: "hover", foreground: "fg" });
+  const onClick = chip.calls.find(([name]) => name === "on_click")?.[1];
+  assert.equal(typeof onClick, "function", "error chips offer a retry action");
+  onClick({}, {});
+  return calls;
+};
+assert.deepEqual(exerciseErrorClick({ observed: { kind: "on", backend: "Running" }, pollError: "status unavailable", error: "status unavailable" }),
+  { poll: 1, confirm: 0, up: 0 }, "a poll error retry is read-only even with a stale Running observation");
+assert.deepEqual(exerciseErrorClick({ observed: { kind: "error", backend: "FutureState" }, error: "unsupported state" }),
+  { poll: 1, confirm: 0, up: 0 }, "a generic status error retry only refreshes status");
+assert.deepEqual(exerciseErrorClick({ observed: { kind: "on", backend: "Running" }, lastActionError: "down failed", error: "down failed" }),
+  { poll: 0, confirm: 1, up: 0 }, "a Running action error retry still requires confirmation");
+assert.deepEqual(exerciseErrorClick({ observed: { kind: "off", backend: "Stopped" }, lastActionError: "up failed", error: "up failed" }),
+  { poll: 0, confirm: 0, up: 1 }, "a Stopped action error retry still runs up");
+
 assert.match(mainSource, /import TailscaleConfirm from "\.\/tailscale-confirm\.js";/,
   "main imports the dedicated Tailscale confirmation view");
 assert.match(mainSource, /tailscaleconfirm:\s*TailscaleConfirm/,
