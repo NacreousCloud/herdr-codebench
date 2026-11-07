@@ -43,6 +43,22 @@ function shiftTap(self, now = Date.now()) {
   return false;
 }
 
+// Owned by this always-mounted status view so Cmd+Option+1 still works when
+// the optional tools column (and its activity bar) is hidden.
+function foldSpaces() {
+  const col = find(layout(), "sidebar");
+  if (!col) return;
+  const px = col.size?.px ?? Infinity, rail = px < 160;
+  if (col.hidden) {
+    run("layout.show", { id: "sidebar" });
+    if (rail) { setShared("sidebar.collapsed", false); run("layout.resize", { id: "sidebar", px: shared("sidebar.width") ?? 268 }); }
+    return;
+  }
+  if (!rail) setShared("sidebar.width", px);
+  setShared("sidebar.collapsed", !rail);
+  run("layout.resize", { id: "sidebar", px: rail ? (shared("sidebar.width") ?? 268) : window()?.platform === "macos" ? 76 : 44 });
+}
+
 async function termKey(key) {
   const c = TERM_KEYS[shared("layout")]?.[key];
   if (c === "terminal-files") showTerminalFiles(focused()?.terminal);
@@ -277,6 +293,7 @@ export default class Status {
         if (c.startsWith("tailscale-down:")) this.confirmTailscaleDown(c.slice("tailscale-down:".length), cx);
         else if (c.startsWith("tailscale-cancel:")) this.cancelTailscaleDown(c.slice("tailscale-cancel:".length));
         else if (c === "shift-tap") { shiftTap(this); continue; }
+        else if (c === "fold-spaces") foldSpaces();
         else if (c === "review") showReview();
         else if (c.startsWith("open:")) openPath(c.slice(5));
         else if (c === "terminal-files") showTerminalFiles(focused()?.terminal);

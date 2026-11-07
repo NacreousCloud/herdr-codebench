@@ -13,6 +13,23 @@ for (const section of ['layout:idea','layout:codebench','terminal']) assert.equa
 assert.equal(bindings.global.shift,undefined,'other layouts keep their own search behavior');
 assert.ok(Object.values(bindings).every(s=>!('shift shift' in s)),'no GPUI shift sequence: it waits for the second Shift without a time limit');
 const source=await readFile(new URL('../../mods/codenav/status.js',import.meta.url),'utf8');
+assert.equal(bindings['layout:codebench']['cmd-alt-1'],'codenav.fold-spaces','the always-mounted status view owns the spaces shortcut');
+const foldStart=source.indexOf('function foldSpaces()'),foldEnd=source.indexOf('async function termKey',foldStart);
+assert.ok(foldStart>=0&&foldEnd>foldStart,'status view defines the spaces fold action');
+const foldedRuns=[],foldedStore={'sidebar.width':346};
+let foldedLayout={id:'root',children:[{id:'sidebar',hidden:true,size:{px:346}}]};
+const foldedContext=vm.createContext({
+  layout:()=>foldedLayout,find:(node,id)=>node.id===id?node:(node.children??[]).map(child=>foldedContext.find(child,id)).find(Boolean),
+  run:(name,args)=>foldedRuns.push([name,args]),shared:key=>foldedStore[key],setShared:(key,value)=>{foldedStore[key]=value},
+  window:()=>({platform:'macos'}),
+});
+vm.runInContext(source.slice(foldStart,foldEnd)+';globalThis.foldSpaces=foldSpaces;',foldedContext);
+foldedContext.foldSpaces();
+assert.equal(JSON.stringify(foldedRuns.pop()),JSON.stringify(['layout.show',{id:'sidebar'}]),'a hidden spaces column comes back even when optional tools are absent');
+foldedLayout.children[0]={id:'sidebar',size:{px:346}};foldedContext.foldSpaces();
+assert.equal(JSON.stringify(foldedRuns.pop()),JSON.stringify(['layout.resize',{id:'sidebar',px:76}]));
+foldedLayout.children[0].size.px=76;foldedContext.foldSpaces();
+assert.equal(JSON.stringify(foldedRuns.pop()),JSON.stringify(['layout.resize',{id:'sidebar',px:346}]));
 const start=source.indexOf('const TERM_KEYS ='), end=source.indexOf('// Herdr\'s agent notifications',start);
 assert.ok(start>=0 && end>start);
 let layout='idea';const opened=[],sent=[];
@@ -37,7 +54,11 @@ const directory=await mkdtemp(join(tmpdir(),'herdr-shortcut-install-'));
 try {
   const sourcePath=join(directory,'defaults.json'), target=join(directory,'keys.json');
   await writeFile(sourcePath,JSON.stringify(bindings));
-  const original=JSON.stringify({global:{'cmd-t':'tab.new'},'layout:idea':{'cmd-o':'personal.action'}},null,2);
+  const original=JSON.stringify({
+    global:{'cmd-t':'tab.new'},
+    'layout:idea':{'cmd-o':'personal.action'},
+    'layout:codebench':{'cmd-alt-1':'activity.fold-spaces','cmd-alt-2':'personal.panel'},
+  },null,2);
   await writeFile(target,original,{mode:0o600});
   const installer=fileURLToPath(new URL('./install_keys.py',import.meta.url));
   const install=()=>spawnSync('python3',[installer,sourcePath,target],{encoding:'utf8'});
@@ -45,6 +66,9 @@ try {
   let installed=JSON.parse(await readFile(target,'utf8'));
   assert.equal(installed.global['cmd-t'],'tab.new');
   assert.equal(installed['layout:idea']['cmd-o'],'personal.action','existing shortcuts win');
+  assert.equal(installed['layout:codebench']['cmd-alt-1'],'codenav.fold-spaces','the retired default migrates to the always-mounted command owner');
+  assert.equal(installed['layout:codebench']['cmd-alt-2'],'personal.panel','unrelated custom shortcuts still win');
+  assert.ok(result.stdout.includes('Migrated 1 key binding'));
   assert.equal(installed['layout:idea'].shift,'codenav.shift-tap');
   assert.equal(installed.terminal.shift,'codenav.shift-tap');
   assert.ok(result.stdout.includes('Kept your existing shortcut: layout:idea: cmd-o'));

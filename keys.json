@@ -24,7 +24,7 @@
     "ctrl-alt-2": "activity.view-files",
     "ctrl-alt-5": "activity.view-graph",
     "ctrl-alt-6": "activity.view-running",
-    "cmd-alt-1": "activity.fold-spaces",
+    "cmd-alt-1": "codenav.fold-spaces",
     "cmd-alt-2": "layout.toggle:tools",
     "cmd-alt-3": "layout.toggle:editor-area",
     "cmd-alt-4": "layout.toggle:terminal-panel",

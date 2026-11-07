@@ -8,6 +8,10 @@ import sys
 import tempfile
 from datetime import datetime
 
+MIGRATIONS = {
+    ("layout:codebench", "cmd-alt-1", "activity.fold-spaces"): "codenav.fold-spaces",
+}
+
 
 def load(path):
     document = json.loads(path.read_text(encoding="utf-8"))
@@ -24,7 +28,7 @@ def install(source, target):
     if not target.is_file():
         raise ValueError(f"Start Herdr once to create {target}, then run install.sh again.")
     defaults, current = load(source), load(target)
-    added, conflicts = 0, []
+    added, migrated, conflicts = 0, 0, []
     for name, bindings in defaults.items():
         section = current.setdefault(name, {})
         for key, action in bindings.items():
@@ -32,8 +36,12 @@ def install(source, target):
                 section[key] = action
                 added += 1
             elif section[key] != action:
-                conflicts.append(f"{name}: {key}")
-    if added:
+                if MIGRATIONS.get((name, key, section[key])) == action:
+                    section[key] = action
+                    migrated += 1
+                else:
+                    conflicts.append(f"{name}: {key}")
+    if added or migrated:
         backup = target.with_name(f"{target.name}.backup-{datetime.now():%Y%m%d-%H%M%S-%f}")
         shutil.copy2(target, backup)
         fd, temporary = tempfile.mkstemp(prefix=f".{target.name}.", dir=target.parent)
@@ -45,7 +53,12 @@ def install(source, target):
         finally:
             if os.path.exists(temporary):
                 os.unlink(temporary)
-        print(f"Added {added} key bindings. Backup: {backup}")
+        changes = []
+        if added:
+            changes.append(f"Added {added} key binding{'s' if added != 1 else ''}")
+        if migrated:
+            changes.append(f"Migrated {migrated} key binding{'s' if migrated != 1 else ''}")
+        print(f"{'. '.join(changes)}. Backup: {backup}")
     else:
         print("Key bindings are already installed.")
     for conflict in conflicts:
